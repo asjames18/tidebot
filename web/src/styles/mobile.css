@@ -3,6 +3,7 @@
 .mobile-nav-btn { display: none; }
 .mobile-scrim { display: none; }
 .mobile-only-btn { display: none; }
+.sheet-handle { display: none; }
 
 @media (max-width: 900px) {
   /* Dynamic viewport height so the composer is not hidden behind mobile browser chrome. */
@@ -113,8 +114,44 @@
   .jump-btn { width: 40px; height: 40px; bottom: calc(14px + env(safe-area-inset-bottom)); }
   .cite-chip { padding: 5px 10px; }
 
-  /* Modals fit small screens. */
+  /* Modals fit small screens with native bottom-sheet presentation. */
+  .sheet-handle {
+    display: block;
+    width: 38px;
+    height: 4.5px;
+    border-radius: 99px;
+    background: var(--color-border-primary);
+    margin: 8px auto 2px;
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
   .modal { width: calc(100vw - 20px); max-height: 92dvh; overflow-y: auto; }
+  @media (max-width: 640px) {
+    .modal-root:not(:has(.search-modal)) {
+      align-items: flex-end;
+      padding: 0;
+    }
+    .modal-root:not(:has(.search-modal)) .modal {
+      width: 100vw;
+      max-width: 100vw;
+      border-radius: 20px 20px 0 0;
+      border-bottom: 0;
+      border-left: 0;
+      border-right: 0;
+      max-height: 90dvh;
+      animation: sheetSlideUp 220ms var(--ease-out);
+    }
+  }
+  @keyframes sheetSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* Tactile touch feedback on tap */
+  button:active, .icon-btn:active, .cfg-btn:active, .byom-model-card:active, .bot-row:active {
+    transform: scale(0.98);
+    transition: transform 60ms ease-out;
+  }
 
   /* Empty-chat hero scales down. */
   .empty-chat { padding: 20px 10px; }

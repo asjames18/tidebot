@@ -30,6 +30,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
     <div className="modal-root">
       <div className="modal-scrim" onMouseDown={onClose} />
       <div ref={ref} className={`modal ${className ?? ''}`} role="dialog" aria-modal="true" aria-label={label} style={top !== undefined ? { marginTop: top } : undefined}>
+        <div className="sheet-handle" aria-hidden="true" />
         {children}
       </div>
     </div>,
