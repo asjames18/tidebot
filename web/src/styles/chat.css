@@ -362,6 +362,7 @@
 }
 
 /* ---------- composer & footer.design telemetry bar ---------- */
+.composer-quick-bar { display: none; }
 .composer-area { flex-shrink: 0; padding: 0 16px 12px; position: relative; }
 .composer {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 8px;

@@ -154,6 +154,58 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           ))}
         </div>
       )}
+      {!hasText && !matchingSlash.length && (
+        <div className="composer-quick-bar" role="toolbar" aria-label="Quick mobile shortcuts">
+          <button
+            type="button"
+            className={`composer-quick-chip${bot.effort === 'low' ? ' is-active' : ''}`}
+            onClick={() => {
+              configApi.updateBot(bot.id, { effort: 'low' }).then(({ bot: updated }) => {
+                useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
+              }).catch(() => {});
+            }}
+            title="Fast Mode: Low reasoning latency"
+          >
+            <span>⚡ Fast</span>
+          </button>
+          <button
+            type="button"
+            className={`composer-quick-chip${bot.effort === 'high' ? ' is-active' : ''}`}
+            onClick={() => {
+              configApi.updateBot(bot.id, { effort: 'high' }).then(({ bot: updated }) => {
+                useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
+              }).catch(() => {});
+            }}
+            title="Deep Reasoning Mode"
+          >
+            <span>🧠 Deep CoT</span>
+          </button>
+          <button
+            type="button"
+            className="composer-quick-chip composer-quick-chip--free"
+            onClick={() => useConfigUI.getState().openAppSettings('models')}
+            title="OpenRouter Free Models Catalog"
+          >
+            <span>🎁 Free Models</span>
+          </button>
+          <button
+            type="button"
+            className="composer-quick-chip"
+            onClick={() => useConfigUI.getState().setView('tasks')}
+            title="Switch to Tasks View"
+          >
+            <span>📋 Tasks</span>
+          </button>
+          <button
+            type="button"
+            className="composer-quick-chip"
+            onClick={() => setModal('apps')}
+            title="Open Apps Marketplace"
+          >
+            <span>🔌 Apps</span>
+          </button>
+        </div>
+      )}
       <div className={`composer${multiline ? ' is-multiline' : ''}`}>
         <div className="composer__left">
           <span className="composer__plus-anchor">
