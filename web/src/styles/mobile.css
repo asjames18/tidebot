@@ -419,6 +419,17 @@ button { touch-action: manipulation; }
   .viewer__stage { padding: 0 6px; }
   .viewer__close { width: 44px; height: 44px; }
   .viewer__status { display: none; }
+  .viewer__bar {
+    max-width: calc(100vw - 20px);
+    margin: 8px 10px calc(12px + env(safe-area-inset-bottom));
+    padding: 6px 10px 6px 14px;
+    font-size: 12.5px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .viewer__bar-text { font-size: 12px; }
+  .viewer__bar .btn { min-height: 34px; padding: 0 12px; font-size: 12px; }
 
   /* Sign-in fits small screens. */
   .signin {
