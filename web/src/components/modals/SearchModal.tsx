@@ -12,7 +12,7 @@ import { Modal } from './Modal';
 
 type PaletteItem = {
   key: string;
-  section: 'Operators' | 'Switch Model' | 'Messages' | 'Memories' | 'Tasks' | 'TideOS Commands';
+  section: 'Operators' | 'Switch Model' | 'Messages' | 'Memories' | 'Tasks' | 'TideBot Commands';
   run: () => void;
   render: () => React.ReactNode;
 };
@@ -213,13 +213,13 @@ export function SearchModal() {
           close();
         },
       },
-      { id: 'app-settings', title: 'TideOS Studio Settings & Computer', sub: 'Theme, shader engine, cloud computer screens, and tool permissions', keywords: 'settings preferences computer permissions theme dark light', run: () => { close(); useConfigUI.getState().openAppSettings(); } },
+      { id: 'app-settings', title: 'TideBot Studio Settings & Computer', sub: 'Theme, shader engine, cloud computer screens, and tool permissions', keywords: 'settings preferences computer permissions theme dark light', run: () => { close(); useConfigUI.getState().openAppSettings(); } },
     ];
     for (const act of actions) {
       if (!needle || `${act.title} ${act.sub} ${act.keywords}`.toLowerCase().includes(needle)) {
         out.push({
           key: `act:${act.id}`,
-          section: 'TideOS Commands',
+          section: 'TideBot Commands',
           run: act.run,
           render: () => (
             <>
@@ -246,7 +246,7 @@ export function SearchModal() {
   let lastSection: string | null = null;
 
   return (
-    <Modal onClose={close} className="search-modal" label="TideOS Command Palette">
+    <Modal onClose={close} className="search-modal" label="TideBot Command Palette">
       <div className="search-modal__field">
         <span className="search-modal__icon"><Icon name="search" size={18} opacity={0.56} /></span>
         <input

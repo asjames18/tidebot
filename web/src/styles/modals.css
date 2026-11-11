@@ -101,7 +101,7 @@
 .apps-empty { padding: 40px 0; text-align: center; font-size: 14px; color: var(--color-text-tertiary); }
 .menu__header { padding: 6px 10px 4px; font-size: 12px; line-height: 16px; color: var(--color-text-tertiary); }
 
-/* ---------- sign-in (TideOS Shader Hero Stage) ---------- */
+/* ---------- sign-in (TideBot Shader Hero Stage) ---------- */
 .signin { position: relative; display: flex; align-items: center; justify-content: center; height: 100%; background: #05070E; overflow: hidden; }
 .signin__shader { position: absolute; inset: 0; width: 100%; height: 100%; }
 .signin__chrome {

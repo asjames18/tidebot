@@ -1,4 +1,4 @@
-/* TideOS Design Tokens — Alabaster Light & Obsidian Glass Dark (styles.refero.design + scrolltide.co) */
+/* TideBot Design Tokens — Alabaster Light & Obsidian Glass Dark (styles.refero.design + scrolltide.co) */
 :root {
   --color-bg-chrome: #F6F8FC;
   --color-bg-sidebar: #EEF2F9;
@@ -82,7 +82,7 @@
   --bot-on-action: #FFFFFF;
 }
 
-/* ---------- Obsidian Glass Dark Theme (Flagship TideOS Look) ---------- */
+/* ---------- Obsidian Glass Dark Theme (Flagship TideBot Look) ---------- */
 :root[data-theme='dark'] {
   --color-bg-chrome: #06080F;
   --color-bg-sidebar: #0A0E17;

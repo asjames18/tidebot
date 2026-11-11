@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/readme-banner.svg" alt="TideOS — Autonomous Multi-Agent Studio" width="100%">
+  <img src="assets/readme-banner.svg" alt="TideBot — Autonomous Multi-Agent Studio" width="100%">
 </p>
 
 <p align="center">
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <strong>TideOS (Tidebot)</strong> is a self-hosted, open-source <strong>Autonomous Multi-Agent Studio</strong>.<br>
+  <strong>TideBot</strong> is a self-hosted, open-source <strong>Autonomous Multi-Agent Studio</strong>.<br>
   Deploy persistent AI Operators with <strong>Bring Your Own Model (BYOM)</strong> via OpenRouter, Ollama, vLLM, or xAI, connect <strong>1,500+ external apps</strong> through Composio, and execute real work across local workspace sandboxes and full Linux cloud desktops.
 </p>
 
@@ -59,7 +59,7 @@ flowchart TB
     Lib["Workspace Library (Inline Markdown/Code Editor)"]
   end
 
-  subgraph Server["TideOS Runtime Server (Node.js + Hono + SQLite + SSE)"]
+  subgraph Server["TideBot Runtime Server (Node.js + Hono + SQLite + SSE)"]
     Loop["Serial Per-Operator Agent Loop (loop.ts)"]
     LLM["Unified BYOM Engine (llm.ts)"]
     Tools["Built-in Tool Executor & Policy Firewall (tools.ts)"]
@@ -119,7 +119,7 @@ Open `.env` and add your API keys (or start the server first and paste your keys
 | `SESSION_SECRET` | Recommended | Random 32-byte hex secret (`openssl rand -hex 32`) |
 | `DEV_LOGIN` | Local Dev | Set to `1` to enable instant local email sign-in |
 
-> **Hot-Reloading `.env`**: TideOS watches `.env` by modification timestamp (`mtimeMs`). Any key added or updated in `.env` or via the Settings UI takes effect **immediately** without restarting the server.
+> **Hot-Reloading `.env`**: TideBot watches `.env` by modification timestamp (`mtimeMs`). Any key added or updated in `.env` or via the Settings UI takes effect **immediately** without restarting the server.
 
 ### 4. Start Development Servers
 
@@ -149,7 +149,7 @@ In production mode (`npm start`), the Hono server serves both the compiled SPA a
 
 ## 🧰 Built-in Operator Tools
 
-Every TideOS Operator has access to structured built-in tools alongside any connected Composio apps:
+Every TideBot Operator has access to structured built-in tools alongside any connected Composio apps:
 
 | Tool Name | Category | Description |
 | :--- | :--- | :--- |
@@ -172,11 +172,11 @@ Every TideOS Operator has access to structured built-in tools alongside any conn
 
 | Shortcut / Command | Action |
 | :--- | :--- |
-| `⌘K` / `Ctrl+K` | Open **TideOS Command & Model Palette** |
+| `⌘K` / `Ctrl+K` | Open **TideBot Command & Model Palette** |
 | `⌘I` / `Ctrl+I` | Focus message composer |
 | `⌘B` / `Ctrl+B` | Toggle left Operator dock |
 | `⇧⌘,` / `Ctrl+Shift+,` | Toggle right Operator Inspector & Library panel |
-| `⌘,` / `Ctrl+,` | Open **TideOS Studio Settings & BYOM** |
+| `⌘,` / `Ctrl+,` | Open **TideBot Studio Settings & BYOM** |
 | `Alt+N` / `⇧⌘O` | Deploy a new Operator |
 | `/search`, `/fetch`, `/file`, `/draft` | Insert structured tool prompts in the composer |
 | `/fast` / `/deep` | Switch active Operator between `Low` (fastest) and `High` (deep CoT) reasoning effort |

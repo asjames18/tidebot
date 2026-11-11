@@ -197,7 +197,7 @@ api.get('/bots/:id/export', (c) => {
   const rows = listRows(b.id, { limit: 500 });
   const lines: string[] = [
     `# ${b.name}${b.label ? ` — ${b.label}` : ''}`,
-    `Exported from TideOS on ${new Date().toISOString()}`,
+    `Exported from TideBot on ${new Date().toISOString()}`,
     b.model ? `Model: \`${b.model}\`` : '',
     '',
     '---',
@@ -622,7 +622,7 @@ api.get('/apps/callback', async (c) => {
       enqueue(botId, { type: 'system', text: `The user connected ${info?.name ?? slug}. Continue with what you were doing.` });
     }
   }
-  return c.html(`<!doctype html><meta charset="utf-8"><title>Connected · TideOS</title><body style="background:#07090e;color:#f3f5fa;font-family:system-ui;padding:48px;text-align:center"><h2 style="margin:0 0 8px">${ok ? '✓ App Connected to TideOS' : 'Connection Failed'}</h2><p style="color:#99a3b8;font-size:14px">${ok ? 'You can close this window.' : 'Please try connecting again from TideOS.'}</p><script>try{window.opener&&window.opener.postMessage({type:'grokbot-connected',slug:${JSON.stringify(slug)},ok:${ok}},'*')}catch(e){};setTimeout(()=>window.close(),700)</script></body>`);
+  return c.html(`<!doctype html><meta charset="utf-8"><title>Connected · TideBot</title><body style="background:#07090e;color:#f3f5fa;font-family:system-ui;padding:48px;text-align:center"><h2 style="margin:0 0 8px">${ok ? '✓ App Connected to TideBot' : 'Connection Failed'}</h2><p style="color:#99a3b8;font-size:14px">${ok ? 'You can close this window.' : 'Please try connecting again from TideBot.'}</p><script>try{window.opener&&window.opener.postMessage({type:'grokbot-connected',slug:${JSON.stringify(slug)},ok:${ok}},'*')}catch(e){};setTimeout(()=>window.close(),700)</script></body>`);
 });
 
 api.delete('/apps/:slug', async (c) => {

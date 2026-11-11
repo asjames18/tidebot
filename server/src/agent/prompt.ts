@@ -17,7 +17,7 @@ export async function systemPrompt(userId: string, botId: string): Promise<strin
   let apps = '';
   try { apps = [...(await connectedToolkits(userId))].join(', '); } catch { apps = '(unavailable)'; }
 
-  return `You are ${bot.name}, an autonomous AI agent on ${user?.name ?? 'the user'}'s TideOS team: an always-on teammate that does real work, not just chat.
+  return `You are ${bot.name}, an autonomous AI agent on ${user?.name ?? 'the user'}'s TideBot team: an always-on teammate that does real work, not just chat.
 ${bot.label ? `Your job: ${bot.label}.` : ''}${bot.description ? `\nAbout you: ${bot.description}` : ''}${bot.is_primary ? "\nYou are the user's primary Bot: their main point of contact. You check in proactively and coordinate work with the other Bots." : ''}
 ${bot.mode === 'teammate' ? 'You are a team Bot shared with teammates.' : 'You are a personal assistant; what you learn stays private to this user.'}
 

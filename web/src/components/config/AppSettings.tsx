@@ -52,7 +52,7 @@ export function AppSettings() {
         <button type="button" className="app-settings__back" onClick={close}>
           <Glyph name="arrow_left" size={14} /> Back to Studio
         </button>
-        <div className="app-settings__heading">TideOS Settings</div>
+        <div className="app-settings__heading">TideBot Settings</div>
         {SECTIONS.map((s) => (
           <button
             key={s.id}
@@ -142,7 +142,7 @@ function GeneralSection() {
   const p = health?.providers;
   return (
     <>
-      <PageHead title="General & Shaders" sub="Customize TideOS workspace appearance, real-time WebGL shaders, and system integrations." />
+      <PageHead title="General & Shaders" sub="Customize TideBot workspace appearance, real-time WebGL shaders, and system integrations." />
       <section className="cfg-section">
         <div className="cfg-section__label">Interface Theme</div>
         <div className="theme-tiles" role="radiogroup" aria-label="Theme">
@@ -150,7 +150,7 @@ function GeneralSection() {
           <ThemeTile value="light" label="Alabaster Light" current={theme} onPick={setTheme} />
           <ThemeTile value="system" label="System" current={theme} onPick={setTheme} />
         </div>
-        <div className="cfg-field__hint">Obsidian Dark is TideOS’s signature high-contrast glass studio theme.</div>
+        <div className="cfg-field__hint">Obsidian Dark is TideBot’s signature high-contrast glass studio theme.</div>
       </section>
 
       <section className="cfg-section">
@@ -315,7 +315,7 @@ function ModelsSection() {
     <>
       <PageHead
         title="Models & OpenRouter (BYOM)"
-        sub="Bring Your Own Model to TideOS. Use OpenRouter for 250+ frontier models (Claude, Gemini, GPT-4.1, DeepSeek, Llama, Grok) or connect any custom OpenAI-compatible server."
+        sub="Bring Your Own Model to TideBot. Use OpenRouter for 250+ frontier models (Claude, Gemini, GPT-4.1, DeepSeek, Llama, Grok) or connect any custom OpenAI-compatible server."
       />
 
       <section className="cfg-section">
@@ -390,7 +390,7 @@ function ModelsSection() {
                 onChange={(e) => setOpenrouterKey(e.target.value)}
               />
               <div className="cfg-field__hint">
-                Get an API key at <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">openrouter.ai/keys</a>. Stored locally in your TideOS SQLite database (or set <code className="cfg-code">OPENROUTER_API_KEY</code> in <code className="cfg-code">.env</code>).
+                Get an API key at <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">openrouter.ai/keys</a>. Stored locally in your TideBot SQLite database (or set <code className="cfg-code">OPENROUTER_API_KEY</code> in <code className="cfg-code">.env</code>).
               </div>
             </div>
           )}

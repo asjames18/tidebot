@@ -1,12 +1,12 @@
-# AGENTS.md — TideOS (Tidebot) Architecture & Agent Engineering Guide
+# AGENTS.md — TideBot Architecture & Agent Engineering Guide
 
-This document provides AI coding agents and human contributors with the architectural map, runtime invariants, and conventions required to safely extend **TideOS (Tidebot)**.
+This document provides AI coding agents and human contributors with the architectural map, runtime invariants, and conventions required to safely extend **TideBot**.
 
 ---
 
 ## 1. System Overview
 
-**TideOS** is a full-stack TypeScript monorepo (`npm` workspaces: `server` and `web`) implementing an autonomous multi-agent studio:
+**TideBot** is a full-stack TypeScript monorepo (`npm` workspaces: `server` and `web`) implementing an autonomous multi-agent studio:
 - **`server/` (`@grokbot/server`)**: Node.js + Hono HTTP/SSE server backed by `better-sqlite3` (`data/grokbot.db` in WAL mode). Owns the agent execution loop, multi-provider LLM streaming, Composio tool routing, local workspace sandboxes (`data/workspaces/<botId>/`), Orgo cloud Linux VMs, and cron/event scheduling.
 - **`web/` (`@grokbot/web`)**: React 19 + TypeScript + Vite + Zustand single-page studio featuring the **Obsidian Glass** design system, a zero-dependency WebGL GLSL shader engine (`ShaderCanvas.tsx`), real-time SSE synchronization, and interactive tool/approval cards.
 

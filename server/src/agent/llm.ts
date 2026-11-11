@@ -531,7 +531,7 @@ export async function streamModelTurn(opts: {
     const userText = typeof lastUser?.content === 'string' ? lastUser.content : '';
     const providerLabel = cfg.provider === 'openrouter' ? 'OpenRouter' : cfg.provider === 'custom' ? 'Custom BYOM Endpoint' : 'xAI';
     const reply =
-      `I'm **${opts.bot.name}**${opts.bot.label ? ` (${opts.bot.label})` : ''}, ready on **TideOS**.\n\n` +
+      `I'm **${opts.bot.name}**${opts.bot.label ? ` (${opts.bot.label})` : ''}, ready on **TideBot**.\n\n` +
       (userText ? `> ${userText.slice(0, 240).replace(/\n/g, '\n> ')}\n\n` : '') +
       `No API key is configured for **${providerLabel}** (\`${model}\`) yet. Click the **Model / BYOM pill** in the top bar or open **Settings → Models & OpenRouter** to paste your \`OPENROUTER_API_KEY\` (or custom endpoint) and start streaming live responses immediately—no server restart required.`;
     return {
@@ -552,7 +552,7 @@ export async function streamModelTurn(opts: {
       reasoning: { effort: opts.bot.effort ?? 'medium' },
       store: false,
       include: ['reasoning.encrypted_content'],
-      prompt_cache_key: `tideos:${opts.bot.id}:${opts.bot.generation}`,
+      prompt_cache_key: `tidebot:${opts.bot.id}:${opts.bot.generation}`,
       safety_identifier: sha256(opts.userId).slice(0, 32),
       stream: true,
     };
@@ -730,7 +730,7 @@ export async function testLlmConnection(): Promise<{ ok: boolean; model: string;
   try {
     const reply = await completeText({
       system: 'Reply with a short confirmation (under 12 words) stating you are online.',
-      user: 'Ping from TideOS.',
+      user: 'Ping from TideBot.',
       maxTokens: 256,
     });
     return {

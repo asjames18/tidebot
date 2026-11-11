@@ -17,7 +17,7 @@ const SHADER_PRESETS: { id: ShaderStyle; label: string }[] = [
 export function SignIn() {
   const devLogin = useStore((s) => s.devLogin);
   const checkAuth = useStore((s) => s.checkAuth);
-  const [email, setEmail] = useState('operator@tideos.local');
+  const [email, setEmail] = useState('operator@tidebot.local');
   const [name, setName] = useState('Operator');
   const [shader, setShader] = useState<ShaderStyle>('aurora');
   const [busy, setBusy] = useState(false);
@@ -64,13 +64,13 @@ export function SignIn() {
 
       <div className="signin__card">
         <div className="signin__badge-row">
-          <span className="tideos-pill tideos-pill--glow">TIDEOS v2.4 · BYOM EDITION</span>
+          <span className="tideos-pill tideos-pill--glow">TIDEBOT v2.4 · BYOM EDITION</span>
           <span className="tideos-pill">OPENROUTER READY</span>
         </div>
         <div className="signin__hero">
           <BotAvatar shape="hex" color="cyan" size={76} ring />
         </div>
-        <h1 className="signin__title">TideOS</h1>
+        <h1 className="signin__title">TideBot</h1>
         <p className="signin__sub">
           Autonomous AI operators with dedicated Linux workspaces, persistent memory, and Bring-Your-Own-Model via OpenRouter.
         </p>
@@ -96,7 +96,7 @@ export function SignIn() {
               aria-label="Name"
             />
             <button type="submit" className="btn btn--cta" disabled={busy}>
-              {busy ? 'Initializing Studio…' : 'Launch TideOS Studio →'}
+              {busy ? 'Initializing Studio…' : 'Launch TideBot Studio →'}
             </button>
           </form>
         )}

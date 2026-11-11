@@ -2,7 +2,7 @@
   "name": "tidebot",
   "version": "1.0.0",
   "license": "MIT",
-  "description": "TideOS (Tidebot) — Open-source Autonomous Multi-Agent Studio with OpenRouter BYOM, 1,500+ Composio app integrations, Linux cloud desktops, and WebGL shaders.",
+  "description": "TideBot — Open-source Autonomous Multi-Agent Studio with OpenRouter BYOM, 1,500+ Composio app integrations, Linux cloud desktops, and WebGL shaders.",
   "repository": {
     "type": "git",
     "url": "https://github.com/asjames18/tidebot.git"
