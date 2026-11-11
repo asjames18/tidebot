@@ -97,7 +97,8 @@
   /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */
   .bubble__time { opacity: 0.65; transform: none; font-size: 11px; }
   .bubble__meta-bar { flex-wrap: wrap; row-gap: 4px; }
-  .bubble__copy-btn { padding: 4px 9px; font-size: 11px; }
+  .bubble__copy-btn { padding: 4px 9px; font-size: 11px; min-height: 28px; }
+  .steps__toggle { min-height: 32px; padding: 6px 12px; font-size: 12.5px; }
 
   /* Chat column: tighter padding, wider bubbles. */
   .transcript { padding: 64px 10px 8px; }
@@ -165,7 +166,14 @@
 
   /* Touch targets. */
   .icon-btn { min-width: 40px; min-height: 40px; }
-  .jump-btn { width: 40px; height: 40px; bottom: calc(14px + env(safe-area-inset-bottom)); }
+  .jump-btn {
+    width: 42px;
+    height: 42px;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-primary);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  }
   .cite-chip { padding: 5px 10px; }
 
   /* Modals fit small screens with native bottom-sheet presentation. */
