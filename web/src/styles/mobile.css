@@ -42,6 +42,18 @@
     width: min(340px, 94vw); height: 100dvh;
     box-shadow: var(--shadow-composer);
   }
+  .details__top {
+    padding-top: max(12px, env(safe-area-inset-top));
+    justify-content: space-between;
+  }
+  .details__scroll {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+  .details__tabs .segmented button {
+    min-height: 34px;
+    padding: 0 12px;
+  }
 
   /* Header: flexbox row so left nav, center pills, and right buttons never overlap. */
   .share-btn { display: none; }
