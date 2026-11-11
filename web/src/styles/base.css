@@ -172,6 +172,11 @@ a { color: inherit; }
   background: var(--color-primary); color: var(--color-on-primary); font-size: 13px; line-height: 18px; padding: 7px 12px; border-radius: var(--radius-full);
   box-shadow: var(--shadow-pill); animation: rise 160ms var(--ease-out);
 }
+.toasts {
+  position: fixed; left: 50%; top: 68px; transform: translateX(-50%); z-index: 200;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
+}
+.toasts .toast--item { position: static; transform: none; left: auto; top: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

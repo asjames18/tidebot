@@ -98,6 +98,8 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
         )}
         {side === 'right' ? (
           <div className="bubble__plain">{b.text}</div>
+        ) : b.text && b.streaming ? (
+          <div className="bubble__plain">{b.text}</div>
         ) : b.text ? (
           <Markdown text={b.text} />
         ) : isThinkingNow ? null : (
@@ -107,7 +109,9 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
           <div className="bubble__cites">
             {b.citations.slice(0, 6).map((c, i) => {
               let host = c.url;
-              try { host = new URL(c.url).hostname.replace(/^www\./, ''); } catch { /* keep */ }
+              let safe = false;
+              try { const u = new URL(c.url); host = u.hostname.replace(/^www\./, ''); safe = u.protocol === 'http:' || u.protocol === 'https:'; } catch { /* keep */ }
+              if (!safe) return <span key={i} className="cite-chip" title={c.title ?? c.url}>{host}</span>;
               return <a key={i} className="cite-chip" href={c.url} target="_blank" rel="noreferrer noopener" title={c.title ?? c.url}>{host}</a>;
             })}
           </div>
@@ -187,11 +191,16 @@ function SystemRow({ row }: { row: Row }) {
 
 interface Props { bot: Bot; rows: Row[]; live: LiveState | undefined; loaded: boolean }
 
+const RENDER_WINDOW = 80;
+
 export function Transcript({ bot, rows, live, loaded }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const [showJump, setShowJump] = useState(false);
-  const items = useMemo(() => buildItems(rows), [rows]);
+  const [expanded, setExpanded] = useState(false);
+  const visibleRows = expanded ? rows : rows.slice(-RENDER_WINDOW);
+  const hiddenCount = rows.length - visibleRows.length;
+  const items = useMemo(() => buildItems(visibleRows), [visibleRows]);
 
   const running = !!live?.isRunning;
   const waiting = !running && (!!live?.awaiting || live?.activity?.kind === 'waiting_for_you');
@@ -207,6 +216,7 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
   // Jump to bottom when switching bots.
   useLayoutEffect(() => {
     stick.current = true;
+    setExpanded(false);
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [bot.id]);
@@ -227,6 +237,19 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
     <div className="transcript-wrap">
     <div className="transcript" ref={scrollRef} onScroll={onScroll}>
       <div className="transcript__col">
+        {!loaded && rows.length === 0 && (
+          <div className="transcript-skeleton" aria-hidden="true">
+            <div className="skel-bubble is-left" style={{ width: '58%' }} />
+            <div className="skel-bubble is-right" style={{ width: '38%' }} />
+            <div className="skel-bubble is-left" style={{ width: '72%' }} />
+            <div className="skel-bubble is-left" style={{ width: '46%' }} />
+          </div>
+        )}
+        {hiddenCount > 0 && (
+          <button type="button" className="earlier-btn" onClick={() => setExpanded(true)}>
+            Show earlier messages ({hiddenCount} more)
+          </button>
+        )}
         {loaded && rows.length === 0 && <EmptyChat bot={bot} />}
         {items.map((it) => {
           switch (it.kind) {
@@ -303,7 +326,7 @@ function EmptyChat({ bot }: { bot: Bot }) {
                 key={i}
                 type="button"
                 className="empty-chat__prompt-chip"
-                onClick={() => api.send(bot.id, p).catch(console.error)}
+                onClick={() => api.send(bot.id, p).catch(() => useStore.getState().notify('Message failed to send'))}
               >
                 <span>{p}</span>
                 <span className="empty-chat__prompt-arrow">↗</span>

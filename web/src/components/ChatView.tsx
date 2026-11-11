@@ -82,6 +82,14 @@ export function ChatView() {
       <VoiceCallBar />
       <Composer bot={bot} running={!!live?.isRunning} />
       <header className="chat__header">
+        <button
+          type="button"
+          className="icon-btn icon-btn--bordered mobile-nav-btn"
+          onClick={() => set({ mobileSidebarOpen: true, sidebarCollapsed: false })}
+          aria-label="Open operators list"
+        >
+          <Icon name="sidebar" opacity={0.8} />
+        </button>
         <div className="chat__header-center">
           <span className="chat__pill-anchor">
             <button type="button" className="chat__pill" onClick={() => setMenu(!menu)} aria-haspopup="menu" aria-expanded={menu}>
@@ -152,6 +160,15 @@ export function ChatView() {
           </span>
         </div>
         <div className="chat__header-right">
+          <button
+            type="button"
+            className="icon-btn icon-btn--bordered mobile-only-btn"
+            onClick={() => useStore.getState().setModal('search')}
+            aria-label="Command palette"
+            title="Command palette (⌘K)"
+          >
+            <Icon name="search" opacity={0.75} />
+          </button>
           {!detailsOpen && (
             <button type="button" className="icon-btn icon-btn--bordered" onClick={() => set({ detailsOpen: true })} aria-label="Show details" title="Show details">
               <Icon name="sidebar" opacity={0.66} style={{ transform: 'scaleX(-1)' }} />

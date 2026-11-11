@@ -165,8 +165,8 @@ export async function executeComposio(userId: string, name: string, args: Record
 /** Which inner tool slugs a Composio meta-tool call would run (for approval checks). */
 export function innerToolSlugs(name: string, args: any): string[] {
   if (name === 'COMPOSIO_MULTI_EXECUTE_TOOL') {
-    const list = args?.tools ?? args?.tool_calls ?? args?.actions ?? [];
-    return (Array.isArray(list) ? list : []).map((t: any) => String(t.tool_slug ?? t.slug ?? t.name ?? t.tool ?? '')).filter(Boolean);
+    const list = args?.tools ?? args?.tool_calls ?? args?.toolCalls ?? args?.actions ?? [];
+    return (Array.isArray(list) ? list : []).map((t: any) => String(t.tool_slug ?? t.toolSlug ?? t.slug ?? t.name ?? t.tool ?? '')).filter(Boolean);
   }
   if (name.startsWith('COMPOSIO_')) return [];
   return [name];

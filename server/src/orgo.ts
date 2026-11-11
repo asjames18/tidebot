@@ -62,6 +62,7 @@ export const orgo = {
     ),
   getComputer: (id: string) => call<OrgoComputer>('GET', `/computers/${id}`),
   start: (id: string) => call<any>('POST', `/computers/${id}/start`, {}, { timeoutMs: 320_000 }),
+  stop: (id: string) => call<any>('POST', `/computers/${id}/stop`, {}),
   resume: (id: string) => call<any>('POST', `/computers/${id}/resume`, {}, { timeoutMs: 200_000 }),
   suspend: (id: string) => call<any>('POST', `/computers/${id}/suspend`, {}),
   vncPassword: (id: string) => call<{ password: string; desktop_api_token: string }>('GET', `/computers/${id}/vnc-password`),

@@ -55,10 +55,14 @@ export function Sidebar() {
   const selectedBotId = inTasks ? null : storeSelectedBotId; // nothing highlighted while the Tasks view is open
   const user = useStore((s) => s.user);
   const collapsed = useStore((s) => s.sidebarCollapsed);
+  const mobileOpen = useStore((s) => s.mobileSidebarOpen);
   const set = useStore((s) => s.set);
   const storeSelectBot = useStore((s) => s.selectBot);
-  // Picking a bot (even the one already selected) leaves the Tasks view.
-  const selectBot = useCallback((id: string) => { useConfigUI.getState().setView('chat'); storeSelectBot(id); }, [storeSelectBot]);
+  const selectBot = useCallback((id: string) => {
+    useConfigUI.getState().setView('chat');
+    storeSelectBot(id);
+    set({ mobileSidebarOpen: false });
+  }, [storeSelectBot, set]);
   const setModal = useStore((s) => s.setModal);
   const [accountMenu, setAccountMenu] = useState(false);
   const logout = async () => { await api.logout().catch(() => {}); location.reload(); };
@@ -67,23 +71,26 @@ export function Sidebar() {
   const others = bots.filter((b) => !b.isPrimary).sort((a, b) => b.lastActivityAt - a.lastActivityAt);
 
   return (
-    <aside className={`sidebar${collapsed ? ' is-collapsed' : ''}`}>
+    <aside className={`sidebar${collapsed ? ' is-collapsed' : ''}${mobileOpen ? ' is-mobile-open' : ''}`}>
       <div className="sidebar__titlebar">
         <div className="sidebar__brand">
           <TrafficLights />
-          {!collapsed && <span className="sidebar__brand-mark">TIDE<span>OS</span></span>}
+          {!collapsed && <span className="sidebar__brand-mark">TIDE<span>BOT</span></span>}
         </div>
         <div className="sidebar__controls">
-          <button type="button" className="icon-btn icon-btn--plain" onClick={() => set({ sidebarCollapsed: !collapsed })} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title="Toggle sidebar (⌘B)">
+          <button type="button" className="icon-btn icon-btn--plain mobile-hide" onClick={() => set({ sidebarCollapsed: !collapsed })} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title="Toggle sidebar (⌘B)">
             <Icon name="sidebar" opacity={0.66} />
           </button>
           {!collapsed && (
             <>
-              <button type="button" className="icon-btn" onClick={() => setModal('search')} aria-label="Search" title="Search (⌘K)">
+              <button type="button" className="icon-btn" onClick={() => { set({ mobileSidebarOpen: false }); setModal('search'); }} aria-label="Search" title="Search (⌘K)">
                 <Icon name="search" opacity={0.66} />
               </button>
-              <button type="button" className="icon-btn" onClick={() => setModal('create')} aria-label="New Bot" title="New Bot">
+              <button type="button" className="icon-btn" onClick={() => { set({ mobileSidebarOpen: false }); setModal('create'); }} aria-label="New Bot" title="New Bot">
                 <Icon name="plus" opacity={0.66} />
+              </button>
+              <button type="button" className="icon-btn icon-btn--plain mobile-only-btn" onClick={() => set({ mobileSidebarOpen: false })} aria-label="Close drawer">
+                <Icon name="close" size={14} opacity={0.75} />
               </button>
             </>
           )}

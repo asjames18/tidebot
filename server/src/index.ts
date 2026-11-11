@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
+import { secureHeaders } from 'hono/secure-headers';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Server } from 'node:http';
@@ -19,27 +20,29 @@ import { desSelfTest } from './lib/des.js';
 import { configApi } from './routes-config.js';
 import { startIdleWatcher } from './idle.js';
 import { startMemoryConsolidation } from './agent/memory.js';
-import { getPublicLlmConfig } from './agent/llm.js';
+import { rateLimit } from './lib/rateLimit.js';
 
 if (!desSelfTest()) throw new Error('DES self-test failed');
 initSubagents();
 initRooms();
 
 const app = new Hono();
-app.get('/api/health', (c) => {
-  const llm = getPublicLlmConfig();
-  return c.json({
-    ok: true,
-    model: llm.defaultModel,
-    providers: {
-      ...env.providers,
-      openrouter: llm.hasOpenrouterKey,
-      custom: Boolean(llm.customBaseUrl),
-      xai: llm.hasXaiKey,
-    },
-    llm,
-  });
-});
+app.use('*', secureHeaders({
+  contentSecurityPolicy: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", "'unsafe-inline'"],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+    connectSrc: ["'self'", 'ws:', 'wss:'],
+    frameAncestors: ["'self'"],
+  },
+  xFrameOptions: 'SAMEORIGIN',
+  referrerPolicy: 'same-origin',
+}));
+app.get('/api/health', (c) => c.json({ ok: true }));
+app.use('/api/auth/*', rateLimit({ limit: 30, windowMs: 60_000 }));
+app.use('/api/llm/*', rateLimit({ limit: 60, windowMs: 60_000 }));
+app.use('/api/voice/*', rateLimit({ limit: 60, windowMs: 60_000 }));
 app.route('/api/checkins', checkinsApi);
 app.route('/api/rooms', roomsApi);
 app.route('/api', api);
@@ -52,7 +55,7 @@ if (fs.existsSync(webDist)) {
   app.get('*', (c) => c.html(fs.readFileSync(path.join(webDist, 'index.html'), 'utf8')));
 }
 
-const server = serve({ fetch: app.fetch, port: env.port }, (info) => console.log(`[grokbot] server on http://localhost:${info.port} (model ${env.xaiModel})`));
+const server = serve({ fetch: app.fetch, port: env.port, hostname: env.host }, (info) => console.log(`[grokbot] server on http://${info.address}:${info.port} (model ${env.xaiModel})`));
 attachVncRelay(server as unknown as Server);
 // GROKBOT_NO_SCHEDULER=1 for extra dev/test servers sharing a database copy, so routines and triggers don't fire twice.
 if (process.env.GROKBOT_NO_SCHEDULER !== '1') {

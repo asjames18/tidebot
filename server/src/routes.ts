@@ -10,12 +10,16 @@ import { enqueue, interrupt, resolveApproval } from './agent/loop.js';
 import { computerState, ensureComputer, refreshComputer, suspendComputer } from './computer.js';
 import { orgo } from './orgo.js';
 import { catalog, connectedToolkits, deleteConnection, disconnect, googleProfile, startConnect, startGoogleLogin, toolkitInfo } from './composio.js';
-import { runRoutine, scheduleRoutine, unscheduleRoutine } from './routines.js';
+import { MAX_ROUTINES_PER_BOT, runRoutine, scheduleRoutine, unscheduleRoutine, validateRoutineSchedule } from './routines.js';
 import { deleteEventTrigger, isEventSchedule } from './triggers.js';
 import { dispatchRoomMessage } from './agent/rooms.js';
 import { voiceApi } from './voice.js';
 import type { AvatarColor, AvatarShape, RowBody, Toolkit } from './types.js';
 import { Cron } from 'croner';
+import crypto from 'node:crypto';
+
+const callbackSig = (userId: string, botId: string, slug: string, exp: number) =>
+  crypto.createHmac('sha256', env.sessionSecret).update(`${userId}.${botId}.${slug}.${exp}`).digest('hex');
 
 export const api = new Hono<AuthVars>();
 
@@ -309,6 +313,7 @@ api.post('/approvals/:id', async (c) => {
   const user = c.get('user');
   const approvalId = c.req.param('id');
   const { decision } = await c.req.json<{ decision: 'allow' | 'always' | 'deny' }>();
+  if (decision !== 'allow' && decision !== 'always' && decision !== 'deny') return c.json({ error: 'decision must be allow, always or deny' }, 400);
   if (approvalId.startsWith('drf_')) {
     const raw = db.prepare("SELECT r.* FROM rows r JOIN bots b ON b.id=r.bot_id WHERE b.user_id=? AND r.kind='card' AND r.body LIKE ?").get(user.id, `%${approvalId}%`) as any;
     if (raw) {
@@ -367,11 +372,10 @@ api.post('/bots/:id/routines', async (c) => {
   const schedule = String(body.schedule ?? '').trim();
   const timezone = String(body.timezone ?? 'UTC').trim() || 'UTC';
   if (!name || !prompt || !schedule) return c.json({ error: 'Name, prompt, and schedule are required' }, 400);
-  try {
-    new Cron(schedule, { paused: true, timezone });
-  } catch (e: any) {
-    return c.json({ error: `Invalid cron schedule: ${e?.message ?? e}` }, 400);
-  }
+  const invalid = validateRoutineSchedule(schedule, timezone);
+  if (invalid) return c.json({ error: invalid }, 400);
+  const count = (db.prepare('SELECT COUNT(*) n FROM routines WHERE bot_id=?').get(b.id) as any).n;
+  if (count >= MAX_ROUTINES_PER_BOT) return c.json({ error: `Routine limit reached (${MAX_ROUTINES_PER_BOT} per bot)` }, 400);
   const id = newId('rt');
   db.prepare('INSERT INTO routines(id,bot_id,name,prompt,schedule,timezone,enabled,created_at) VALUES (?,?,?,?,?,?,1,?)')
     .run(id, b.id, name, prompt, schedule, timezone, now());
@@ -392,11 +396,8 @@ api.patch('/routines/:id', async (c) => {
   const timezone = body.timezone !== undefined ? String(body.timezone).trim() || r.timezone : r.timezone;
   const enabled = body.enabled !== undefined ? (body.enabled ? 1 : 0) : r.enabled;
   if (!isEventSchedule(schedule)) {
-    try {
-      new Cron(schedule, { paused: true, timezone });
-    } catch (e: any) {
-      return c.json({ error: `Invalid cron schedule: ${e?.message ?? e}` }, 400);
-    }
+    const invalid = validateRoutineSchedule(schedule, timezone);
+    if (invalid) return c.json({ error: invalid }, 400);
   }
   db.prepare('UPDATE routines SET name=?, prompt=?, schedule=?, timezone=?, enabled=? WHERE id=?')
     .run(name, prompt, schedule, timezone, enabled, r.id);
@@ -595,12 +596,25 @@ api.post('/apps/:slug/connect', async (c) => {
   cb.searchParams.set('uid', user.id);
   if (botId) cb.searchParams.set('bot', botId);
   if (seq) cb.searchParams.set('seq', String(seq));
+  const exp = Date.now() + 10 * 60_000;
+  cb.searchParams.set('state', `${exp}.${callbackSig(user.id, botId ?? '', slug, exp)}`);
   const r = await startConnect(user.id, slug, cb.toString());
   return c.json(r);
 });
 
 api.get('/apps/callback', async (c) => {
-  const userId = userFromCookieHeader(c.req.header('cookie'))?.id || c.req.query('uid') || '';
+  const cookieUserId = userFromCookieHeader(c.req.header('cookie'))?.id;
+  let userId = cookieUserId || '';
+  if (!userId) {
+    // Cookie-less OAuth return: trust uid only with a valid signed, expiring state.
+    const uid = c.req.query('uid') || '';
+    const [expRaw, sig] = String(c.req.query('state') ?? '').split('.');
+    const exp = Number(expRaw);
+    const expected = uid && Number.isFinite(exp) && exp > Date.now()
+      ? callbackSig(uid, c.req.query('bot') ?? '', c.req.query('slug') ?? '', exp)
+      : '';
+    if (uid && sig && expected && sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) userId = uid;
+  }
   const slug = c.req.query('slug') ?? '';
   const botId = c.req.query('bot');
   const seq = Number(c.req.query('seq') ?? 0);
@@ -622,7 +636,7 @@ api.get('/apps/callback', async (c) => {
       enqueue(botId, { type: 'system', text: `The user connected ${info?.name ?? slug}. Continue with what you were doing.` });
     }
   }
-  return c.html(`<!doctype html><meta charset="utf-8"><title>Connected · TideBot</title><body style="background:#07090e;color:#f3f5fa;font-family:system-ui;padding:48px;text-align:center"><h2 style="margin:0 0 8px">${ok ? '✓ App Connected to TideBot' : 'Connection Failed'}</h2><p style="color:#99a3b8;font-size:14px">${ok ? 'You can close this window.' : 'Please try connecting again from TideBot.'}</p><script>try{window.opener&&window.opener.postMessage({type:'grokbot-connected',slug:${JSON.stringify(slug)},ok:${ok}},'*')}catch(e){};setTimeout(()=>window.close(),700)</script></body>`);
+  return c.html(`<!doctype html><meta charset="utf-8"><title>Connected · TideBot</title><body style="background:#07090e;color:#f3f5fa;font-family:system-ui;padding:48px;text-align:center"><h2 style="margin:0 0 8px">${ok ? '✓ App Connected to TideBot' : 'Connection Failed'}</h2><p style="color:#99a3b8;font-size:14px">${ok ? 'You can close this window.' : 'Please try connecting again from TideBot.'}</p><script>try{window.opener&&window.opener.postMessage({type:'grokbot-connected',slug:${JSON.stringify(slug)},ok:${ok}},${JSON.stringify(new URL(env.appUrl).origin)})}catch(e){};setTimeout(()=>window.close(),700)</script></body>`);
 });
 
 api.delete('/apps/:slug', async (c) => {

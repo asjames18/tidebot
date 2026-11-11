@@ -16,6 +16,8 @@ import { localWorkspaceDir } from './agent/tools.js';
 import { consolidateBot, historySize, maybeCompact, memoryConfig } from './agent/memory.js';
 import { completeText, fetchModelsCatalog, getPublicLlmConfig, saveLlmConfig, testLlmConnection } from './agent/llm.js';
 import { idleConfig, viewerCount } from './idle.js';
+import { assertPublicUrl } from './lib/ssrf.js';
+import { resolveWithinWorkspace } from './lib/files.js';
 import { loadHistory } from './store.js';
 import type { LibraryFile, Memory, Skill } from './types.js';
 
@@ -33,9 +35,21 @@ configApi.get('/llm/config', (c) => {
   return c.json(getPublicLlmConfig());
 });
 
+const isOwner = (userId: string) => {
+  const first = db.prepare('SELECT id FROM users ORDER BY created_at ASC, id ASC LIMIT 1').get() as any;
+  return Boolean(first) && first.id === userId;
+};
+
 configApi.put('/llm/config', async (c) => {
+  if (!isOwner(c.get('user').id)) return c.json({ error: 'Only the workspace owner can change global LLM settings' }, 403);
   const body = await c.req.json().catch(() => ({}));
-  const updated = saveLlmConfig({
+  if (body.customBaseUrl !== undefined && String(body.customBaseUrl).trim()) {
+    try { await assertPublicUrl(String(body.customBaseUrl).trim(), { allowLoopback: true }); }
+    catch (e: any) { return c.json({ error: `Invalid customBaseUrl: ${e?.message ?? e}` }, 400); }
+  }
+  let updated;
+  try {
+    updated = saveLlmConfig({
     provider: body.provider,
     openrouterKey: body.openrouterKey,
     xaiKey: body.xaiKey,
@@ -43,9 +57,12 @@ configApi.put('/llm/config', async (c) => {
     customApiKey: body.customApiKey,
     defaultModel: body.defaultModel,
     shaderStyle: body.shaderStyle,
-    composioKey: body.composioKey,
-    orgoKey: body.orgoKey,
-  });
+      composioKey: body.composioKey,
+      orgoKey: body.orgoKey,
+    });
+  } catch (e: any) {
+    return c.json({ error: String(e?.message ?? e) }, 400);
+  }
   return c.json(updated);
 });
 
@@ -241,7 +258,8 @@ configApi.get('/bots/:id/files', async (c) => {
   const localFiles: LibraryFile[] = [];
   try {
     const rootDir = localWorkspaceDir(b.id);
-    const targetDir = rel ? nodePath.join(rootDir, rel) : rootDir;
+    const targetDir = resolveWithinWorkspace(rootDir, rel || '.');
+    if (!targetDir) throw new Error('bad path');
     fs.mkdirSync(targetDir, { recursive: true });
     for (const e of fs.readdirSync(targetDir, { withFileTypes: true })) {
       if (e.name.startsWith('.')) continue;
@@ -280,8 +298,8 @@ configApi.get('/bots/:id/files/raw', (c) => {
   if (!b) return c.json({ error: 'not found' }, 404);
   const rel = safeRel(c.req.query('path'));
   if (!rel) return c.json({ error: 'bad path' }, 400);
-  const fullPath = nodePath.join(localWorkspaceDir(b.id), rel);
-  if (!fs.existsSync(fullPath) || fs.statSync(fullPath).isDirectory()) {
+  const fullPath = resolveWithinWorkspace(localWorkspaceDir(b.id), rel);
+  if (!fullPath || !fs.existsSync(fullPath) || fs.statSync(fullPath).isDirectory()) {
     return c.json({ error: 'file not found' }, 404);
   }
   const buf = fs.readFileSync(fullPath);
@@ -300,8 +318,8 @@ configApi.get('/bots/:id/files/content', async (c) => {
   if (!b) return c.json({ error: 'not found' }, 404);
   const rel = safeRel(c.req.query('path'));
   if (!rel) return c.json({ error: 'bad path' }, 400);
-  const localPath = nodePath.join(localWorkspaceDir(b.id), rel);
-  if (fs.existsSync(localPath) && !fs.statSync(localPath).isDirectory()) {
+  const localPath = resolveWithinWorkspace(localWorkspaceDir(b.id), rel);
+  if (localPath && fs.existsSync(localPath) && !fs.statSync(localPath).isDirectory()) {
     const content = fs.readFileSync(localPath, 'utf8').slice(0, 150_000);
     return c.json({ ok: true, path: rel, content });
   }
@@ -325,7 +343,9 @@ configApi.post('/bots/:id/files', async (c) => {
   const rel = safeRel(body.path);
   if (!rel) return c.json({ error: 'Valid file path is required' }, 400);
   const content = String(body.content ?? '');
-  const localPath = nodePath.join(localWorkspaceDir(b.id), rel);
+  if (content.length > 10_000_000) return c.json({ error: 'File too large (max 10 MB)' }, 413);
+  const localPath = resolveWithinWorkspace(localWorkspaceDir(b.id), rel);
+  if (!localPath) return c.json({ error: 'bad path' }, 400);
   fs.mkdirSync(nodePath.dirname(localPath), { recursive: true });
   fs.writeFileSync(localPath, content, 'utf8');
   return c.json({ ok: true, path: rel, size: Buffer.byteLength(content, 'utf8') });
@@ -337,8 +357,9 @@ configApi.delete('/bots/:id/files', async (c) => {
   if (!b) return c.json({ error: 'not found' }, 404);
   const rel = safeRel(c.req.query('path'));
   if (!rel) return c.json({ error: 'bad path' }, 400);
-  const localPath = nodePath.join(localWorkspaceDir(b.id), rel);
-  if (fs.existsSync(localPath)) {
+  const joined = nodePath.join(localWorkspaceDir(b.id), rel);
+  const localPath = fs.existsSync(joined) && fs.lstatSync(joined).isSymbolicLink() ? joined : resolveWithinWorkspace(localWorkspaceDir(b.id), rel);
+  if (localPath && fs.existsSync(localPath)) {
     fs.rmSync(localPath, { recursive: true, force: true });
   }
   if (env.orgoKey) {
@@ -355,8 +376,8 @@ configApi.post('/bots/:id/files/download', async (c) => {
   const { path } = await c.req.json<{ path: string }>().catch(() => ({ path: '' }));
   const rel = safeRel(path);
   if (!rel) return c.json({ error: 'bad path' }, 400);
-  const localPath = nodePath.join(localWorkspaceDir(b.id), rel);
-  if (fs.existsSync(localPath) && !fs.statSync(localPath).isDirectory()) {
+  const localPath = resolveWithinWorkspace(localWorkspaceDir(b.id), rel);
+  if (localPath && fs.existsSync(localPath) && !fs.statSync(localPath).isDirectory()) {
     return c.json({ url: `/api/bots/${b.id}/files/raw?path=${encodeURIComponent(rel)}` });
   }
   if (!env.orgoKey) {

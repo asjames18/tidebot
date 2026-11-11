@@ -14,7 +14,7 @@ import { completeText, getLlmConfig, getPublicLlmConfig } from './llm.js';
  *  (c) a bounded, relevance-ranked memory section for the system prompt.
  */
 
-const xai = new OpenAI({ apiKey: env.xaiKey || 'local-unconfigured-key', baseURL: 'https://api.x.ai/v1', timeout: 300_000 });
+const getXai = () => new OpenAI({ apiKey: getLlmConfig().xaiKey || env.xaiKey || 'local-unconfigured-key', baseURL: 'https://api.x.ai/v1', timeout: 300_000 });
 
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== '' && Number.isFinite(Number(v)) ? Number(v) : d);
 
@@ -156,7 +156,7 @@ export function renderTranscript(items: any[], maxChars = 200_000): string {
 async function compactWithXai(old: any[]): Promise<any[]> {
   const cfg = getLlmConfig();
   if (cfg.provider !== 'xai' || !cfg.xaiKey) throw new Error('xAI compact only used when provider is xAI');
-  const res: any = await xai.post('/responses/compact', { body: { model: env.xaiModel, input: old } });
+  const res: any = await getXai().post('/responses/compact', { body: { model: env.xaiModel, input: old } });
   const out = (res?.output ?? []) as any[];
   if (!out.length || !out.some((o) => o?.type === 'compaction' || o?.encrypted_content || o?.role)) throw new Error('compact returned no items');
   return out;

@@ -5,7 +5,10 @@ import { env } from './env.js';
 
 fs.mkdirSync(path.dirname(env.dbPath), { recursive: true });
 export const db = new Database(env.dbPath);
+try { fs.chmodSync(path.dirname(env.dbPath), 0o700); } catch { /* best effort */ }
+try { fs.chmodSync(env.dbPath, 0o600); } catch { /* best effort */ }
 db.pragma('journal_mode = WAL');
+db.pragma('busy_timeout = 5000');
 db.pragma('foreign_keys = ON');
 
 db.exec(`

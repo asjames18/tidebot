@@ -1,0 +1,288 @@
+/* ---------- mobile & small-screen experience (≤900px) ---------- */
+
+.mobile-nav-btn { display: none; }
+.mobile-scrim { display: none; }
+.mobile-only-btn { display: none; }
+
+@media (max-width: 900px) {
+  /* Dynamic viewport height so the composer is not hidden behind mobile browser chrome. */
+  .app { height: 100dvh; }
+
+  /* Sidebar becomes an off-canvas drawer. */
+  .sidebar,
+  .sidebar.is-collapsed {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 120;
+    width: min(320px, 86vw); height: 100dvh;
+    transform: translateX(-105%);
+    transition: transform 220ms var(--ease-out);
+    box-shadow: none;
+  }
+  .sidebar.is-mobile-open { transform: none; box-shadow: var(--shadow-composer); }
+  .sidebar.is-collapsed .sidebar__titlebar { justify-content: space-between; padding: 12px 16px 12px 14px; height: 60px; }
+  .mobile-scrim {
+    display: block; position: fixed; inset: 0; z-index: 110;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  .mobile-nav-btn {
+    display: flex; position: absolute; left: 10px; top: calc(11px + env(safe-area-inset-top)); z-index: 5;
+    width: 38px; height: 38px; align-items: center; justify-content: center;
+  }
+  .mobile-nav-btn--inline { position: static; flex-shrink: 0; }
+  .mobile-only-btn { display: inline-flex; }
+  .mobile-hide { display: none !important; }
+
+  /* Hide desktop window traffic lights on mobile */
+  .traffic-lights { display: none; }
+  .sidebar__brand { padding-left: 4px; }
+
+  /* Details panel becomes a right-side drawer instead of squeezing the chat. */
+  .details {
+    position: fixed; top: 0; bottom: 0; right: 0; z-index: 115;
+    width: min(340px, 94vw); height: 100dvh;
+    box-shadow: var(--shadow-composer);
+  }
+
+  /* Header: drop the Share button (still in the bot menu), shrink pills to fit. */
+  .share-btn { display: none; }
+  .chat__header-center { max-width: calc(100vw - 148px); gap: 6px; }
+  .chat__header-right { right: 10px; top: calc(11px + env(safe-area-inset-top)); gap: 6px; }
+  .chat__header-right .icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
+  .chat__pill { padding: 5px 11px 5px 6px; gap: 6px; }
+  .chat__pill-name { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  .chat__model-pill { height: 34px; padding: 0 9px; gap: 5px; font-size: 11px; }
+  .chat__model-name { max-width: 78px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Composer telemetry: horizontal swipeable strip on mobile; hide desktop kbd hints. */
+  .composer-telemetry {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 6px;
+  }
+  .composer-telemetry::-webkit-scrollbar { display: none; }
+  .composer-telemetry__left { flex-wrap: nowrap; gap: 6px; }
+  .composer-telemetry__chip { flex-shrink: 0; padding: 3px 8px; }
+  .composer-telemetry__right { display: none; }
+
+  /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */
+  .bubble__time { opacity: 0.65; transform: none; font-size: 11px; }
+  .bubble__meta-bar { flex-wrap: wrap; row-gap: 4px; }
+  .bubble__copy-btn { padding: 4px 9px; font-size: 11px; }
+
+  /* Chat column: tighter padding, wider bubbles. */
+  .chat__header { padding-top: env(safe-area-inset-top); }
+  .chat__header-right { top: calc(12px + env(safe-area-inset-top)); }
+  .transcript { padding: 64px 10px 8px; }
+  .transcript__col { gap: 10px; }
+  .bubble { max-width: 88vw; font-size: 15px; }
+  .group { max-width: 100%; }
+
+  /* Composer: safe-area aware, 16px input prevents iOS focus zoom. */
+  .composer-area { padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
+  .composer textarea,
+  input, select, textarea { font-size: 16px; }
+
+  /* Touch targets. */
+  .icon-btn { min-width: 40px; min-height: 40px; }
+  .jump-btn { width: 40px; height: 40px; bottom: calc(14px + env(safe-area-inset-bottom)); }
+  .cite-chip { padding: 5px 10px; }
+
+  /* Modals fit small screens. */
+  .modal { width: calc(100vw - 20px); max-height: 92dvh; overflow-y: auto; }
+
+  /* Empty-chat hero scales down. */
+  .empty-chat { padding: 20px 10px; }
+  .empty-chat__title { font-size: 26px; }
+  .empty-chat__prompts { width: 100%; }
+  .empty-chat__prompt-chip { width: 100%; }
+
+  /* Toasts span the width. */
+  .toasts { width: calc(100vw - 24px); }
+  .toasts .toast--item { max-width: 100%; text-align: center; }
+}
+
+@media (max-width: 900px) and (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar.is-collapsed { transition: none; }
+}
+
+/* ---------- full-overhaul pass: content, surfaces, global behavior ---------- */
+
+html, body { overscroll-behavior: none; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; }
+
+@media (max-width: 900px) {
+  /* Flex children must be allowed to shrink to the viewport, not their content. */
+  .app > * { min-width: 0; }
+  .chat, .tasks-view { flex: 1 1 auto; width: 100%; min-width: 0; }
+  .tasks-stats .cfg-card > div:first-child { font-size: 10px !important; letter-spacing: 0; }
+
+  .transcript { overscroll-behavior: contain; }
+
+  /* Markdown content can never push the bubble wider than the screen. */
+  .bubble .md { min-width: 0; overflow-wrap: anywhere; }
+  .md-table { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; }
+  .md pre { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; }
+  .md table { font-size: 13px; }
+  .md th, .md td { padding: 4px 8px 4px 0; }
+
+  /* Cards: full width, stacked comfortable actions, 44px options. */
+  .card, .panel-card { max-width: 100%; }
+  .card__head, .draft-card__head { padding: 14px 14px 4px; }
+  .card__body { padding: 8px 14px 0; }
+  .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; }
+  .card__actions .btn { min-height: 44px; }
+  .question-card__options { padding: 6px; }
+  .question-card__options button, .question-card__options [role="button"] { min-height: 44px; }
+
+  /* Menus stay on-screen. */
+  .menu { max-width: calc(100vw - 24px); min-width: min(240px, calc(100vw - 32px)); }
+  .menu__item { height: 40px; font-size: 14px; }
+  .menu__hint { display: none; }
+
+  /* Composer extras. */
+  .slash-palette { max-height: 42dvh; overflow-y: auto; box-sizing: border-box; }
+  .slash-palette__item { min-width: 0; }
+  .slash-palette__desc { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+
+  /* Tasks stats fit three-across without forcing width. */
+  .tasks-stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .tasks-stats .cfg-card { min-width: 0; padding: 10px; }
+  .tasks-view__inner form { min-width: 0; }
+  .tasks-view__inner form .text-input { min-width: 0; flex: 1 1 auto; }
+  .composer__error { font-size: 13px; }
+
+  /* Voice call bar compacts. */
+  .vcall { margin: 0 10px; }
+  .vcall__status { max-width: 44vw; }
+
+  /* Settings: nav becomes a top bar with horizontal scrolling tabs. */
+  .app-settings { flex-direction: column; }
+  .app-settings__nav {
+    width: 100%; flex-direction: row; align-items: center; flex-wrap: nowrap;
+    overflow-x: auto; overflow-y: hidden; padding: calc(10px + env(safe-area-inset-top)) 10px 10px;
+    border-right: 0; border-bottom: 0.5px solid var(--color-border-tertiary);
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .app-settings__nav::-webkit-scrollbar { display: none; }
+  .app-settings__back { margin-bottom: 0; flex-shrink: 0; min-height: 40px; }
+  .app-settings__heading { display: none; }
+  .app-settings__nav button { flex-shrink: 0; min-height: 40px; }
+  .app-settings__page { padding: 24px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
+  .app-settings__close { top: calc(10px + env(safe-area-inset-top)); right: 12px; }
+  .cfg-grid { grid-template-columns: 1fr; }
+  .cfg-input { font-size: 16px; height: 44px; }
+
+  /* Bot settings modal, Connect Apps modal, Search modal, and Tasks view on mobile. */
+  .bot-settings {
+    width: calc(100vw - 16px);
+    height: 90dvh;
+    max-height: 90dvh;
+  }
+  .bot-settings__body {
+    flex-direction: column;
+  }
+  .cfg-nav {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    scrollbar-width: none;
+    gap: 6px;
+  }
+  .cfg-nav::-webkit-scrollbar { display: none; }
+  .cfg-nav__item {
+    width: auto;
+    flex-shrink: 0;
+    height: 34px;
+    padding: 0 12px;
+  }
+  .cfg-page {
+    padding: 16px 14px 24px;
+    gap: 16px;
+  }
+  .cfg-page__head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .cfg-savebar {
+    margin: -4px -14px 0;
+    padding: 10px 14px;
+  }
+
+  /* Connect Apps Marketplace on mobile */
+  .apps-modal {
+    width: calc(100vw - 16px);
+    height: 90dvh;
+  }
+  .apps-modal__head {
+    padding: 44px 16px 0;
+  }
+  .apps-modal__body {
+    padding: 12px 16px 24px;
+  }
+  .app-grid {
+    grid-template-columns: 1fr;
+  }
+  .app-row .app-row__desc {
+    max-height: 16px;
+    opacity: 1;
+  }
+  .cat-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .cat-pills::-webkit-scrollbar { display: none; }
+
+  /* Search / Command Palette on mobile */
+  .modal-root:has(.search-modal) {
+    padding: 12px 8px;
+    align-items: flex-start;
+  }
+  .search-modal {
+    width: 100%;
+    height: min(520px, 82dvh);
+  }
+  .search-modal__field {
+    height: 52px;
+    padding: 10px 14px;
+  }
+  .search-modal__field input {
+    font-size: 17px;
+  }
+
+  /* Tasks view responsive layout */
+  .tasks-view__header { padding: 10px 12px; flex-wrap: wrap; height: auto; min-height: 56px; }
+  .tasks-view__inner { padding: 14px 12px calc(32px + env(safe-area-inset-bottom)); }
+  .tasks-view__inner form { flex-wrap: wrap; }
+  .tasks-view__inner form select { flex: 1 1 120px; }
+  .tasks-view__inner form .cfg-btn { flex: 1 1 auto; min-height: 38px; }
+  .task-row { flex-wrap: wrap; align-items: center; }
+  .task-row__text { flex: 1 1 calc(100% - 40px); }
+
+  /* Computer viewer. */
+  .viewer__top { padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: 56px; }
+  .viewer__stage { padding: 0 6px; }
+  .viewer__close { width: 44px; height: 44px; }
+  .viewer__status { display: none; }
+
+  /* Sign-in fits small screens. */
+  .signin { padding: calc(16px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom)); }
+  .signin__foot-grid { flex-wrap: wrap; justify-content: center; row-gap: 4px; }
+
+  /* Sidebar rows are finger-sized. */
+  .sidebar__scroll { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+
+  /* Very narrow phones (≤380px): squeeze pills further. */
+  @media (max-width: 380px) {
+    .chat__pill-name { max-width: 64px; }
+    .chat__model-name { max-width: 44px; }
+    .bubble { font-size: 14.5px; }
+  }
+}

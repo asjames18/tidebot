@@ -2,6 +2,11 @@ import OpenAI from 'openai';
 import { db, now } from '../db.js';
 import { env, writeEnvKeyToDisk } from '../env.js';
 import { newId, sha256 } from '../lib/ids.js';
+import { assertUrlHostAllowedSync } from '../lib/ssrf.js';
+import { decryptSecret, encryptSecret } from '../lib/secrets.js';
+import path from 'node:path';
+
+const secretsDir = () => path.dirname(env.dbPath);
 import type { LlmConfigPublic, LlmProvider, ModelInfo, ShaderStyle } from '../types.js';
 
 export interface LlmRuntimeConfig {
@@ -22,10 +27,10 @@ function maskKey(k: string): string {
 
 export function getLlmConfig(): LlmRuntimeConfig {
   const row = db.prepare('SELECT * FROM llm_settings WHERE id = 1').get() as any;
-  const openrouterKey = (row?.openrouter_key || env.openrouterKey || '').trim();
-  const xaiKey = (row?.xai_key || env.xaiKey || '').trim();
+  const openrouterKey = decryptSecret(secretsDir(), (row?.openrouter_key || '').trim()) || (env.openrouterKey || '').trim();
+  const xaiKey = decryptSecret(secretsDir(), (row?.xai_key || '').trim()) || (env.xaiKey || '').trim();
   const customBaseUrl = (row?.custom_base_url || env.customBaseUrl || '').trim();
-  const customApiKey = (row?.custom_api_key || env.customApiKey || '').trim();
+  const customApiKey = decryptSecret(secretsDir(), (row?.custom_api_key || '').trim()) || (env.customApiKey || '').trim();
 
   let provider: LlmProvider = (row?.provider as LlmProvider) || env.llmProvider || 'openrouter';
   if (!row?.provider) {
@@ -92,6 +97,9 @@ export function saveLlmConfig(patch: {
   composioKey?: string;
   orgoKey?: string;
 }): LlmConfigPublic {
+  if (patch.customBaseUrl !== undefined && patch.customBaseUrl.trim()) {
+    assertUrlHostAllowedSync(patch.customBaseUrl.trim(), { allowLoopback: true });
+  }
   if (patch.composioKey !== undefined && patch.composioKey.trim()) {
     writeEnvKeyToDisk('COMPOSIO_API_KEY', patch.composioKey.trim());
   }
@@ -119,7 +127,7 @@ export function saveLlmConfig(patch: {
       default_model = excluded.default_model,
       shader_style = excluded.shader_style,
       updated_at = excluded.updated_at
-  `).run(nextProvider, nextOrKey, nextXaiKey, nextCustomUrl, nextCustomKey, nextModel, nextShader, now());
+  `).run(nextProvider, encryptSecret(secretsDir(), nextOrKey), encryptSecret(secretsDir(), nextXaiKey), nextCustomUrl, encryptSecret(secretsDir(), nextCustomKey), nextModel, nextShader, now());
 
   return getPublicLlmConfig();
 }
@@ -330,6 +338,7 @@ function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; ap
     };
   }
   if (cfg.provider === 'custom') {
+    if (cfg.customBaseUrl) assertUrlHostAllowedSync(cfg.customBaseUrl, { allowLoopback: true });
     const baseURL = cfg.customBaseUrl || 'http://localhost:11434/v1';
     const apiKey = cfg.customApiKey || 'custom-local-key';
     return {

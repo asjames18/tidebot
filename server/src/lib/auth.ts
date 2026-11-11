@@ -1,7 +1,7 @@
 import type { Context, MiddlewareHandler } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { db, now } from '../db.js';
-import { token } from './ids.js';
+import { sha256, token } from './ids.js';
 import type { User } from '../types.js';
 
 const COOKIE = 'grokbot_session';
@@ -11,13 +11,13 @@ export type AuthVars = { Variables: { user: User } };
 
 export function createSession(c: Context, userId: string) {
   const t = token();
-  db.prepare('INSERT INTO auth_sessions(token,user_id,created_at,expires_at) VALUES (?,?,?,?)').run(t, userId, now(), now() + TTL_MS);
-  setCookie(c, COOKIE, t, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: TTL_MS / 1000 });
+  db.prepare('INSERT INTO auth_sessions(token,user_id,created_at,expires_at) VALUES (?,?,?,?)').run(sha256(t), userId, now(), now() + TTL_MS);
+  setCookie(c, COOKIE, t, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: TTL_MS / 1000, secure: process.env.NODE_ENV === 'production' });
 }
 
 export function destroySession(c: Context) {
   const t = getCookie(c, COOKIE);
-  if (t) db.prepare('DELETE FROM auth_sessions WHERE token=?').run(t);
+  if (t) db.prepare('DELETE FROM auth_sessions WHERE token=?').run(sha256(t));
   deleteCookie(c, COOKIE, { path: '/' });
 }
 
@@ -25,7 +25,7 @@ export function userFromToken(t: string | undefined): User | null {
   if (!t) return null;
   const r = db
     .prepare('SELECT u.* FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires_at>?')
-    .get(t, now()) as any;
+    .get(sha256(t), now()) as any;
   return r ? { id: r.id, email: r.email, name: r.name, avatarUrl: r.avatar_url } : null;
 }
 

@@ -10,13 +10,16 @@ import { orgo } from '../orgo.js';
 import { screenFor } from '../computer.js';
 import { appendRow, getBotRow, listRoutines, toRoutine, describeCron } from '../store.js';
 import { executeComposio, innerToolSlugs, isReadOnlySlug, toolkitInfo } from '../composio.js';
-import { scheduleRoutine, unscheduleRoutine } from '../routines.js';
+import { MAX_ROUTINES_PER_BOT, scheduleRoutine, unscheduleRoutine, validateRoutineSchedule } from '../routines.js';
 import { createEventRoutine, deleteEventTrigger, describeEvent, listTriggerTypes } from '../triggers.js';
 import { setCheckins } from '../proactive.js';
 import { createSubagent, deleteSubagent, listSubagents } from './subagents.js';
 import { createRoom, postToRoom } from './rooms.js';
 import type { ActivityKind } from '../types.js';
 import { Cron } from 'croner';
+import { safeFetch } from '../lib/ssrf.js';
+import { resolveWithinWorkspace } from '../lib/files.js';
+import { runShell } from '../lib/sandbox.js';
 
 const execAsync = promisify(exec);
 
@@ -127,12 +130,13 @@ export const TOOLS: ToolDef[] = [
       const url = String(a.url ?? '').trim();
       if (!/^https?:\/\//i.test(url)) return { output: 'URL must start with http:// or https://' };
       try {
-        const res = await fetch(url, {
+        const fetched = await safeFetch(url, {
           headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36', Accept: 'text/html,application/xhtml+xml,text/plain,application/json' },
-          signal: AbortSignal.timeout(12_000),
+          timeoutMs: 12_000,
+          maxBytes: 1_000_000,
         });
-        const ct = res.headers.get('content-type') ?? '';
-        const raw = await res.text();
+        const ct = fetched.contentType;
+        const raw = fetched.text;
         if (ct.includes('application/json')) {
           return { output: raw.slice(0, 16000), summary: `Read JSON from ${new URL(url).hostname}` };
         }
@@ -184,8 +188,8 @@ export const TOOLS: ToolDef[] = [
     label: 'Reading a file',
     impl: async (a, ctx) => {
       const safe = path.basename(String(a.filename ?? ''));
-      const full = path.join(localWorkspaceDir(ctx.botId), safe);
-      if (!fs.existsSync(full) || fs.statSync(full).isDirectory()) {
+      const full = resolveWithinWorkspace(localWorkspaceDir(ctx.botId), safe);
+      if (!full || !fs.existsSync(full) || fs.statSync(full).isDirectory()) {
         return { output: `File "${safe}" not found in Library.` };
       }
       const content = fs.readFileSync(full, 'utf8').slice(0, 40000);
@@ -318,8 +322,10 @@ export const TOOLS: ToolDef[] = [
     label: 'Saving notes',
     impl: async (a, ctx) => {
       const name = String(a.filename).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file.txt';
+      if (String(a.content ?? '').length > 10_000_000) return { output: 'File too large (max 10 MB).' };
       const localDir = localWorkspaceDir(ctx.botId);
-      const fullPath = path.join(localDir, name);
+      const fullPath = resolveWithinWorkspace(localDir, name);
+      if (!fullPath) return { output: 'Invalid file path.' };
       fs.writeFileSync(fullPath, String(a.content ?? ''), 'utf8');
       const comp = db.prepare("SELECT orgo_id FROM computers WHERE user_id=? AND status='running'").get(ctx.userId) as any;
       if (env.orgoKey && comp?.orgo_id) {
@@ -345,19 +351,9 @@ export const TOOLS: ToolDef[] = [
       const comp = db.prepare("SELECT orgo_id FROM computers WHERE user_id=? AND status='running'").get(ctx.userId) as any;
       if (!env.orgoKey || !comp?.orgo_id) {
         const cwd = localWorkspaceDir(ctx.botId);
-        try {
-          const { stdout, stderr } = await execAsync(String(a.command), {
-            cwd,
-            timeout: timeoutSec * 1000,
-            maxBuffer: 2 * 1024 * 1024,
-          });
-          const out = `${stdout ?? ''}${stderr ? `\n${stderr}` : ''}`.trim().slice(-20000);
-          return { output: JSON.stringify({ exit_code: 0, output: out }), summary: 'exit 0' };
-        } catch (e: any) {
-          const code = typeof e?.code === 'number' ? e.code : 1;
-          const out = `${e?.stdout ?? ''}\n${e?.stderr ?? e?.message ?? ''}`.trim().slice(-20000);
-          return { output: JSON.stringify({ exit_code: code, output: out }), summary: `exit ${code}` };
-        }
+        const r = await runShell(String(a.command), cwd, timeoutSec);
+        const out = r.output.trim().slice(-20000);
+        return { output: JSON.stringify({ exit_code: r.code, output: out, sandboxed: r.sandboxed }), summary: `exit ${r.code}` };
       }
       const r = await onScreen(ctx, (c, s) => orgo.bash(c, s, String(a.command), timeoutSec));
       const out = (r.output ?? '').slice(-20000);
@@ -395,7 +391,10 @@ export const TOOLS: ToolDef[] = [
     activity: 'working',
     label: 'Setting up a routine',
     impl: async (a, ctx) => {
-      try { new Cron(a.schedule, { paused: true, timezone: a.timezone || 'UTC' }); } catch (e: any) { return { output: `Invalid schedule: ${e.message}` }; }
+      const invalid = validateRoutineSchedule(String(a.schedule), a.timezone || 'UTC');
+      if (invalid) return { output: invalid };
+      const count = (db.prepare('SELECT COUNT(*) n FROM routines WHERE bot_id=?').get(ctx.botId) as any).n;
+      if (count >= MAX_ROUTINES_PER_BOT) return { output: `Routine limit reached (${MAX_ROUTINES_PER_BOT} per bot). Delete one first.` };
       const id = newId('rt');
       db.prepare('INSERT INTO routines(id,bot_id,name,prompt,schedule,timezone,enabled,created_at) VALUES (?,?,?,?,?,?,1,?)').run(id, ctx.botId, a.name, a.prompt, a.schedule, a.timezone || 'UTC', now());
       const r = toRoutine(db.prepare('SELECT * FROM routines WHERE id=?').get(id));
@@ -473,7 +472,8 @@ export const TOOLS: ToolDef[] = [
       const cur = db.prepare('SELECT * FROM routines WHERE id=? AND bot_id=?').get(a.routine_id, ctx.botId) as any;
       if (!cur) return { output: 'No such routine.' };
       const next = { ...cur, name: a.name ?? cur.name, prompt: a.prompt ?? cur.prompt, schedule: a.schedule ?? cur.schedule, timezone: a.timezone ?? cur.timezone, enabled: a.enabled === undefined ? cur.enabled : a.enabled ? 1 : 0 };
-      try { new Cron(next.schedule, { paused: true, timezone: next.timezone }); } catch (e: any) { return { output: `Invalid schedule: ${e.message}` }; }
+      const invalid = validateRoutineSchedule(String(next.schedule), next.timezone);
+      if (invalid) return { output: invalid };
       db.prepare('UPDATE routines SET name=?,prompt=?,schedule=?,timezone=?,enabled=? WHERE id=?').run(next.name, next.prompt, next.schedule, next.timezone, next.enabled, cur.id);
       const r = toRoutine(db.prepare('SELECT * FROM routines WHERE id=?').get(cur.id));
       r.enabled ? scheduleRoutine(r) : unscheduleRoutine(r.id);
@@ -664,10 +664,19 @@ export function functionSchemas() {
 
 export type Decision = 'allow' | 'ask' | 'block';
 
+const APPROVAL_GATED_BUILTINS = new Set(['shell', 'create_routine', 'create_event_routine']);
+
 export function policyFor(userId: string, toolName: string, args: any): { decision: Decision; key: string; toolkit?: string; title: string } {
-  if (toolMap.has(toolName)) return { decision: 'allow', key: toolName, title: toolName };
+  if (toolMap.has(toolName)) {
+    if (!APPROVAL_GATED_BUILTINS.has(toolName)) return { decision: 'allow', key: toolName, title: toolName };
+    const p = db.prepare('SELECT mode FROM policies WHERE user_id=? AND tool=?').get(userId, toolName) as any;
+    if (p?.mode === 'blocked') return { decision: 'block', key: toolName, title: toolName };
+    if (p?.mode === 'always_allow') return { decision: 'allow', key: toolName, title: toolName };
+    return { decision: 'ask', key: toolName, title: toolName };
+  }
+  if (toolName === 'COMPOSIO_SEARCH_TOOLS' || toolName === 'COMPOSIO_GET_TOOL_SCHEMAS') return { decision: 'allow', key: toolName, title: toolName };
   const slugs = innerToolSlugs(toolName, args);
-  if (!slugs.length) return { decision: 'allow', key: toolName, title: toolName };
+  if (!slugs.length) return { decision: 'ask', key: toolName, title: toolName };
   let decision: Decision = 'allow';
   let key = slugs[0];
   for (const slug of slugs) {

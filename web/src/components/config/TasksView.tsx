@@ -152,6 +152,14 @@ export function TasksView() {
     <main className="chat tasks-view">
       <header className="tasks-view__header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            type="button"
+            className="icon-btn icon-btn--bordered mobile-nav-btn mobile-nav-btn--inline"
+            onClick={() => useStore.getState().set({ mobileSidebarOpen: true, sidebarCollapsed: false })}
+            aria-label="Open operators list"
+          >
+            <Icon name="sidebar" opacity={0.8} />
+          </button>
           <div className="tasks-view__title">Operator Tasks Command</div>
           <span className="tideos-pill tideos-pill--glow">{counts.open} Active</span>
         </div>
@@ -163,7 +171,7 @@ export function TasksView() {
       </header>
       <div className="tasks-view__scroll">
         <div className="tasks-view__inner">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+          <div className="tasks-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
             <div className="cfg-card" style={{ padding: '12px 14px' }}>
               <div style={{ fontSize: 11, fontFamily: 'var(--font-mono-stack)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>Active Work</div>
               <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--color-ink)', marginTop: 2 }}>{counts.working}</div>

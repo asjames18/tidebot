@@ -1,31 +1,40 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { startEvents } from './lib/events';
 import { useStore } from './store';
 import { ChatView } from './components/ChatView';
-import { ComputerViewer } from './components/ComputerViewer';
-import { DetailsPanel } from './components/DetailsPanel';
 import { Sidebar } from './components/Sidebar';
+import { Toasts } from './components/Toasts';
 import { SignIn } from './components/SignIn';
-import { ConnectAppsModal } from './components/modals/ConnectAppsModal';
-import { CreateBotModal } from './components/modals/CreateBotModal';
-import { CreateGroupModal } from './components/modals/CreateGroupModal';
-import { SearchModal } from './components/modals/SearchModal';
-import { ConfigLayer } from './components/config/ConfigLayer';
-import { TasksView } from './components/config/TasksView';
 import { useConfigUI } from './configStore';
+
+const ConnectAppsModal = lazy(() => import('./components/modals/ConnectAppsModal').then((m) => ({ default: m.ConnectAppsModal })));
+const CreateBotModal = lazy(() => import('./components/modals/CreateBotModal').then((m) => ({ default: m.CreateBotModal })));
+const CreateGroupModal = lazy(() => import('./components/modals/CreateGroupModal').then((m) => ({ default: m.CreateGroupModal })));
+const SearchModal = lazy(() => import('./components/modals/SearchModal').then((m) => ({ default: m.SearchModal })));
+const ConfigLayer = lazy(() => import('./components/config/ConfigLayer').then((m) => ({ default: m.ConfigLayer })));
+const TasksView = lazy(() => import('./components/config/TasksView').then((m) => ({ default: m.TasksView })));
+const ComputerViewer = lazy(() => import('./components/ComputerViewer').then((m) => ({ default: m.ComputerViewer })));
+const DetailsPanel = lazy(() => import('./components/DetailsPanel').then((m) => ({ default: m.DetailsPanel })));
 
 function Shell() {
   const detailsOpen = useStore((s) => s.detailsOpen);
+  const mobileSidebarOpen = useStore((s) => s.mobileSidebarOpen);
+  const set = useStore((s) => s.set);
   const modal = useStore((s) => s.modal);
   const viewerOpen = useStore((s) => s.viewerOpen);
   const collapsed = useStore((s) => s.sidebarCollapsed);
   const hasBot = useStore((s) => !!s.selectedBotId);
   const view = useConfigUI((s) => s.view);
 
+  // Switching views (e.g. to Tasks from the sidebar drawer) closes the mobile drawer.
+  useEffect(() => { set({ mobileSidebarOpen: false }); }, [view, set]);
+
   useEffect(() => {
     const st = useStore.getState();
-    st.loadBots().catch(console.error);
-    st.loadComputer().catch(console.error);
+    // On small screens the details panel is an overlay drawer; never start with it open.
+    if (window.innerWidth <= 900 && st.detailsOpen) st.set({ detailsOpen: false });
+    st.loadBots().catch(() => st.notify('Could not load your operators'));
+    st.loadComputer().catch(() => {});
     const cfgSt = useConfigUI.getState();
     cfgSt.loadLlmConfig().catch(console.error);
     cfgSt.loadModels().catch(console.error);
@@ -66,14 +75,24 @@ function Shell() {
   return (
     <div className={`app${collapsed ? ' is-sidebar-collapsed' : ''}${detailsOpen && hasBot && view === 'chat' ? ' has-details' : ''}`}>
       <Sidebar />
-      {view === 'tasks' ? <TasksView /> : <ChatView />}
-      {detailsOpen && hasBot && view === 'chat' && <DetailsPanel />}
-      {modal === 'create' && <CreateBotModal />}
-      {modal === 'group' && <CreateGroupModal />}
-      {modal === 'search' && <SearchModal />}
-      {modal === 'apps' && <ConnectAppsModal />}
-      {viewerOpen && <ComputerViewer />}
-      <ConfigLayer />
+      {(mobileSidebarOpen || detailsOpen) && (
+        <div
+          className="mobile-scrim"
+          onClick={() => set({ mobileSidebarOpen: false, detailsOpen: false })}
+          aria-hidden="true"
+        />
+      )}
+      <Toasts />
+      {view === 'tasks' ? <Suspense fallback={null}><TasksView /></Suspense> : <ChatView />}
+      {detailsOpen && hasBot && view === 'chat' && <Suspense fallback={null}><DetailsPanel /></Suspense>}
+      <Suspense fallback={null}>
+        {modal === 'create' && <CreateBotModal />}
+        {modal === 'group' && <CreateGroupModal />}
+        {modal === 'search' && <SearchModal />}
+        {modal === 'apps' && <ConnectAppsModal />}
+        {viewerOpen && <ComputerViewer />}
+        <ConfigLayer />
+      </Suspense>
     </div>
   );
 }

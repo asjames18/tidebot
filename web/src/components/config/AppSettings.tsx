@@ -188,7 +188,7 @@ function GeneralSection() {
         <section className="cfg-section">
           <div className="cfg-section__label">System Telemetry & Providers</div>
           {sysStatus && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 12 }}>
+            <div className="sys-telemetry-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))', gap: 8, marginBottom: 12 }}>
               {[
                 { label: 'Operators', val: sysStatus.bots },
                 { label: 'Messages', val: sysStatus.messages },

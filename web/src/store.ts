@@ -23,8 +23,11 @@ interface State {
 
   detailsOpen: boolean;
   sidebarCollapsed: boolean;
+  mobileSidebarOpen: boolean;
   modal: ModalKind;
   viewerOpen: boolean;
+  toasts: { id: number; text: string }[];
+  notify(text: string): void;
 
   checkAuth(): Promise<void>;
   loadBots(): Promise<void>;
@@ -58,8 +61,15 @@ export const useStore = create<State>((set, get) => ({
   sseConnected: false,
   detailsOpen: lsGet(LS_DETAILS) !== '0',
   sidebarCollapsed: lsGet(LS_SIDEBAR) === '1',
+  mobileSidebarOpen: false,
   modal: null,
   viewerOpen: false,
+  toasts: [],
+  notify(text) {
+    const id = Date.now() + Math.random();
+    set((s) => ({ toasts: [...s.toasts.slice(-2), { id, text }] }));
+    setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), 4200);
+  },
 
   async checkAuth() {
     try {
@@ -83,11 +93,11 @@ export const useStore = create<State>((set, get) => ({
   },
 
   selectBot(id) {
-    set({ selectedBotId: id });
+    set({ selectedBotId: id, mobileSidebarOpen: false });
     lsSet(LS_SELECTED, id);
     const t = get().transcripts[id];
-    if (!t?.loaded) get().loadRows(id).catch(console.error);
-    get().loadRoutines(id).catch(console.error);
+    if (!t?.loaded) get().loadRows(id).catch(() => get().notify('Could not load this conversation'));
+    get().loadRoutines(id).catch(() => {});
     const bot = get().bots.find((b) => b.id === id);
     if (bot?.unread) api.markRead(id).catch(() => {});
   },

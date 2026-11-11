@@ -14,8 +14,28 @@ export function initRoutines(enqueue: (botId: string, t: any) => void) {
   console.log(`[routines] scheduled ${jobs.size}`);
 }
 
+export const MIN_ROUTINE_INTERVAL_MS = 15 * 60_000;
+export const MAX_ROUTINES_PER_BOT = 25;
+
+/** Returns an error string when the cron schedule is invalid or fires more often than the minimum interval. */
+export function validateRoutineSchedule(schedule: string, timezone = 'UTC'): string | null {
+  if (isEventSchedule(schedule)) return null;
+  let job: Cron;
+  try { job = new Cron(schedule, { paused: true, timezone: timezone || 'UTC' }); }
+  catch (e: any) { return `Invalid schedule: ${e?.message ?? e}`; }
+  try {
+    const runs = job.nextRuns(2);
+    if (runs.length === 2 && runs[1].getTime() - runs[0].getTime() < MIN_ROUTINE_INTERVAL_MS) {
+      return 'Schedule fires too often: routines must be at least 15 minutes apart';
+    }
+  } finally { job.stop(); }
+  return null;
+}
+
 export function scheduleRoutine(r: Pick<Routine, 'id' | 'botId' | 'name' | 'prompt' | 'schedule' | 'timezone'>) {
   if (isEventSchedule(r.schedule)) { void setEventRoutineEnabled(r.id, true); return; }
+  const invalid = validateRoutineSchedule(r.schedule, r.timezone || 'UTC');
+  if (invalid) { console.warn('[routines] not scheduling', r.id, invalid); return; }
   unscheduleRoutine(r.id);
   try {
     const job = new Cron(r.schedule, { timezone: r.timezone || 'UTC', protect: true }, () => runRoutine(r.id));

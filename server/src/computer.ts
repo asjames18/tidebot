@@ -209,8 +209,19 @@ export function suspendComputer(userId: string, reason = 'manual'): Promise<void
       setStatus(userId, 'suspended');
       console.log(`[computer] suspended user=${userId}`);
     } catch (e: any) {
-      console.warn(`[computer] suspend failed user=${userId}: ${e?.message ?? e}`);
-      setStatus(userId, 'running', { error: String(e?.message ?? e) });
+      const msg = String(e?.message ?? e);
+      if (/billed by the hour|stop it/i.test(msg)) {
+        try {
+          await orgo.stop(r.orgo_id);
+          setStatus(userId, 'suspended');
+          console.log(`[computer] stopped (hourly tier fallback) user=${userId}`);
+          return;
+        } catch (stopErr: any) {
+          console.warn(`[computer] stop fallback failed user=${userId}: ${stopErr?.message ?? stopErr}`);
+        }
+      }
+      console.warn(`[computer] suspend failed user=${userId}: ${msg}`);
+      setStatus(userId, 'running', { error: msg });
       throw e;
     }
   })();

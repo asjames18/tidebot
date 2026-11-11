@@ -39,18 +39,20 @@ export function reloadEnvFromDisk(): Record<string, string> {
 reloadEnvFromDisk();
 
 export function writeEnvKeyToDisk(key: string, value: string) {
+  if (!/^[A-Z_][A-Z0-9_]*$/.test(key)) throw new Error(`Invalid env key: ${key}`);
+  if (/[\r\n\0]/.test(value)) throw new Error('Env values must not contain newlines');
   try {
-    let raw = fs.existsSync(envFilePath) ? fs.readFileSync(envFilePath, 'utf8') : '';
-    const re = new RegExp(`^${key}=.*$`, 'm');
-    if (re.test(raw)) {
-      raw = raw.replace(re, `${key}=${value}`);
-    } else {
-      raw = `${raw.trimEnd()}\n${key}=${value}\n`;
-    }
-    fs.writeFileSync(envFilePath, raw, 'utf8');
+    const raw = fs.existsSync(envFilePath) ? fs.readFileSync(envFilePath, 'utf8') : '';
+    const lines = raw.split(/\r?\n/);
+    const idx = lines.findIndex((l) => l.startsWith(`${key}=`));
+    if (idx >= 0) lines[idx] = `${key}=${value}`;
+    else lines.push(`${key}=${value}`);
+    fs.writeFileSync(envFilePath, lines.join('\n'), { encoding: 'utf8', mode: 0o600 });
+    try { fs.chmodSync(envFilePath, 0o600); } catch { /* best effort */ }
     lastMtimeMs = -1;
     reloadEnvFromDisk();
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('Env values')) throw e;
     diskEnv[key] = value;
     process.env[key] = value;
   }
@@ -62,11 +64,11 @@ function opt(name: string, fallback = ''): string {
   return v || fallback;
 }
 
-const devLoginInit = opt('DEV_LOGIN') === '1' || process.env.NODE_ENV !== 'production';
-const sessionSecretInit = opt('SESSION_SECRET', devLoginInit ? 'grokbot-local-dev-session-secret-32bytes!' : crypto.randomBytes(32).toString('hex'));
+const sessionSecretInit = opt('SESSION_SECRET', crypto.randomBytes(32).toString('hex'));
 
 export const env = {
   get port() { return Number(opt('PORT', '8787')); },
+  get host() { return opt('HOST', '127.0.0.1'); },
   get appUrl() { return opt('APP_URL', 'http://localhost:5173'); },
   /** Public URL of this server, used for OAuth callbacks. */
   get serverUrl() { return opt('SERVER_URL', `http://localhost:${opt('PORT', '8787')}`); },
@@ -93,7 +95,7 @@ export const env = {
   get orgoCpu() { return Number(opt('ORGO_CPU', '2')); },
   get orgoResolution() { return opt('ORGO_RESOLUTION', '1280x800x24'); },
   sessionSecret: sessionSecretInit,
-  get devLogin() { return opt('DEV_LOGIN') === '1' || process.env.NODE_ENV !== 'production'; },
+  get devLogin() { return opt('DEV_LOGIN') === '1'; },
   dbPath: process.env.DB_PATH ?? new URL('../../data/grokbot.db', import.meta.url).pathname,
   get providers() {
     return {

@@ -107,10 +107,25 @@
 .bubble.is-user.is-first { border-bottom-right-radius: 6px; }
 .bubble.is-user.is-mid { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
 .bubble.is-user.is-last { border-top-right-radius: 6px; }
-.bubble.is-streaming .md > :last-child::after {
+.bubble.is-streaming .md > :last-child::after,
+.bubble.is-streaming .bubble__plain::after {
   content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 4px; border-radius: 50%;
   background: currentColor; opacity: 0.4; vertical-align: middle; animation: breathe 1s ease-in-out infinite;
 }
+.earlier-btn {
+  align-self: center; margin: 8px 0 4px; padding: 5px 14px; border-radius: var(--radius-full);
+  background: var(--color-bg-elevated); color: var(--color-text-secondary); font-size: 12px; line-height: 16px;
+  box-shadow: var(--color-border-tertiary) 0 0 0 0.5px inset; cursor: pointer;
+}
+.earlier-btn:hover { color: var(--color-text-primary); background: var(--color-bg-elevated-hover); }
+.transcript-skeleton { display: flex; flex-direction: column; gap: 10px; padding: 24px 0; }
+.skel-bubble {
+  height: 44px; border-radius: 16px;
+  background: linear-gradient(100deg, var(--color-bg-elevated) 40%, var(--color-bg-elevated-hover) 50%, var(--color-bg-elevated) 60%);
+  background-size: 200% 100%; animation: shimmer 1.4s linear infinite;
+}
+.skel-bubble.is-right { align-self: flex-end; }
+.skel-bubble.is-left { align-self: flex-start; }
 .bubble__cites { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .cite-chip {
   font-size: 12px; line-height: 16px; letter-spacing: 0.12px; color: var(--color-text-secondary); text-decoration: none;
