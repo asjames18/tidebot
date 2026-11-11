@@ -139,7 +139,7 @@ export function Sidebar() {
             <button
               type="button"
               className="sidebar__byom-btn"
-              onClick={() => useConfigUI.getState().openAppSettings('models')}
+              onClick={() => { set({ mobileSidebarOpen: false }); useConfigUI.getState().openAppSettings('models'); }}
               title="Configure OpenRouter / Bring Your Own Model"
             >
               <span className={`sidebar__byom-dot ${llmConfig?.isConfigured ? 'is-ok' : 'is-warn'}`} />
@@ -167,9 +167,9 @@ export function Sidebar() {
                   placement="above"
                   onClose={() => setAccountMenu(false)}
                   items={[
-                    { label: 'Models & OpenRouter (BYOM)', onSelect: () => useConfigUI.getState().openAppSettings('models') },
-                    { label: 'Settings', hint: '⌘,', onSelect: () => useConfigUI.getState().openAppSettings() },
-                    { label: 'Connect apps', onSelect: () => setModal('apps') },
+                    { label: 'Models & OpenRouter (BYOM)', onSelect: () => { set({ mobileSidebarOpen: false }); useConfigUI.getState().openAppSettings('models'); } },
+                    { label: 'Settings', hint: '⌘,', onSelect: () => { set({ mobileSidebarOpen: false }); useConfigUI.getState().openAppSettings(); } },
+                    { label: 'Connect apps', onSelect: () => { set({ mobileSidebarOpen: false }); setModal('apps'); } },
                     { label: 'Log out', danger: true, onSelect: logout },
                   ]}
                 >
@@ -178,7 +178,7 @@ export function Sidebar() {
               )}
             </div>
           )}
-          <button type="button" className="icon-btn icon-btn--bordered" onClick={() => setModal('apps')} aria-label="Connect apps" title="Connect apps">
+          <button type="button" className="icon-btn icon-btn--bordered" onClick={() => { set({ mobileSidebarOpen: false }); setModal('apps'); }} aria-label="Connect apps" title="Connect apps">
             <Icon name="apps" />
           </button>
         </div>

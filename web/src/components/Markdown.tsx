@@ -22,16 +22,18 @@ function PreBlock({ node: _n, children, ...props }: any) {
         aria-label="Copy code"
         style={{
           position: 'absolute',
-          top: 8,
-          right: 8,
+          top: 6,
+          right: 6,
           padding: '3px 8px',
           fontSize: 11,
+          fontFamily: 'var(--font-mono-stack)',
           borderRadius: 6,
-          border: '1px solid var(--border-subtle)',
-          background: 'var(--bg-surface)',
-          color: 'var(--fg-secondary)',
+          border: '1px solid var(--color-border-secondary)',
+          background: 'var(--color-bg-elevated)',
+          color: 'var(--color-text-secondary)',
+          boxShadow: 'var(--shadow-card)',
           cursor: 'pointer',
-          opacity: copied ? 1 : 0.78,
+          opacity: copied ? 1 : 0.92,
         }}
       >
         {copied ? 'Copied' : 'Copy'}

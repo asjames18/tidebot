@@ -169,7 +169,7 @@
 .sidebar.is-collapsed .sidebar-island__label, .sidebar.is-collapsed .sidebar-island__count { display: none; }
 
 /* ---------- App settings page ---------- */
-.app-settings { position: fixed; inset: 0; z-index: 90; display: flex; background: var(--color-bg-chrome); animation: fade 140ms ease-out; }
+.app-settings { position: fixed; inset: 0; z-index: 140; display: flex; background: var(--color-bg-chrome); animation: fade 140ms ease-out; }
 .app-settings__nav { display: flex; flex-direction: column; gap: 2px; width: 260px; flex-shrink: 0; padding: 16px 12px; background: var(--color-bg-sidebar); border-right: 0.5px solid var(--color-border-tertiary); }
 .app-settings__back { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; height: 30px; padding: 0 10px; margin-bottom: 18px; border-radius: var(--radius-full); font-size: 13px; color: var(--color-text-secondary); }
 .app-settings__back:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }

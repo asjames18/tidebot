@@ -24,7 +24,7 @@
     background: rgba(0, 0, 0, 0.5);
   }
   .mobile-nav-btn {
-    display: flex; position: absolute; left: 10px; top: calc(11px + env(safe-area-inset-top)); z-index: 5;
+    display: flex; position: static; flex-shrink: 0;
     width: 38px; height: 38px; align-items: center; justify-content: center;
   }
   .mobile-nav-btn--inline { position: static; flex-shrink: 0; }
@@ -42,15 +42,32 @@
     box-shadow: var(--shadow-composer);
   }
 
-  /* Header: drop the Share button (still in the bot menu), shrink pills to fit. */
+  /* Header: flexbox row so left nav, center pills, and right buttons never overlap. */
   .share-btn { display: none; }
-  .chat__header-center { max-width: calc(100vw - 148px); gap: 6px; }
-  .chat__header-right { right: 10px; top: calc(11px + env(safe-area-inset-top)); gap: 6px; }
+  .chat__header {
+    justify-content: space-between;
+    gap: 6px;
+    padding: env(safe-area-inset-top) 10px 0 10px;
+    height: calc(58px + env(safe-area-inset-top));
+  }
+  .chat__header-center {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    justify-content: center;
+    gap: 5px;
+  }
+  .chat__pill-anchor { min-width: 0; max-width: 100%; }
+  .chat__header-right {
+    position: static;
+    flex-shrink: 0;
+    gap: 6px;
+  }
   .chat__header-right .icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
-  .chat__pill { padding: 5px 11px 5px 6px; gap: 6px; }
-  .chat__pill-name { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-  .chat__model-pill { height: 34px; padding: 0 9px; gap: 5px; font-size: 11px; }
-  .chat__model-name { max-width: 78px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat__pill { padding: 5px 10px 5px 5px; gap: 6px; min-width: 0; }
+  .chat__pill-name { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  .chat__model-pill { height: 34px; padding: 0 8px; gap: 4px; font-size: 11px; min-width: 0; }
+  .chat__model-name { max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Composer telemetry: horizontal swipeable strip on mobile; hide desktop kbd hints. */
   .composer-telemetry {
@@ -70,11 +87,20 @@
   .bubble__copy-btn { padding: 4px 9px; font-size: 11px; }
 
   /* Chat column: tighter padding, wider bubbles. */
-  .chat__header { padding-top: env(safe-area-inset-top); }
-  .chat__header-right { top: calc(12px + env(safe-area-inset-top)); }
   .transcript { padding: 64px 10px 8px; }
   .transcript__col { gap: 10px; }
-  .bubble { max-width: 88vw; font-size: 15px; }
+  .bubble-wrap {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .bubble__time {
+    padding-bottom: 2px;
+    padding-left: 4px;
+    font-size: 10.5px;
+    opacity: 0.6;
+    transform: none;
+  }
+  .bubble { max-width: min(92vw, calc(100vw - 24px)); font-size: 15px; }
   .group { max-width: 100%; }
 
   /* Composer: safe-area aware, 16px input prevents iOS focus zoom. */
@@ -168,8 +194,9 @@ button { touch-action: manipulation; }
   .app-settings__back { margin-bottom: 0; flex-shrink: 0; min-height: 40px; }
   .app-settings__heading { display: none; }
   .app-settings__nav button { flex-shrink: 0; min-height: 40px; }
-  .app-settings__page { padding: 24px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
-  .app-settings__close { top: calc(10px + env(safe-area-inset-top)); right: 12px; }
+  .app-settings__page { padding: 20px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
+  .app-settings__head { padding-right: 44px; }
+  .app-settings__close { top: 14px; right: 12px; }
   .cfg-grid { grid-template-columns: 1fr; }
   .cfg-input { font-size: 16px; height: 44px; }
 
@@ -222,6 +249,18 @@ button { touch-action: manipulation; }
   .apps-modal__head {
     padding: 44px 16px 0;
   }
+  .apps-modal__searchrow {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .apps-modal__searchrow .pill-input {
+    flex: 1 1 180px;
+  }
+  .apps-modal__searchrow .pill-chip {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .apps-modal__body {
     padding: 12px 16px 24px;
   }
@@ -273,7 +312,27 @@ button { touch-action: manipulation; }
   .viewer__status { display: none; }
 
   /* Sign-in fits small screens. */
-  .signin { padding: calc(16px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom)); }
+  .signin {
+    padding: calc(64px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+  .signin__chrome {
+    justify-content: center;
+    padding: 0 10px;
+    top: calc(8px + env(safe-area-inset-top));
+  }
+  .signin__shader-bar {
+    max-width: calc(100vw - 20px);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .signin__shader-bar::-webkit-scrollbar { display: none; }
+  .signin__shader-label { display: none; }
+  .signin__shader-pill { white-space: nowrap; flex-shrink: 0; }
+  .signin__card {
+    padding: 28px 22px 22px;
+  }
   .signin__foot-grid { flex-wrap: wrap; justify-content: center; row-gap: 4px; }
 
   /* Sidebar rows are finger-sized. */

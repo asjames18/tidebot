@@ -133,7 +133,16 @@ export function DetailsPanel() {
   return (
     <aside className="details" style={botVars(bot.avatarColor)} aria-label="Conversation details">
       <div className="details__top">
-        <button type="button" className="icon-btn icon-btn--bordered details__gear" onClick={() => useConfigUI.getState().openBotSettings(bot.id)} aria-label="Bot settings" title="Bot settings">
+        <button
+          type="button"
+          className="icon-btn icon-btn--bordered details__gear"
+          onClick={() => {
+            if (window.innerWidth <= 900) set({ detailsOpen: false });
+            useConfigUI.getState().openBotSettings(bot.id);
+          }}
+          aria-label="Bot settings"
+          title="Bot settings"
+        >
           <Glyph name="gear" size={16} opacity={0.7} />
         </button>
         <button type="button" className="icon-btn icon-btn--bordered" onClick={() => set({ detailsOpen: false })} aria-label="Close details">
@@ -158,10 +167,10 @@ export function DetailsPanel() {
               <section>
                 <div className="section-label section-label--row">
                   <span>Model & Engine</span>
-                  <button type="button" className="link-btn link-btn--small" onClick={() => useConfigUI.getState().openAppSettings('models')}>BYOM</button>
+                  <button type="button" className="link-btn link-btn--small" onClick={() => { if (window.innerWidth <= 900) set({ detailsOpen: false }); useConfigUI.getState().openAppSettings('models'); }}>BYOM</button>
                 </div>
                 <div className="panel-card">
-                  <button type="button" className="panel-row panel-row--link" onClick={() => useConfigUI.getState().openBotSettings(bot.id, 'general')}>
+                  <button type="button" className="panel-row panel-row--link" onClick={() => { if (window.innerWidth <= 900) set({ detailsOpen: false }); useConfigUI.getState().openBotSettings(bot.id, 'general'); }}>
                     <span className="panel-row__text">
                       <span className="panel-row__title" style={{ fontFamily: 'var(--font-mono-stack)', fontSize: 12 }}>{activeModel}</span>
                       <span className="panel-row__sub">
@@ -176,7 +185,7 @@ export function DetailsPanel() {
             <section>
               <div className="section-label section-label--row">
                 <span>Upcoming</span>
-                <button type="button" className="link-btn link-btn--small" onClick={() => useConfigUI.getState().openBotSettings(bot.id, 'routines')}>Manage</button>
+                <button type="button" className="link-btn link-btn--small" onClick={() => { if (window.innerWidth <= 900) set({ detailsOpen: false }); useConfigUI.getState().openBotSettings(bot.id, 'routines'); }}>Manage</button>
               </div>
               <div className="panel-card">
                 {routines?.length ? routines.map((r) => <RoutineRow key={r.id} r={r} />) : (
