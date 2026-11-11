@@ -277,9 +277,13 @@ button { touch-action: manipulation; }
   .tasks-view__inner form .text-input { min-width: 0; flex: 1 1 auto; }
   .composer__error { font-size: 13px; }
 
-  /* Voice call bar compacts. */
+  /* Voice call bar compacts & enlarges touch controls. */
   .vcall { margin: 0 10px; }
   .vcall__status { max-width: 44vw; }
+  .vcall__btn { width: 40px; height: 40px; min-width: 40px; }
+  .vcall__btn--end { width: 48px; }
+  .vcall__captions { padding: 10px 12px; font-size: 13.5px; }
+  .vcall__log { -webkit-overflow-scrolling: touch; }
 
   /* Settings: nav becomes a top bar with horizontal scrolling tabs. */
   .app-settings { flex-direction: column; }
