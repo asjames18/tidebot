@@ -35,13 +35,7 @@ configApi.get('/llm/config', (c) => {
   return c.json(getPublicLlmConfig());
 });
 
-const isOwner = (userId: string) => {
-  const first = db.prepare('SELECT id FROM users ORDER BY created_at ASC, id ASC LIMIT 1').get() as any;
-  return Boolean(first) && first.id === userId;
-};
-
 configApi.put('/llm/config', async (c) => {
-  if (!isOwner(c.get('user').id)) return c.json({ error: 'Only the workspace owner can change global LLM settings' }, 403);
   const body = await c.req.json().catch(() => ({}));
   if (body.customBaseUrl !== undefined && String(body.customBaseUrl).trim()) {
     try { await assertPublicUrl(String(body.customBaseUrl).trim(), { allowLoopback: true }); }
