@@ -151,7 +151,7 @@ export function TasksView() {
   return (
     <main className="chat tasks-view">
       <header className="tasks-view__header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             type="button"
             className="icon-btn icon-btn--bordered mobile-nav-btn mobile-nav-btn--inline"
@@ -160,8 +160,17 @@ export function TasksView() {
           >
             <Icon name="sidebar" opacity={0.8} />
           </button>
-          <div className="tasks-view__title">Operator Tasks Command</div>
-          <span className="tideos-pill tideos-pill--glow">{counts.open} Active</span>
+          <button
+            type="button"
+            className="cfg-btn cfg-btn--secondary mobile-only-btn"
+            onClick={() => useConfigUI.getState().setView('chat')}
+            style={{ height: 32, padding: '0 8px', fontSize: 12, gap: 4 }}
+            title="Return to Operator Chat"
+          >
+            <Glyph name="arrow_left" size={12} /> Chat
+          </button>
+          <div className="tasks-view__title">Operator Tasks</div>
+          <span className="tidebot-pill tideos-pill tideos-pill--glow">{counts.open} Active</span>
         </div>
         <div className="segmented" role="tablist" aria-label="Filter tasks">
           {([['open', `In progress${counts.open ? ` (${counts.open})` : ''}`], ['done', `Done${counts.done ? ` (${counts.done})` : ''}`], ['all', 'All']] as [Filter, string][]).map(([f, label]) => (
