@@ -27,7 +27,7 @@ initSubagents();
 initRooms();
 
 const app = new Hono();
-app.use('*', secureHeaders({
+const globalHeaders = secureHeaders({
   contentSecurityPolicy: {
     defaultSrc: ["'self'"],
     scriptSrc: ["'self'", "'unsafe-inline'"],
@@ -38,7 +38,12 @@ app.use('*', secureHeaders({
   },
   xFrameOptions: 'SAMEORIGIN',
   referrerPolicy: 'same-origin',
-}));
+});
+// Preview pages carry their own sandbox CSP; the global policy would conflict with it.
+app.use('*', async (c, next) => {
+  if (c.req.path.startsWith('/api/preview/')) { await next(); return; }
+  return globalHeaders(c, next);
+});
 app.get('/api/health', (c) => c.json({ ok: true }));
 app.use('/api/auth/*', rateLimit({ limit: 30, windowMs: 60_000 }));
 app.use('/api/llm/*', rateLimit({ limit: 60, windowMs: 60_000 }));

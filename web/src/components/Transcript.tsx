@@ -299,12 +299,12 @@ function EmptyChat({ bot }: { bot: Bot }) {
         <ShaderCanvas style={shaderStyle} className="empty-chat__shader" opacity={0.78} />
         <div className="empty-chat__stage-inner">
           <div className="empty-chat__badges">
-            <span className="tideos-pill tideos-pill--glow">
+            <span className="tidebot-pill tideos-pill tideos-pill--glow">
               {llmConfig?.provider === 'custom' ? 'CUSTOM BYOM' : llmConfig?.provider === 'xai' ? 'XAI ENGINE' : 'OPENROUTER'}
             </span>
             <button
               type="button"
-              className="tideos-pill tideos-pill--interactive"
+              className="tidebot-pill tideos-pill tideos-pill--interactive"
               onClick={() => useConfigUI.getState().openAppSettings('models')}
               title="Click to configure OpenRouter key or switch default model"
             >

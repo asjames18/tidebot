@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ShaderStyle } from '@shared/types';
 import { BotAvatar } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
@@ -15,10 +15,12 @@ const SHADER_PRESETS: { id: ShaderStyle; label: string }[] = [
 ];
 
 export function SignIn() {
-  const devLogin = useStore((s) => s.devLogin);
   const checkAuth = useStore((s) => s.checkAuth);
-  const [email, setEmail] = useState('operator@tidebot.local');
-  const [name, setName] = useState('Operator');
+  const studioEmail = useStore((s) => s.studioEmail);
+  const [email, setEmail] = useState('');
+  useEffect(() => { if (studioEmail && !email) setEmail(studioEmail); }, [studioEmail]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
   const [shader, setShader] = useState<ShaderStyle>('aurora');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(() =>
@@ -31,10 +33,14 @@ export function SignIn() {
       setError('Enter an email address');
       return;
     }
+    if (!password) {
+      setError('Enter your password');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      await api.devLogin(email.trim(), name.trim() || undefined);
+      await api.passwordLogin(email.trim(), password, name.trim() || undefined);
       await checkAuth();
     } catch (err) {
       setError((err as Error).message);
@@ -77,29 +83,38 @@ export function SignIn() {
         <a className="btn btn--primary signin__google" href="/api/auth/google/start">
           <GoogleG /> Continue with Google
         </a>
-        {devLogin && (
-          <form className="signin__dev" onSubmit={dev}>
-            <div className="signin__divider"><span>Local Studio Access</span></div>
-            <input
-              className="text-input"
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-label="Email"
-            />
-            <input
-              className="text-input"
-              placeholder="Name (optional)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              aria-label="Name"
-            />
-            <button type="submit" className="btn btn--cta" disabled={busy}>
-              {busy ? 'Initializing Studio…' : 'Launch TideBot Studio →'}
-            </button>
-          </form>
-        )}
+        <form className="signin__dev" onSubmit={dev}>
+          <div className="signin__divider"><span>Local Studio Access</span></div>
+          <input
+            className="text-input"
+            type="email"
+            placeholder="Email (from .env)"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-label="Email"
+            autoComplete="email"
+          />
+          <input
+            className="text-input"
+            placeholder="Name (optional, first sign-in)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            aria-label="Name"
+            autoComplete="name"
+          />
+          <input
+            className="text-input"
+            type="password"
+            placeholder="Password (from .env)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            aria-label="Password"
+            autoComplete="current-password"
+          />
+          <button type="submit" className="btn btn--cta" disabled={busy}>
+            {busy ? 'Initializing Studio…' : 'Launch TideBot Studio →'}
+          </button>
+        </form>
         {error && <div className="card__error signin__error">{error}</div>}
         <div className="signin__foot-grid">
           <span>OPENROUTER · 250+ MODELS</span>

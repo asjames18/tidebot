@@ -254,6 +254,7 @@ function ModelsSection() {
   const [customApiKey, setCustomApiKey] = useState('');
   const [xaiKey, setXaiKey] = useState('');
   const [search, setSearch] = useState('');
+  const [filterTab, setFilterTab] = useState<'all' | 'free' | 'vision' | 'fast'>('all');
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -317,17 +318,42 @@ function ModelsSection() {
     }
   };
 
-  const allModels = useMemo(() => {
+  const { allModels, totalCount, freeCount } = useMemo(() => {
     const q = search.trim().toLowerCase();
     const seen = new Set<string>();
-    const combined = [...curatedModels, ...remoteModels].filter((m) => {
+    const unique = [...curatedModels, ...remoteModels].filter((m) => {
       if (seen.has(m.id)) return false;
       seen.add(m.id);
-      if (!q) return true;
-      return m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q);
+      return true;
     });
-    return combined.slice(0, 60);
-  }, [curatedModels, remoteModels, search]);
+
+    const isFree = (m: (typeof unique)[0]) => m.id.includes(':free') || (m.badge && m.badge.toLowerCase().includes('free'));
+    const freeTotal = unique.filter(isFree).length;
+
+    let filtered = unique;
+    if (filterTab === 'free') {
+      filtered = filtered.filter(isFree);
+    } else if (filterTab === 'vision') {
+      filtered = filtered.filter((m) => m.vision);
+    } else if (filterTab === 'fast') {
+      filtered = filtered.filter((m) => m.name.toLowerCase().includes('flash') || m.name.toLowerCase().includes('mini') || m.id.includes('flash') || m.id.includes('mini'));
+    }
+
+    if (q) {
+      filtered = filtered.filter((m) =>
+        m.id.toLowerCase().includes(q) ||
+        m.name.toLowerCase().includes(q) ||
+        m.provider.toLowerCase().includes(q) ||
+        (m.badge && m.badge.toLowerCase().includes(q))
+      );
+    }
+
+    return {
+      allModels: filtered.slice(0, 80),
+      totalCount: unique.length,
+      freeCount: freeTotal,
+    };
+  }, [curatedModels, remoteModels, search, filterTab]);
 
   return (
     <>
@@ -494,7 +520,7 @@ function ModelsSection() {
 
       <section className="cfg-section">
         <div className="cfg-section__label-row">
-          <span className="cfg-section__label">3. OpenRouter Model Catalog ({curatedModels.length + remoteModels.length} available)</span>
+          <span className="cfg-section__label">3. OpenRouter Model Catalog ({totalCount || curatedModels.length + remoteModels.length} available)</span>
           <input
             type="search"
             className="cfg-input byom-search"
@@ -503,22 +529,69 @@ function ModelsSection() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+
+        <div className="byom-filter-tabs" role="tablist" aria-label="Model filters">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filterTab === 'all'}
+            className={`byom-filter-tab${filterTab === 'all' ? ' is-active' : ''}`}
+            onClick={() => setFilterTab('all')}
+          >
+            All Models ({totalCount})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filterTab === 'free'}
+            className={`byom-filter-tab byom-filter-tab--free${filterTab === 'free' ? ' is-active' : ''}`}
+            onClick={() => setFilterTab('free')}
+          >
+            🎁 100% Free (:free) ({freeCount})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filterTab === 'vision'}
+            className={`byom-filter-tab${filterTab === 'vision' ? ' is-active' : ''}`}
+            onClick={() => setFilterTab('vision')}
+          >
+            👁️ Vision
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={filterTab === 'fast'}
+            className={`byom-filter-tab${filterTab === 'fast' ? ' is-active' : ''}`}
+            onClick={() => setFilterTab('fast')}
+          >
+            ⚡ Fast
+          </button>
+        </div>
+
         <div className="byom-model-grid">
           {allModels.map((m) => {
             const active = defaultModel === m.id;
+            const isFree = m.id.includes(':free') || (m.badge && m.badge.toLowerCase().includes('free'));
             return (
               <button
                 key={m.id}
                 type="button"
-                className={`byom-model-card${active ? ' is-active' : ''}`}
+                className={`byom-model-card${active ? ' is-active' : ''}${isFree ? ' is-free' : ''}`}
                 onClick={() => {
                   setDefaultModel(m.id);
                   void save(m.id);
                 }}
               >
                 <div className="byom-model-card__top">
-                  <span className="byom-model-card__name">{m.name}</span>
-                  {m.badge && <span className="byom-model-card__badge">{m.badge}</span>}
+                  <span className="byom-model-card__name">
+                    {active && <span className="byom-model-card__check" aria-hidden="true">✓ </span>}
+                    {m.name}
+                  </span>
+                  <div className="byom-model-card__badges">
+                    {isFree && <span className="byom-model-card__free-tag">FREE</span>}
+                    {m.badge && <span className="byom-model-card__badge">{m.badge}</span>}
+                  </div>
                 </div>
                 <div className="byom-model-card__id">{m.id}</div>
                 <div className="byom-model-card__meta">

@@ -69,6 +69,9 @@ const sessionSecretInit = opt('SESSION_SECRET', crypto.randomBytes(32).toString(
 export const env = {
   get port() { return Number(opt('PORT', '8787')); },
   get host() { return opt('HOST', '127.0.0.1'); },
+  /** Local sign-in identity from .env (STUDIO_EMAIL / STUDIO_PASSWORD). Empty disables password sign-in. */
+  get studioEmail() { return opt('STUDIO_EMAIL').toLowerCase(); },
+  get studioPassword() { return opt('STUDIO_PASSWORD'); },
   get appUrl() { return opt('APP_URL', 'http://localhost:5173'); },
   /** Public URL of this server, used for OAuth callbacks. */
   get serverUrl() { return opt('SERVER_URL', `http://localhost:${opt('PORT', '8787')}`); },

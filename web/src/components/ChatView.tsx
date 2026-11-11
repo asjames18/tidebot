@@ -141,11 +141,12 @@ export function ChatView() {
                 items={[
                   {
                     label: `${!bot.model ? '✓ ' : ''}Default (${(llmConfig?.defaultModel ?? 'claude-3.7-sonnet').split('/').pop()})`,
+                    hint: (llmConfig?.defaultModel ?? '').includes(':free') ? 'Free Default' : 'Default',
                     onSelect: () => void pickBotModel(''),
                   },
-                  ...curatedModels.slice(0, 8).map((m) => ({
+                  ...curatedModels.slice(0, 10).map((m) => ({
                     label: `${bot.model === m.id ? '✓ ' : ''}${m.name}`,
-                    hint: m.provider,
+                    hint: m.id.includes(':free') ? '🎁 Free' : m.provider,
                     onSelect: () => void pickBotModel(m.id),
                   })),
                   {

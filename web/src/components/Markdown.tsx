@@ -43,7 +43,12 @@ function PreBlock({ node: _n, children, ...props }: any) {
 }
 
 const components: Components = {
-  a: ({ node: _n, ...props }) => <a {...props} target="_blank" rel="noreferrer noopener" />,
+  a: ({ node: _n, href, children }) => {
+    let loopback = false;
+    try { const h = new URL(href ?? '').hostname; loopback = h === 'localhost' || h === '127.0.0.1' || h === '::1'; } catch { /* relative links stay links */ }
+    if (loopback) return <span className="md-localhost" title="Localhost link from the agent — only reachable on the host machine">{children}</span>;
+    return <a href={href} target="_blank" rel="noreferrer noopener">{children}</a>;
+  },
   table: ({ node: _n, ...props }) => (
     <div className="md-table"><table {...props} /></div>
   ),

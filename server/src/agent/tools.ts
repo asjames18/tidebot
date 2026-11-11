@@ -341,6 +341,27 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: 'publish_preview',
+    description: 'Publish a built page or site from your workspace so the user can open it from any device (including their phone). First create the files (save_file), and for projects run the build locally with shell (e.g. npm run build) and publish the output file/folder. Returns a preview_url to share as a markdown link. NEVER give the user localhost links or start a throwaway web server for them.',
+    parameters: obj({ path: { type: 'string', description: 'Workspace-relative file (e.g. site/index.html) or folder (its index.html is served)' } }, ['path']),
+    activity: 'drafting_file',
+    label: 'Publishing preview',
+    impl: async (a, ctx) => {
+      const rel = String(a.path ?? '').replace(/^\/+/, '');
+      const root = localWorkspaceDir(ctx.botId);
+      let target = resolveWithinWorkspace(root, rel);
+      if (!target || !fs.existsSync(target)) return { output: `Not found in workspace: ${rel}. Create it with save_file (and build with shell first if needed), then publish again.` };
+      let servedRel = rel;
+      if (fs.statSync(target).isDirectory()) {
+        servedRel = `${rel.replace(/\/?$/, '/')}index.html`;
+        target = resolveWithinWorkspace(root, servedRel);
+        if (!target || !fs.existsSync(target)) return { output: `Folder ${rel} has no index.html to serve.` };
+      }
+      const url = `/api/preview/${ctx.botId}/${servedRel.split('/').map(encodeURIComponent).join('/')}`;
+      return { output: JSON.stringify({ preview_url: url, instruction: `Share it as a markdown link: [Open preview](${url})` }), summary: `Preview: ${servedRel}` };
+    },
+  },
+  {
     name: 'shell',
     description: 'Run a bash command in your workspace. Use for files, scripts, CLIs and quick data work. Output is truncated to 20k characters.',
     parameters: obj({ command: { type: 'string' }, timeout_seconds: { type: 'integer' } }, ['command']),

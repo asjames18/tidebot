@@ -3,6 +3,7 @@ import { db, now } from '../db.js';
 import { env, writeEnvKeyToDisk } from '../env.js';
 import { newId, sha256 } from '../lib/ids.js';
 import { assertUrlHostAllowedSync } from '../lib/ssrf.js';
+import { withRetry } from '../lib/retry.js';
 import { decryptSecret, encryptSecret } from '../lib/secrets.js';
 import path from 'node:path';
 
@@ -134,6 +135,16 @@ export function saveLlmConfig(patch: {
 
 export const CURATED_MODELS: ModelInfo[] = [
   {
+    id: 'baidu/ernie-5.5-flash-preview:free',
+    name: 'ERNIE 5.5 Flash Preview (Free)',
+    provider: 'Baidu',
+    contextLength: 128000,
+    vision: false,
+    tools: true,
+    featured: true,
+    badge: '100% Free · Ultra Fast',
+  },
+  {
     id: 'thinkingmachines/inkling-2-small:free',
     name: 'Inkling 2 Small (Free)',
     provider: 'Thinking Machines',
@@ -141,7 +152,7 @@ export const CURATED_MODELS: ModelInfo[] = [
     vision: false,
     tools: true,
     featured: true,
-    badge: 'Free · Deep CoT Agent',
+    badge: '100% Free · Deep CoT Agent',
   },
   {
     id: 'deepseek/deepseek-chat-v3-0324:free',
@@ -151,7 +162,7 @@ export const CURATED_MODELS: ModelInfo[] = [
     vision: false,
     tools: true,
     featured: true,
-    badge: 'Free · Instant Fast',
+    badge: '100% Free · Instant Fast',
   },
   {
     id: 'meta-llama/llama-4-maverick:free',
@@ -161,7 +172,7 @@ export const CURATED_MODELS: ModelInfo[] = [
     vision: true,
     tools: true,
     featured: true,
-    badge: 'Free · Fast Multimodal',
+    badge: '100% Free · Fast Multimodal',
   },
   {
     id: 'google/gemini-2.5-flash',
@@ -565,7 +576,7 @@ export async function streamModelTurn(opts: {
       safety_identifier: sha256(opts.userId).slice(0, 32),
       stream: true,
     };
-    const stream: any = await client.responses.create(body, { signal: opts.signal });
+    const stream: any = await withRetry(() => client.responses.create(body, { signal: opts.signal }), opts.signal);
     let final: any = null;
     for await (const ev of stream as AsyncIterable<any>) {
       switch (ev.type) {
@@ -615,14 +626,14 @@ export async function streamModelTurn(opts: {
 
   let stream: AsyncIterable<any>;
   try {
-    stream = (await client.chat.completions.create(reqBody, { signal: opts.signal })) as unknown as AsyncIterable<any>;
+    stream = (await withRetry(() => client.chat.completions.create(reqBody, { signal: opts.signal }), opts.signal)) as unknown as AsyncIterable<any>;
   } catch (e: any) {
     // Fallback if model doesn't support tool calling or rejected a Composio tool schema
     if ((e?.status === 400 || e?.status === 404) && reqBody.tools?.length) {
       console.warn('[llm] retrying chat.completions without external tools:', e?.message);
       delete reqBody.tools;
       delete reqBody.reasoning;
-      stream = (await client.chat.completions.create(reqBody, { signal: opts.signal })) as unknown as AsyncIterable<any>;
+      stream = (await withRetry(() => client.chat.completions.create(reqBody, { signal: opts.signal }), opts.signal)) as unknown as AsyncIterable<any>;
     } else {
       throw e;
     }

@@ -217,6 +217,7 @@
 .md li > p { margin: 0; }
 .md a { color: var(--color-text-primary); text-decoration: underline; text-decoration-color: var(--color-border-primary); text-underline-offset: 2px; }
 .md a:hover { text-decoration-color: currentColor; }
+.md-localhost { text-decoration: underline dotted; text-underline-offset: 2px; color: var(--color-text-secondary); cursor: not-allowed; }
 .md strong { font-weight: 600; }
 .md h1, .md h2, .md h3, .md h4 { font-size: 15px; line-height: 22px; font-weight: 600; }
 .md h1 { font-size: 17px; line-height: 24px; }

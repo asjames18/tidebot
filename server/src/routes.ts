@@ -1,5 +1,9 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
+import fs from 'node:fs';
+import nodePath from 'node:path';
+import { localWorkspaceDir } from './agent/tools.js';
+import { resolveWithinWorkspace } from './lib/files.js';
 import { db, now } from './db.js';
 import { env } from './env.js';
 import { newId } from './lib/ids.js';
@@ -56,7 +60,7 @@ function findOrCreateUser(email: string, name?: string, preferId?: string) {
 
 api.get('/auth/me', (c) => {
   const user = userFromCookieHeader(c.req.header('cookie'));
-  return c.json({ user, devLogin: env.devLogin, providers: env.providers });
+  return c.json({ user, devLogin: env.devLogin, studioEmail: env.studioEmail || undefined, providers: env.providers });
 });
 
 api.get('/auth/google/start', async (c) => {
@@ -85,6 +89,20 @@ api.get('/auth/google/callback', async (c) => {
     console.error('[auth] google callback', e);
     return c.redirect(`${env.appUrl}/?login=failed`);
   }
+});
+
+api.post('/auth/password', async (c) => {
+  // Local single-operator sign-in: credentials come from STUDIO_EMAIL / STUDIO_PASSWORD in .env.
+  if (!env.studioEmail || !env.studioPassword) return c.json({ error: 'Password sign-in is not configured (set STUDIO_EMAIL and STUDIO_PASSWORD in .env)' }, 403);
+  const { email, password, name } = await c.req.json<{ email: string; password: string; name?: string }>().catch(() => ({} as any));
+  const emailOk = String(email ?? '').trim().toLowerCase() === env.studioEmail;
+  const given = crypto.createHash('sha256').update(String(password ?? '')).digest();
+  const expected = crypto.createHash('sha256').update(env.studioPassword).digest();
+  const passwordOk = crypto.timingSafeEqual(given, expected);
+  if (!emailOk || !passwordOk) return c.json({ error: 'Invalid email or password' }, 401);
+  const { id } = findOrCreateUser(env.studioEmail, name);
+  createSession(c, id);
+  return c.json({ ok: true });
 });
 
 api.post('/auth/dev', async (c) => {
@@ -132,6 +150,36 @@ const ownBot = (userId: string, id: string) => {
   const b = getBotRow(id);
   return b && b.user_id === userId ? b : null;
 };
+
+// ---------- workspace previews (agent-built sites, served by TideBot itself) ----------
+
+const PREVIEW_MIME: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.ico': 'image/x-icon',
+  '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8', '.woff': 'font/woff', '.woff2': 'font/woff2',
+};
+
+api.get('/preview/:botId/*', (c) => {
+  const botId = c.req.param('botId');
+  const b = ownBot(c.get('user').id, botId);
+  if (!b) return c.json({ error: 'not found' }, 404);
+  const prefix = `/api/preview/${botId}/`;
+  let rel = c.req.path.startsWith(prefix) ? c.req.path.slice(prefix.length) : '';
+  try { rel = decodeURIComponent(rel); } catch { return c.json({ error: 'bad path' }, 400); }
+  if (!rel || rel.endsWith('/')) rel = `${rel}index.html`;
+  const full = resolveWithinWorkspace(localWorkspaceDir(botId), rel);
+  if (!full || !fs.existsSync(full) || fs.statSync(full).isDirectory()) return c.json({ error: 'file not found' }, 404);
+  const type = PREVIEW_MIME[nodePath.extname(full).toLowerCase()] ?? 'application/octet-stream';
+  return new Response(fs.readFileSync(full), {
+    headers: {
+      'Content-Type': type,
+      'Cache-Control': 'no-cache',
+      'Content-Security-Policy': 'sandbox allow-scripts',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+});
 
 api.get('/bots', (c) => c.json({ bots: listBots(c.get('user').id), live: allLive(c.get('user').id) }));
 

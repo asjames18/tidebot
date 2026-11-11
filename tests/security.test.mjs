@@ -12,6 +12,7 @@ process.env.DB_PATH = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-t
 const { validateRoutineSchedule } = await import('../server/dist/routines.js');
 const { encryptSecret, decryptSecret } = await import('../server/dist/lib/secrets.js');
 const { runShell, findBwrap } = await import('../server/dist/lib/sandbox.js');
+const { withRetry } = await import('../server/dist/lib/retry.js');
 
 test('private / reserved IPs are blocked, public IPs allowed', () => {
   for (const ip of ['10.0.0.1', '172.16.0.1', '172.31.255.1', '192.168.1.1', '169.254.169.254', '127.0.0.1', '100.64.0.1', '0.0.0.0', '224.0.0.1', '::1', 'fe80::1', 'fd00::1', '::ffff:10.0.0.1']) {
@@ -69,6 +70,23 @@ test('shell cannot read outside its workspace or see server secrets', async () =
   assert.ok(r.output.includes('marker-123'), r.output);
   assert.ok(!r.output.includes(process.env.OPENROUTER_API_KEY), r.output);
   if (r.sandboxed) assert.ok(!r.output.includes('top-secret'), r.output);
+});
+
+test('provider retry recovers from 429 but not from 400', async () => {
+  let attempts = 0;
+  const ok = await withRetry(async () => {
+    attempts++;
+    if (attempts < 3) { const e = new Error('rate limited'); e.status = 429; throw e; }
+    return 'done';
+  }, undefined, [1, 1, 1]);
+  assert.equal(ok, 'done');
+  assert.equal(attempts, 3);
+  let attempts400 = 0;
+  await assert.rejects(() => withRetry(async () => {
+    attempts400++;
+    const e = new Error('bad request'); e.status = 400; throw e;
+  }, undefined, [1, 1, 1]));
+  assert.equal(attempts400, 1);
 });
 
 test('web fetch check blocks loopback and metadata hosts', async () => {
