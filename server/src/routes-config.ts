@@ -1,14 +1,20 @@
+import fs from 'node:fs';
+import nodePath from 'node:path';
 import { Hono } from 'hono';
 import { db, now } from './db.js';
 import './db-config.js';
+import { env } from './env.js';
 import { newId } from './lib/ids.js';
 import { hub } from './lib/hub.js';
 import { requireUser, type AuthVars } from './lib/auth.js';
 import { getBotRow, listRoutines, listTasks } from './store.js';
 import { computerState, ensureComputer } from './computer.js';
 import { orgo } from './orgo.js';
+import { catalog } from './composio.js';
 import { runInBotQueue } from './agent/loop.js';
+import { localWorkspaceDir } from './agent/tools.js';
 import { consolidateBot, historySize, maybeCompact, memoryConfig } from './agent/memory.js';
+import { fetchModelsCatalog, getPublicLlmConfig, saveLlmConfig, testLlmConnection } from './agent/llm.js';
 import { idleConfig, viewerCount } from './idle.js';
 import { loadHistory } from './store.js';
 import type { LibraryFile, Memory, Skill } from './types.js';
@@ -19,7 +25,48 @@ import type { LibraryFile, Memory, Skill } from './types.js';
  */
 export const configApi = new Hono<AuthVars>();
 
-for (const p of ['/bots/*', '/skills/*', '/computer/*']) configApi.use(p, requireUser);
+for (const p of ['/bots/*', '/skills/*', '/computer/*', '/llm/*']) configApi.use(p, requireUser);
+
+// ---------- BYOM / OpenRouter runtime config & models ----------
+
+configApi.get('/llm/config', (c) => {
+  return c.json(getPublicLlmConfig());
+});
+
+configApi.put('/llm/config', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const updated = saveLlmConfig({
+    provider: body.provider,
+    openrouterKey: body.openrouterKey,
+    xaiKey: body.xaiKey,
+    customBaseUrl: body.customBaseUrl,
+    customApiKey: body.customApiKey,
+    defaultModel: body.defaultModel,
+    shaderStyle: body.shaderStyle,
+    composioKey: body.composioKey,
+    orgoKey: body.orgoKey,
+  });
+  return c.json(updated);
+});
+
+configApi.post('/llm/test', async (c) => {
+  return c.json(await testLlmConnection());
+});
+
+configApi.post('/llm/test-composio', async (c) => {
+  const t0 = Date.now();
+  try {
+    if (!env.composioKey) return c.json({ ok: false, error: 'COMPOSIO_API_KEY is not configured.' });
+    const items = await catalog();
+    return c.json({ ok: true, count: items.length, latencyMs: Date.now() - t0 });
+  } catch (e: any) {
+    return c.json({ ok: false, error: String(e?.message ?? e) });
+  }
+});
+
+configApi.get('/llm/models', async (c) => {
+  return c.json(await fetchModelsCatalog());
+});
 
 const ownBot = (userId: string, id: string) => {
   const b = getBotRow(id);
@@ -171,16 +218,115 @@ configApi.get('/bots/:id/files', async (c) => {
   if (!b) return c.json({ error: 'not found' }, 404);
   const rel = safeRel(c.req.query('path'));
   if (rel === null) return c.json({ error: 'bad path' }, 400);
+
+  const localFiles: LibraryFile[] = [];
+  try {
+    const rootDir = localWorkspaceDir(b.id);
+    const targetDir = rel ? nodePath.join(rootDir, rel) : rootDir;
+    fs.mkdirSync(targetDir, { recursive: true });
+    for (const e of fs.readdirSync(targetDir, { withFileTypes: true })) {
+      if (e.name.startsWith('.')) continue;
+      const st = fs.statSync(nodePath.join(targetDir, e.name));
+      localFiles.push({ name: e.name, size: st.size, modifiedAt: st.mtimeMs, isDir: e.isDirectory() });
+    }
+  } catch { /* ignore */ }
+
+  if (!env.orgoKey) {
+    localFiles.sort((x, y) => Number(y.isDir) - Number(x.isDir) || y.modifiedAt - x.modifiedAt);
+    return c.json({ status: 'ok', path: rel, files: localFiles });
+  }
   try {
     const box = await boxFor(user.id, b.id, c.req.query('wake') === '1');
-    if (!box) return c.json({ status: 'asleep', path: rel, files: [] });
+    if (!box) {
+      localFiles.sort((x, y) => Number(y.isDir) - Number(x.isDir) || y.modifiedAt - x.modifiedAt);
+      return c.json({ status: localFiles.length ? 'ok' : 'asleep', path: rel, files: localFiles });
+    }
     const dir = `${LIB_ROOT}/${b.id}${rel ? `/${rel}` : ''}`;
     const r = await orgo.bash(box.computerId, box.screenId, `mkdir -p ${shq(`${LIB_ROOT}/${b.id}`)} && ls -la --time-style=+%s ${shq(dir)} 2>&1`, 30);
-    if (r.exit_code !== 0) return c.json({ status: 'error', path: rel, files: [], error: (r.output ?? '').slice(0, 300) });
-    return c.json({ status: 'ok', path: rel, files: parseLs(r.output ?? '') });
+    const remoteFiles = r.exit_code === 0 ? parseLs(r.output ?? '') : [];
+    const byName = new Map<string, LibraryFile>();
+    for (const f of remoteFiles) byName.set(f.name, f);
+    for (const f of localFiles) byName.set(f.name, f);
+    const merged = [...byName.values()].sort((x, y) => Number(y.isDir) - Number(x.isDir) || y.modifiedAt - x.modifiedAt);
+    return c.json({ status: 'ok', path: rel, files: merged });
   } catch (e: any) {
+    if (localFiles.length) return c.json({ status: 'ok', path: rel, files: localFiles });
     return c.json({ status: 'error', path: rel, files: [], error: String(e?.message ?? e).slice(0, 300) });
   }
+});
+
+configApi.get('/bots/:id/files/raw', (c) => {
+  const user = c.get('user');
+  const b = ownBot(user.id, c.req.param('id'));
+  if (!b) return c.json({ error: 'not found' }, 404);
+  const rel = safeRel(c.req.query('path'));
+  if (!rel) return c.json({ error: 'bad path' }, 400);
+  const fullPath = nodePath.join(localWorkspaceDir(b.id), rel);
+  if (!fs.existsSync(fullPath) || fs.statSync(fullPath).isDirectory()) {
+    return c.json({ error: 'file not found' }, 404);
+  }
+  const buf = fs.readFileSync(fullPath);
+  const baseName = nodePath.basename(fullPath);
+  return new Response(buf, {
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${baseName.replace(/"/g, '')}"`,
+    },
+  });
+});
+
+configApi.get('/bots/:id/files/content', async (c) => {
+  const user = c.get('user');
+  const b = ownBot(user.id, c.req.param('id'));
+  if (!b) return c.json({ error: 'not found' }, 404);
+  const rel = safeRel(c.req.query('path'));
+  if (!rel) return c.json({ error: 'bad path' }, 400);
+  const localPath = nodePath.join(localWorkspaceDir(b.id), rel);
+  if (fs.existsSync(localPath) && !fs.statSync(localPath).isDirectory()) {
+    const content = fs.readFileSync(localPath, 'utf8').slice(0, 150_000);
+    return c.json({ ok: true, path: rel, content });
+  }
+  if (env.orgoKey) {
+    try {
+      const box = await boxFor(user.id, b.id, false);
+      if (box) {
+        const r = await orgo.bash(box.computerId, box.screenId, `head -c 150000 ${shq(`${LIB_ROOT}/${b.id}/${rel}`)}`, 20);
+        if (r.exit_code === 0) return c.json({ ok: true, path: rel, content: r.output ?? '' });
+      }
+    } catch { /* fall through */ }
+  }
+  return c.json({ error: 'File not found' }, 404);
+});
+
+configApi.post('/bots/:id/files', async (c) => {
+  const user = c.get('user');
+  const b = ownBot(user.id, c.req.param('id'));
+  if (!b) return c.json({ error: 'not found' }, 404);
+  const body = await c.req.json<{ path?: string; content?: string }>().catch(() => ({} as any));
+  const rel = safeRel(body.path);
+  if (!rel) return c.json({ error: 'Valid file path is required' }, 400);
+  const content = String(body.content ?? '');
+  const localPath = nodePath.join(localWorkspaceDir(b.id), rel);
+  fs.mkdirSync(nodePath.dirname(localPath), { recursive: true });
+  fs.writeFileSync(localPath, content, 'utf8');
+  return c.json({ ok: true, path: rel, size: Buffer.byteLength(content, 'utf8') });
+});
+
+configApi.delete('/bots/:id/files', async (c) => {
+  const user = c.get('user');
+  const b = ownBot(user.id, c.req.param('id'));
+  if (!b) return c.json({ error: 'not found' }, 404);
+  const rel = safeRel(c.req.query('path'));
+  if (!rel) return c.json({ error: 'bad path' }, 400);
+  const localPath = nodePath.join(localWorkspaceDir(b.id), rel);
+  if (fs.existsSync(localPath)) {
+    fs.rmSync(localPath, { recursive: true, force: true });
+  }
+  if (env.orgoKey) {
+    const box = await boxFor(user.id, b.id, false).catch(() => null);
+    if (box) await orgo.bash(box.computerId, box.screenId, `rm -rf ${shq(`${LIB_ROOT}/${b.id}/${rel}`)}`, 15).catch(() => null);
+  }
+  return c.json({ ok: true });
 });
 
 configApi.post('/bots/:id/files/download', async (c) => {
@@ -190,6 +336,13 @@ configApi.post('/bots/:id/files/download', async (c) => {
   const { path } = await c.req.json<{ path: string }>().catch(() => ({ path: '' }));
   const rel = safeRel(path);
   if (!rel) return c.json({ error: 'bad path' }, 400);
+  const localPath = nodePath.join(localWorkspaceDir(b.id), rel);
+  if (fs.existsSync(localPath) && !fs.statSync(localPath).isDirectory()) {
+    return c.json({ url: `/api/bots/${b.id}/files/raw?path=${encodeURIComponent(rel)}` });
+  }
+  if (!env.orgoKey) {
+    return c.json({ url: `/api/bots/${b.id}/files/raw?path=${encodeURIComponent(rel)}` });
+  }
   try {
     const box = await boxFor(user.id, b.id, true);
     if (!box) return c.json({ error: 'computer unavailable' }, 409);

@@ -26,6 +26,9 @@ function Shell() {
     const st = useStore.getState();
     st.loadBots().catch(console.error);
     st.loadComputer().catch(console.error);
+    const cfgSt = useConfigUI.getState();
+    cfgSt.loadLlmConfig().catch(console.error);
+    cfgSt.loadModels().catch(console.error);
     const stop = startEvents();
     // OAuth popups post back here; refresh connection-dependent views and the open transcript.
     const onMsg = (e: MessageEvent) => {
@@ -38,15 +41,21 @@ function Shell() {
     return () => { stop(); window.removeEventListener('message', onMsg); };
   }, []);
 
-  // Global shortcuts: ⌘K search, ⌘B sidebar, ⇧⌘, details, ⌘N new bot.
+  // Global shortcuts: ⌘K search, ⌘B sidebar, ⇧⌘, details, ⌘, settings, ⇧⌘O / Alt+N new bot.
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
       const st = useStore.getState();
       const key = e.key.toLowerCase();
+      if (e.altKey && !e.metaKey && !e.ctrlKey && key === 'n') {
+        e.preventDefault();
+        st.setModal(st.modal === 'create' ? null : 'create');
+        return;
+      }
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
       if (key === 'k') { e.preventDefault(); st.setModal(st.modal === 'search' ? null : 'search'); }
       else if (key === 'b') { e.preventDefault(); st.set({ sidebarCollapsed: !st.sidebarCollapsed }); }
+      else if (e.shiftKey && key === 'o') { e.preventDefault(); st.setModal(st.modal === 'create' ? null : 'create'); }
       else if (e.shiftKey && (key === ',' || key === '<')) { e.preventDefault(); st.set({ detailsOpen: !st.detailsOpen }); }
       else if (key === ',') { e.preventDefault(); useConfigUI.getState().openAppSettings(); }
     };

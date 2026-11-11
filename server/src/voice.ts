@@ -42,6 +42,7 @@ export const SPEEDS = [0.7, 0.85, 1, 1.15, 1.3, 1.5];
 
 let voiceCache: { at: number; voices: VoiceOption[] } | null = null;
 async function listVoices(): Promise<VoiceOption[]> {
+  if (!env.xaiKey) return FALLBACK_VOICES;
   if (voiceCache && Date.now() - voiceCache.at < 3600_000) return voiceCache.voices;
   try {
     const r = await fetch(`${XAI}/tts/voices`, { headers: xaiHeaders(), signal: AbortSignal.timeout(8000) });
@@ -355,10 +356,10 @@ voiceApi.post('/tool', async (c) => {
   }
 });
 
-const xai = new OpenAI({ apiKey: env.xaiKey, baseURL: XAI, timeout: 45_000 });
+const xai = new OpenAI({ apiKey: env.xaiKey || 'local-unconfigured-key', baseURL: XAI, timeout: 45_000 });
 
 async function summarizeCall(botName: string, transcript: { role: string; text: string }[], tasks: string[]): Promise<string | null> {
-  if (!transcript.length && !tasks.length) return null;
+  if (!env.xaiKey || (!transcript.length && !tasks.length)) return null;
   const lines = transcript.map((t) => `${t.role === 'user' ? 'User' : botName}: ${t.text}`).join('\n').slice(-12_000);
   const res: any = await xai.responses.create({
     model: env.xaiModel,
@@ -389,14 +390,16 @@ voiceApi.post('/end', async (c) => {
     .map((t) => ({ role: t.role as 'user' | 'assistant', text: clip(t.text.trim(), 2000) }));
   const base = error ? `Voice call ended · ${fmtDuration(durationMs)} · ${clip(error, 120)}` : `Voice call ended · ${fmtDuration(durationMs)}`;
   const record: VoiceCallRecord = { id: callId, phase: 'ended', durationMs, transcript: lines, tasks: call.tasks };
-  const row = appendRow(bot.id, 'event', callEvent(base, record));
+  const maxSeq = (db.prepare('SELECT MAX(seq) m FROM rows WHERE bot_id=?').get(bot.id) as any)?.m ?? call.startSeq;
+  const targetSeq = maxSeq === call.startSeq ? call.startSeq : appendRow(bot.id, 'event', callEvent(base, record)).seq;
+  if (targetSeq === call.startSeq) updateRow(bot.id, call.startSeq, callEvent(base, record));
   emitBot(bot.id);
 
   // Summarise in the background and rewrite the row.
   summarizeCall(bot.name, lines, call.tasks)
-    .then((summary) => { if (summary) updateRow(bot.id, row.seq, callEvent(`${base}. ${summary}`, { ...record, summary })); })
+    .then((summary) => { if (summary) updateRow(bot.id, targetSeq, callEvent(`${base}. ${summary}`, { ...record, summary })); })
     .catch((e) => console.warn('[voice] call summary failed:', e?.message));
-  return c.json({ ok: true, seq: row.seq });
+  return c.json({ ok: true, seq: targetSeq });
 });
 
 // Calls whose tab vanished without /end: close them after 2h so the map can't grow forever.

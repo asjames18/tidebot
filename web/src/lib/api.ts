@@ -24,18 +24,29 @@ export interface AppsResponse { apps: Toolkit[]; connected: string[]; categories
 
 export interface RoomMember { id: string; name: string; label: string; avatarShape: string; avatarColor: string }
 
+export interface SearchResults {
+  messages: { botId: string; botName: string; seq: number; role: string; snippet: string; createdAt: number }[];
+  memories: { id: string; botId: string; botName: string; text: string; createdAt: number }[];
+  tasks: { id: string; botId: string; botName: string; title: string; state: string; updatedAt: number }[];
+}
+
 export const api = {
-  me: () => req<{ user: User | null; devLogin: boolean }>('GET', '/auth/me'),
+  me: () => req<{ user: User | null; devLogin: boolean; providers?: { xai: boolean; composio: boolean; orgo: boolean } }>('GET', '/auth/me'),
   devLogin: (email: string, name?: string) => req<{ ok: true }>('POST', '/auth/dev', { email, name }),
   logout: () => req<{ ok: true }>('POST', '/auth/logout'),
 
   bots: () => req<{ bots: Bot[]; live: LiveState[] }>('GET', '/bots'),
-  createBot: (b: Pick<Bot, 'name' | 'avatarShape' | 'avatarColor' | 'mode'>) => req<{ bot: Bot }>('POST', '/bots', b),
+  createBot: (b: Pick<Bot, 'name' | 'avatarShape' | 'avatarColor' | 'mode'> & Partial<Pick<Bot, 'label' | 'description' | 'instructions' | 'model'>>) => req<{ bot: Bot }>('POST', '/bots', b),
+  cloneBot: (id: string) => req<{ bot: Bot }>('POST', `/bots/${id}/clone`),
+  exportBotUrl: (id: string) => `/api/bots/${id}/export`,
+  systemStatus: () => req<{ botsCount: number; tasksOpen: number; tasksDone: number; memoriesCount: number; routinesCount: number; connectedAppsCount: number; connectedApps: string[]; serverTime: number }>('GET', '/system/status'),
   markRead: (id: string) => req<{ ok: true }>('POST', `/bots/${id}/read`),
   rows: (id: string) => req<{ generation: number; rows: Row[] }>('GET', `/bots/${id}/rows`),
   send: (id: string, text: string) => req<{ row: Row }>('POST', `/bots/${id}/messages`, { text }),
   interrupt: (id: string) => req<{ ok: true }>('POST', `/bots/${id}/interrupt`),
   fresh: (id: string) => req<{ ok: true }>('POST', `/bots/${id}/fresh`),
+  retry: (id: string) => req<{ ok: true }>('POST', `/bots/${id}/retry`),
+  search: (q: string) => req<SearchResults>('GET', `/search?q=${encodeURIComponent(q)}`),
 
   approve: (approvalId: string, decision: 'allow' | 'always' | 'deny') => req<{ ok: true }>('POST', `/approvals/${approvalId}`, { decision }),
   answer: (id: string, seq: number, answer: string) => req<{ ok: true }>('POST', `/bots/${id}/cards/${seq}/answer`, { answer }),

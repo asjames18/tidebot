@@ -1,4 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#16a34a"/>
-  <text x="32" y="32" dy="0.35em" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="26" font-weight="600" fill="#ffffff">GD</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="tideGrad" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#07090F" stroke="url(#rim)" stroke-width="2"/>
+  <polygon points="32,11 51,22 51,42 32,53 13,42 13,22" fill="url(#tideGrad)" fill-opacity="0.22" stroke="url(#tideGrad)" stroke-width="2.2" stroke-linejoin="round"/>
+  <polygon points="32,18 44,32 32,46 20,32" fill="url(#tideGrad)" stroke="#E0F2FE" stroke-width="1.5" stroke-linejoin="round"/>
+  <circle cx="32" cy="32" r="3.5" fill="#FFFFFF"/>
 </svg>

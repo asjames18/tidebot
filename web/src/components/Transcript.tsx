@@ -7,6 +7,9 @@ import { ActivityLine } from './ActivityLine';
 import { CardRow } from './cards/Cards';
 import { Icon } from './Icon';
 import { Markdown } from './Markdown';
+import { ShaderCanvas } from './ShaderCanvas';
+import { useConfigUI } from '../configStore';
+import { api } from '../lib/api';
 
 type Item =
   | { kind: 'divider'; key: string; ts: number }
@@ -56,10 +59,50 @@ function cornerClass(i: number, n: number) {
 
 const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left' | 'right'; pos: string }) {
   const b = row.body as MessageBody;
+  const [showReasoning, setShowReasoning] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const isThinkingNow = Boolean(b.streaming && b.reasoning && !b.text);
+  const reasoningOpen = showReasoning || isThinkingNow;
+
+  const copyMsg = () => {
+    if (!b.text) return;
+    navigator.clipboard.writeText(b.text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    }).catch(() => {});
+  };
+
+  const shortModel = b.model ? (b.model.includes('/') ? b.model.split('/').pop()! : b.model) : null;
+
   return (
     <div className={`bubble-wrap is-${side}`}>
       <div className={`bubble is-${side === 'right' ? 'user' : 'agent'}${pos}${b.streaming ? ' is-streaming' : ''}`}>
-        {side === 'right' ? <div className="bubble__plain">{b.text}</div> : <Markdown text={b.text || ' '} />}
+        {side === 'left' && b.reasoning && (
+          <div className={`bubble__reasoning${reasoningOpen ? ' is-open' : ''}`}>
+            <button
+              type="button"
+              className="bubble__reasoning-toggle"
+              onClick={() => setShowReasoning(!showReasoning)}
+              aria-expanded={reasoningOpen}
+            >
+              <span className={`bubble__reasoning-dot${isThinkingNow ? ' is-pulsing' : ''}`} />
+              <span>{isThinkingNow ? 'Reasoning in progress…' : 'Thought process'}</span>
+              <Icon name="chev_down" size={10} opacity={0.65} className="steps__chev" />
+            </button>
+            {reasoningOpen && (
+              <div className="bubble__reasoning-body">
+                {b.reasoning}
+              </div>
+            )}
+          </div>
+        )}
+        {side === 'right' ? (
+          <div className="bubble__plain">{b.text}</div>
+        ) : b.text ? (
+          <Markdown text={b.text} />
+        ) : isThinkingNow ? null : (
+          <Markdown text=" " />
+        )}
         {b.citations && b.citations.length > 0 && (
           <div className="bubble__cites">
             {b.citations.slice(0, 6).map((c, i) => {
@@ -67,6 +110,25 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
               try { host = new URL(c.url).hostname.replace(/^www\./, ''); } catch { /* keep */ }
               return <a key={i} className="cite-chip" href={c.url} target="_blank" rel="noreferrer noopener" title={c.title ?? c.url}>{host}</a>;
             })}
+          </div>
+        )}
+        {side === 'left' && !b.streaming && b.text && (
+          <div className="bubble__meta-bar">
+            {shortModel && <span className="bubble__meta-tag">{shortModel}</span>}
+            {b.durationMs && <span className="bubble__meta-tag">{(b.durationMs / 1000).toFixed(1)}s</span>}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+              <button
+                type="button"
+                className="bubble__copy-btn"
+                onClick={() => api.retry(row.botId).catch(() => {})}
+                title="Re-run with current model"
+              >
+                Retry
+              </button>
+              <button type="button" className="bubble__copy-btn" onClick={copyMsg} title="Copy message">
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </span>
           </div>
         )}
       </div>
@@ -198,11 +260,58 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
 }
 
 function EmptyChat({ bot }: { bot: Bot }) {
+  const llmConfig = useConfigUI((s) => s.llmConfig);
+  const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
+  const shaderStyle = llmConfig?.shaderStyle || 'aurora';
+
+  const quickPrompts = [
+    `Search the web for the latest AI engineering news and summarize top 3 items`,
+    `Set up a weekday 8:30 AM routine to brief me on my priorities`,
+    `Create a task checklist for launching a new product feature`,
+  ];
+
   return (
     <div className="empty-chat">
-      <BotAvatarFor bot={bot} size={72} />
-      <div className="empty-chat__title">{bot.name}</div>
-      <div className="empty-chat__sub">{bot.description || (bot.mode === 'teammate' ? 'A Bot for the whole team. Hand it a task and it will see it through.' : 'Your personal assistant. Hand it a task and it will see it through.')}</div>
+      <div className="empty-chat__stage">
+        <ShaderCanvas style={shaderStyle} className="empty-chat__shader" opacity={0.78} />
+        <div className="empty-chat__stage-inner">
+          <div className="empty-chat__badges">
+            <span className="tideos-pill tideos-pill--glow">
+              {llmConfig?.provider === 'custom' ? 'CUSTOM BYOM' : llmConfig?.provider === 'xai' ? 'XAI ENGINE' : 'OPENROUTER'}
+            </span>
+            <button
+              type="button"
+              className="tideos-pill tideos-pill--interactive"
+              onClick={() => useConfigUI.getState().openAppSettings('models')}
+              title="Click to configure OpenRouter key or switch default model"
+            >
+              {activeModel} · {llmConfig?.isConfigured ? 'Connected' : 'Configure Key →'}
+            </button>
+          </div>
+          <BotAvatarFor bot={bot} size={76} />
+          <div className="empty-chat__title">{bot.name}</div>
+          {bot.label && <div className="empty-chat__role">{bot.label}</div>}
+          <div className="empty-chat__sub">
+            {bot.description ||
+              (bot.mode === 'teammate'
+                ? 'Shared autonomous operator with its own Linux sandbox, web search, and persistent memory.'
+                : 'Personal autonomous operator with its own Linux sandbox, web search, and persistent memory.')}
+          </div>
+          <div className="empty-chat__prompts">
+            {quickPrompts.map((p, i) => (
+              <button
+                key={i}
+                type="button"
+                className="empty-chat__prompt-chip"
+                onClick={() => api.send(bot.id, p).catch(console.error)}
+              >
+                <span>{p}</span>
+                <span className="empty-chat__prompt-arrow">↗</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

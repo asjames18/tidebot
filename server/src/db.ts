@@ -146,5 +146,20 @@ function addColumn(table: string, col: string, ddl: string) {
 addColumn('bots', 'voice', "TEXT NOT NULL DEFAULT 'luna'");
 addColumn('bots', 'voice_speed', 'REAL NOT NULL DEFAULT 1');
 addColumn('bots', 'voice_language', "TEXT NOT NULL DEFAULT 'auto'");
+addColumn('bots', 'model', "TEXT NOT NULL DEFAULT ''");
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS llm_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  provider TEXT NOT NULL DEFAULT 'openrouter',
+  openrouter_key TEXT NOT NULL DEFAULT '',
+  xai_key TEXT NOT NULL DEFAULT '',
+  custom_base_url TEXT NOT NULL DEFAULT '',
+  custom_api_key TEXT NOT NULL DEFAULT '',
+  default_model TEXT NOT NULL DEFAULT '',
+  shader_style TEXT NOT NULL DEFAULT 'aurora',
+  updated_at INTEGER NOT NULL DEFAULT 0
+);
+`);
 
 export const now = () => Date.now();

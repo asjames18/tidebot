@@ -1,25 +1,107 @@
-function req(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing env ${name}`);
-  return v;
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const envFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.env');
+let lastMtimeMs = -1;
+let diskEnv: Record<string, string> = {};
+
+export function reloadEnvFromDisk(): Record<string, string> {
+  try {
+    const st = fs.statSync(envFilePath);
+    if (st.mtimeMs !== lastMtimeMs) {
+      lastMtimeMs = st.mtimeMs;
+      const raw = fs.readFileSync(envFilePath, 'utf8');
+      const parsed: Record<string, string> = {};
+      for (const line of raw.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq <= 0) continue;
+        const key = trimmed.slice(0, eq).trim();
+        let val = trimmed.slice(eq + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        parsed[key] = val;
+        process.env[key] = val;
+      }
+      diskEnv = parsed;
+    }
+  } catch {
+    // ignore if .env doesn't exist
+  }
+  return diskEnv;
 }
 
+// Initial load on startup
+reloadEnvFromDisk();
+
+export function writeEnvKeyToDisk(key: string, value: string) {
+  try {
+    let raw = fs.existsSync(envFilePath) ? fs.readFileSync(envFilePath, 'utf8') : '';
+    const re = new RegExp(`^${key}=.*$`, 'm');
+    if (re.test(raw)) {
+      raw = raw.replace(re, `${key}=${value}`);
+    } else {
+      raw = `${raw.trimEnd()}\n${key}=${value}\n`;
+    }
+    fs.writeFileSync(envFilePath, raw, 'utf8');
+    lastMtimeMs = -1;
+    reloadEnvFromDisk();
+  } catch {
+    diskEnv[key] = value;
+    process.env[key] = value;
+  }
+}
+
+function opt(name: string, fallback = ''): string {
+  reloadEnvFromDisk();
+  const v = (diskEnv[name] ?? process.env[name])?.trim();
+  return v || fallback;
+}
+
+const devLoginInit = opt('DEV_LOGIN') === '1' || process.env.NODE_ENV !== 'production';
+const sessionSecretInit = opt('SESSION_SECRET', devLoginInit ? 'grokbot-local-dev-session-secret-32bytes!' : crypto.randomBytes(32).toString('hex'));
+
 export const env = {
-  port: Number(process.env.PORT ?? 8787),
-  appUrl: process.env.APP_URL ?? 'http://localhost:5173',
+  get port() { return Number(opt('PORT', '8787')); },
+  get appUrl() { return opt('APP_URL', 'http://localhost:5173'); },
   /** Public URL of this server, used for OAuth callbacks. */
-  serverUrl: process.env.SERVER_URL ?? `http://localhost:${process.env.PORT ?? 8787}`,
-  xaiKey: req('XAI_API_KEY'),
-  xaiModel: process.env.XAI_MODEL ?? 'grok-4.7',
-  composioKey: req('COMPOSIO_API_KEY'),
-  orgoKey: req('ORGO_API_KEY'),
+  get serverUrl() { return opt('SERVER_URL', `http://localhost:${opt('PORT', '8787')}`); },
+  get llmProvider(): 'openrouter' | 'custom' | 'xai' {
+    const orKey = opt('OPENROUTER_API_KEY');
+    const cUrl = opt('LLM_BASE_URL');
+    const xKey = opt('XAI_API_KEY');
+    return opt('LLM_PROVIDER', orKey ? 'openrouter' : cUrl ? 'custom' : xKey ? 'xai' : 'openrouter') as 'openrouter' | 'custom' | 'xai';
+  },
+  get openrouterKey() { return opt('OPENROUTER_API_KEY'); },
+  get openrouterModel() { return opt('OPENROUTER_MODEL', 'thinkingmachines/inkling-2-small:free'); },
+  get customBaseUrl() { return opt('LLM_BASE_URL'); },
+  get customApiKey() { return opt('LLM_API_KEY'); },
+  get customModel() { return opt('LLM_MODEL'); },
+  get xaiKey() { return opt('XAI_API_KEY'); },
+  get xaiModel() { return opt('XAI_MODEL', 'grok-4.7'); },
+  get composioKey() { return opt('COMPOSIO_API_KEY'); },
+  get orgoKey() { return opt('ORGO_API_KEY'); },
   /** Orgo workspace that holds every user's box. */
-  orgoWorkspaceId: process.env.ORGO_WORKSPACE_ID ?? '',
+  get orgoWorkspaceId() { return opt('ORGO_WORKSPACE_ID'); },
+  set orgoWorkspaceId(val: string) { diskEnv.ORGO_WORKSPACE_ID = val; process.env.ORGO_WORKSPACE_ID = val; },
   /** Orgo box size for new users. */
-  orgoRamGb: Number(process.env.ORGO_RAM_GB ?? 8),
-  orgoCpu: Number(process.env.ORGO_CPU ?? 2),
-  orgoResolution: process.env.ORGO_RESOLUTION ?? '1280x800x24',
-  sessionSecret: req('SESSION_SECRET'),
-  devLogin: process.env.DEV_LOGIN === '1',
+  get orgoRamGb() { return Number(opt('ORGO_RAM_GB', '8')); },
+  get orgoCpu() { return Number(opt('ORGO_CPU', '2')); },
+  get orgoResolution() { return opt('ORGO_RESOLUTION', '1280x800x24'); },
+  sessionSecret: sessionSecretInit,
+  get devLogin() { return opt('DEV_LOGIN') === '1' || process.env.NODE_ENV !== 'production'; },
   dbPath: process.env.DB_PATH ?? new URL('../../data/grokbot.db', import.meta.url).pathname,
+  get providers() {
+    return {
+      openrouter: Boolean(opt('OPENROUTER_API_KEY')),
+      custom: Boolean(opt('LLM_BASE_URL')),
+      xai: Boolean(opt('XAI_API_KEY')),
+      composio: Boolean(opt('COMPOSIO_API_KEY')),
+      orgo: Boolean(opt('ORGO_API_KEY')),
+    };
+  },
 };

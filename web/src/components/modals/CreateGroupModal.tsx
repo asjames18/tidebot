@@ -5,7 +5,7 @@ import { useStore } from '../../store';
 import { Icon } from '../Icon';
 import { Modal } from './Modal';
 
-/** New group chat: a name plus at least two Bots. */
+/** New multi-operator war room: a name plus at least two Operators. */
 export function CreateGroupModal() {
   const setModal = useStore((s) => s.setModal);
   const allBots = useStore((s) => s.bots);
@@ -35,15 +35,15 @@ export function CreateGroupModal() {
   };
 
   return (
-    <Modal onClose={close} className="create-modal" label="New group chat">
+    <Modal onClose={close} className="create-modal" label="New Multi-Operator War Room">
       <form onSubmit={(e) => { e.preventDefault(); create(); }}>
         <div className="modal__header">
-          <div className="modal__title">New group chat</div>
+          <div className="modal__title">New Multi-Operator War Room</div>
           <button type="button" className="modal__close" onClick={close} aria-label="Close"><Icon name="close" size={14} opacity={0.68} /></button>
         </div>
-        <div className="create-modal__body" style={{ alignItems: "stretch" }}>
-          <input className="text-input create-modal__name" placeholder="Name your group" value={name} onChange={(e) => setName(e.target.value)} autoFocus aria-label="Group name" />
-          <div className="section-label" style={{ marginTop: 14 }}>Bots in this group</div>
+        <div className="create-modal__body" style={{ alignItems: 'stretch' }}>
+          <input className="text-input create-modal__name" placeholder="War room name (e.g. Product Launch, Security Triage)" value={name} onChange={(e) => setName(e.target.value)} autoFocus aria-label="War room name" />
+          <div className="section-label" style={{ marginTop: 14 }}>Select at least 2 Operators ({picked.length} selected)</div>
           <div className="group-pick">
             {bots.map((b) => (
               <button key={b.id} type="button" role="checkbox" aria-checked={picked.includes(b.id)} className={`group-pick__opt${picked.includes(b.id) ? ' is-active' : ''}`} onClick={() => toggle(b.id)}>
@@ -57,7 +57,7 @@ export function CreateGroupModal() {
         </div>
         <div className="modal__footer">
           <button type="button" className="btn btn--secondary btn--sm" onClick={close}>Cancel</button>
-          <button type="submit" className="btn btn--primary btn--sm" disabled={!canCreate}>{busy ? 'Creating…' : 'Create group'}</button>
+          <button type="submit" className="btn btn--primary btn--sm" disabled={!canCreate}>{busy ? 'Creating…' : 'Create War Room'}</button>
         </div>
       </form>
     </Modal>

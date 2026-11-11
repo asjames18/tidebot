@@ -11,9 +11,22 @@
   transition: width 0.2s var(--ease-out);
 }
 .sidebar.is-collapsed { width: 88px; }
-.sidebar__titlebar { position: relative; display: flex; align-items: center; justify-content: flex-end; height: 60px; flex-shrink: 0; padding: 12px 16px 12px 10px; }
-.sidebar__controls { display: flex; align-items: center; gap: 10px; }
+.sidebar__titlebar { position: relative; display: flex; align-items: center; justify-content: space-between; height: 60px; flex-shrink: 0; padding: 12px 16px 12px 14px; border-bottom: 1px solid var(--color-border-tertiary); }
+.sidebar__brand { display: flex; align-items: center; gap: 10px; padding-left: 58px; }
+.sidebar__brand-mark {
+  font-family: var(--font-mono-stack);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  color: var(--color-ink);
+}
+.sidebar__brand-mark span {
+  color: #38BDF8;
+  margin-left: 2px;
+}
+.sidebar__controls { display: flex; align-items: center; gap: 8px; }
 .sidebar.is-collapsed .sidebar__titlebar { justify-content: center; padding: 34px 0 0; height: 66px; }
+.sidebar.is-collapsed .sidebar__brand { padding-left: 0; }
 
 .sidebar__scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 4px 12px 40px; scrollbar-width: none; }
 .sidebar__scroll::-webkit-scrollbar { display: none; }
@@ -55,9 +68,86 @@
 .bot-list__empty > span:last-child { display: flex; flex-direction: column; min-width: 0; }
 .bot-list__empty-plus { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--color-bg-pane); border: 0.5px solid var(--color-border-tertiary); }
 
-.sidebar__footer { position: relative; display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 16px 16px; flex-shrink: 0; }
+.sidebar__footer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px 14px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border-tertiary);
+  background: var(--color-bg-sidebar);
+}
+.sidebar__footer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.sidebar__byom-bar {
+  width: 100%;
+}
+.sidebar__byom-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--color-bg-pane);
+  border: 1px solid var(--color-border-secondary);
+  box-shadow: var(--shadow-card);
+  transition: border-color 140ms, transform 140ms;
+}
+.sidebar__byom-btn:hover {
+  border-color: #38BDF8;
+  transform: translateY(-1px);
+}
+.sidebar__byom-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-warn);
+  flex-shrink: 0;
+}
+.sidebar__byom-dot.is-ok {
+  background: var(--color-success);
+  box-shadow: 0 0 8px var(--color-success);
+}
+.sidebar__byom-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.sidebar__byom-prov {
+  font-family: var(--font-mono-stack);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  color: var(--color-text-tertiary);
+}
+.sidebar__byom-model {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar__byom-tag {
+  font-family: var(--font-mono-stack);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.14);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+}
 .sidebar__fade { position: absolute; left: 0; right: 0; top: -40px; height: 40px; pointer-events: none; background: linear-gradient(180deg, transparent 0%, var(--color-bg-sidebar) 100%); }
-.sidebar.is-collapsed .sidebar__footer { justify-content: center; padding: 0 0 16px; }
+.sidebar.is-collapsed .sidebar__footer { align-items: center; padding: 10px 0 16px; }
+.sidebar.is-collapsed .sidebar__footer-row { justify-content: center; }
 .account { position: relative; display: flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0; padding-right: 4px; border-radius: var(--radius-full); }
 .account__btn { display: flex; align-items: center; gap: 8px; min-width: 0; border-radius: var(--radius-full); padding-right: 10px; }
 .account__btn:hover { background: var(--color-bg-hover); }

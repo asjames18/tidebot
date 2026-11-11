@@ -1,7 +1,5 @@
-import OpenAI from 'openai';
 import { db, now } from '../db.js';
-import { env } from '../env.js';
-import { newId, sha256 } from '../lib/ids.js';
+import { newId } from '../lib/ids.js';
 import { hub } from '../lib/hub.js';
 import { appendHistory, appendRow, emitBot, getBotRow, getRow, loadHistory, setLive, updateRow } from '../store.js';
 import type { MessageBody, ToolCallBody } from '../types.js';
@@ -9,9 +7,9 @@ import { composioTools, toolkitInfo } from '../composio.js';
 import { systemPrompt } from './prompt.js';
 import { repairHistory } from './history.js';
 import { maybeCompact, noteUsage } from './memory.js';
+import { noteCheckinOutcome } from '../proactive.js';
+import { resolveBotModel, streamModelTurn } from './llm.js';
 import { activityFor, functionSchemas, humanizeSlug, policyFor, runComposioTool, toolMap, type ToolCtx, type ToolResult } from './tools.js';
-
-const xai = new OpenAI({ apiKey: env.xaiKey, baseURL: 'https://api.x.ai/v1', timeout: 360_000 });
 
 export type Trigger =
   | { type: 'user'; text: string }
@@ -105,6 +103,9 @@ async function runTurn(botId: string, trigger: Trigger) {
   const ctrl = new AbortController();
   aborts.set(botId, ctrl);
   let depth = trigger.type === 'bot' ? trigger.depth : 0;
+  const isCheckin = trigger.type === 'system' && trigger.text.startsWith('[check-in]');
+  let stayedSilent = false;
+  let producedMessage = false;
 
   const ctx: ToolCtx = { userId, botId, enqueueBotMessage, depth };
   setLive(botId, { isRunning: true, activity: { kind: 'thinking', since: now() }, awaiting: null, startedAt: now() });
@@ -138,8 +139,10 @@ async function runTurn(botId: string, trigger: Trigger) {
       if (ctrl.signal.aborted) throw new Error('interrupted');
       const result = await callModel(ctx, tools, ctrl.signal);
       appendHistory(botId, result.output);
+      if (result.output.some((o: any) => o.type === 'message')) producedMessage = true;
       const calls = result.output.filter((o: any) => o.type === 'function_call');
       if (!calls.length) break;
+      if (calls.some((c: any) => c.name === 'stay_silent')) stayedSilent = true;
 
       const st: PendingState = {
         calls: calls.map((c: any) => {
@@ -154,6 +157,9 @@ async function runTurn(botId: string, trigger: Trigger) {
       const paused = await processCalls(ctx, st);
       if (paused) return;
       if (st.outputs.some((o: any) => o.__endTurn)) break;
+    }
+    if (isCheckin) {
+      noteCheckinOutcome(userId, producedMessage && !stayedSilent);
     }
   } catch (e: any) {
     const msg = ctrl.signal.aborted ? 'Stopped.' : `Something went wrong: ${e?.message ?? e}`;
@@ -212,7 +218,7 @@ async function processCalls(ctx: ToolCtx, st: PendingState): Promise<boolean> {
       try {
         const impl = toolMap.get(c.name);
         res = impl ? await impl.impl(args, { ...ctx, depth: st.depth }) : await runComposioTool(ctx, c.name, args);
-        updateRow(botId, c.rowSeq, { ...body, status: 'done', summary: res.summary });
+        updateRow(botId, c.rowSeq, { ...body, status: 'done', summary: res.summary, ...(res.screenshot ? { screenshot: res.screenshot } : {}) });
       } catch (e: any) {
         res = { output: `Tool error: ${e?.message ?? e}` };
         updateRow(botId, c.rowSeq, { ...body, status: 'error', summary: String(e?.message ?? e).slice(0, 200) });
@@ -257,77 +263,82 @@ async function callModel(ctx: ToolCtx, tools: any[], signal: AbortSignal): Promi
   // Runs inside the bot's serial queue, so compaction can't race a turn.
   const history = await maybeCompact(botId, loadHistory(botId)).catch(() => loadHistory(botId));
   // The model is only called when no approval is pending, so every orphaned call can be repaired.
-  const input = [{ role: 'system', content: await systemPrompt(userId, botId) }, ...pruneImages(repairHistory(history))];
+  const prunedHistory = pruneImages(repairHistory(history));
+  const system = await systemPrompt(userId, botId);
 
-  const body: any = {
-    model: env.xaiModel,
-    input,
-    tools,
-    reasoning: { effort: bot.effort ?? 'medium' },
-    store: false,
-    include: ['reasoning.encrypted_content'],
-    prompt_cache_key: `grokbot:${botId}:${bot.generation}`,
-    safety_identifier: sha256(userId).slice(0, 32),
-    stream: true,
-  };
-
-  let stream: any;
-  try {
-    stream = await xai.responses.create(body, { signal });
-  } catch (e: any) {
-    // If a Composio tool schema is rejected, retry with only our own tools.
-    if (e?.status === 400 && tools.length > functionSchemas().length + 2) {
-      console.warn('[agent] 400 with composio tools, retrying without:', e?.message);
-      body.tools = [...functionSchemas(), { type: 'web_search' }, { type: 'x_search' }];
-      stream = await xai.responses.create(body, { signal });
-    } else throw e;
-  }
-
+  const activeModel = resolveBotModel(bot);
+  const t0 = Date.now();
   let msgSeq: number | null = null;
   let text = '';
+  let reasoning = '';
   let lastFlush = 0;
-  let final: any = null;
   const flush = (streaming: boolean) => {
-    const b: MessageBody = { type: 'message', role: 'assistant', text, streaming };
+    const b: MessageBody = {
+      type: 'message',
+      role: 'assistant',
+      text,
+      ...(reasoning ? { reasoning } : {}),
+      model: activeModel,
+      ...(streaming ? {} : { durationMs: Date.now() - t0 }),
+      streaming,
+    };
     if (msgSeq === null) msgSeq = appendRow(botId, 'message', b).seq;
     else updateRow(botId, msgSeq, b);
     lastFlush = Date.now();
   };
 
-  for await (const ev of stream as AsyncIterable<any>) {
-    switch (ev.type) {
-      case 'response.output_text.delta':
-        text += ev.delta;
+  const res = await streamModelTurn({
+    userId,
+    bot,
+    system,
+    history: prunedHistory,
+    tools,
+    signal,
+    callbacks: {
+      onReasoningDelta: (rDelta) => {
+        reasoning += rDelta;
         if (msgSeq === null || Date.now() - lastFlush > 120) flush(true);
-        break;
-      case 'response.output_item.added':
-        if (ev.item?.type === 'web_search_call') setLive(botId, { activity: { kind: 'searching_web', since: now() } });
-        if (ev.item?.type === 'x_search_call') setLive(botId, { activity: { kind: 'searching_web', detail: 'X', since: now() } });
-        if (ev.item?.type === 'message') setLive(botId, { activity: { kind: 'working', since: now() } });
-        break;
-      case 'response.output_item.done':
-        if (ev.item?.type === 'message' && msgSeq !== null) {
-          // finalize this message; a later message in the same response gets its own row
-          const citations = (ev.item.content ?? []).flatMap((c: any) => (c.annotations ?? []).filter((a: any) => a.url).map((a: any) => ({ url: a.url, title: a.title })));
-          updateRow(botId, msgSeq, { type: 'message', role: 'assistant', text, streaming: false, citations: citations.length ? citations : undefined });
+      },
+      onTextDelta: (delta) => {
+        text += delta;
+        if (msgSeq === null || Date.now() - lastFlush > 100) flush(true);
+      },
+      onActivity: (kind, detail) => {
+        setLive(botId, { activity: { kind, detail, since: now() } });
+      },
+      onMessageDone: (citations) => {
+        if (msgSeq !== null) {
+          updateRow(botId, msgSeq, {
+            type: 'message',
+            role: 'assistant',
+            text,
+            ...(reasoning ? { reasoning } : {}),
+            model: activeModel,
+            durationMs: Date.now() - t0,
+            streaming: false,
+            citations,
+          });
           db.prepare('UPDATE bots SET unread = unread + 1 WHERE id=?').run(botId);
           msgSeq = null;
           text = '';
+          reasoning = '';
         }
-        break;
-      case 'response.completed':
-      case 'response.incomplete':
-        final = ev.response;
-        break;
-      case 'response.failed':
-      case 'error':
-        throw new Error(ev.response?.error?.message ?? ev.message ?? 'model error');
-    }
+      },
+    },
+  });
+
+  if (res.isLocalFallback && res.localReply) {
+    appendRow(botId, 'message', { type: 'message', role: 'assistant', text: res.localReply, streaming: false });
+    db.prepare('UPDATE bots SET unread = unread + 1 WHERE id=?').run(botId);
+    return { output: res.output };
   }
-  if (msgSeq !== null) flush(false);
-  if (!final) throw new Error('model stream ended without a response');
-  if (final.usage?.input_tokens) noteUsage(botId, final.usage.input_tokens, history.length);
-  return { output: final.output ?? [] };
+
+  if (msgSeq !== null) {
+    flush(false);
+    db.prepare('UPDATE bots SET unread = unread + 1 WHERE id=?').run(botId);
+  }
+  if (res.inputTokens) noteUsage(botId, res.inputTokens, history.length);
+  return { output: res.output };
 }
 
 // ---------- misc ----------

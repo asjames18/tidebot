@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
+import { configApi } from '../lib/configApi';
 import { botVars } from '../lib/colors';
 import { displayName, sortedRows, useSelectedBot, useStore } from '../store';
 import { useConfigUI } from '../configStore';
@@ -16,19 +17,64 @@ export function ChatView() {
   const live = useStore((s) => (bot ? s.live[bot.id] : undefined));
   const detailsOpen = useStore((s) => s.detailsOpen);
   const set = useStore((s) => s.set);
+  const llmConfig = useConfigUI((s) => s.llmConfig);
+  const curatedModels = useConfigUI((s) => s.curatedModels);
   const [menu, setMenu] = useState(false);
+  const [modelMenu, setModelMenu] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const rows = useMemo(() => sortedRows(transcript), [transcript]);
 
   if (!bot) {
     return (
       <main className="chat chat--empty">
-        <div className="empty-chat"><div className="empty-chat__sub">No Bot selected.</div></div>
+        <div className="empty-chat"><div className="empty-chat__sub">No Operator selected.</div></div>
       </main>
     );
   }
 
-  const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2000); };
+  const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2200); };
+
+  const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
+  const shortModel = activeModel.includes('/') ? activeModel.split('/').pop()! : activeModel;
+
+  const pickBotModel = async (modelId: string) => {
+    try {
+      await configApi.updateBot(bot.id, { model: modelId });
+      flash(modelId ? `Switched ${bot.name} to ${modelId}` : `Using default model (${llmConfig?.defaultModel})`);
+    } catch (e: any) {
+      flash(e?.message ?? 'Could not update model');
+    }
+  };
+
+  const shareTranscript = async () => {
+    const msgs = rows.filter((r) => r.body.type === 'message' && !r.body.streaming);
+    if (!msgs.length) {
+      flash('No messages to export yet');
+      return;
+    }
+    const md = [
+      `# Conversation with ${displayName(bot)}`,
+      '',
+      ...msgs.map((r) => {
+        if (r.body.type !== 'message') return '';
+        const speaker = r.body.role === 'user' ? (r.body.from?.name ? `${r.body.from.name}` : 'You') : bot.name;
+        return `### ${speaker}\n\n${r.body.text}\n`;
+      }),
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(md);
+      flash('Copied conversation as Markdown');
+    } catch {
+      const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${bot.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-chat.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash('Downloaded conversation as Markdown');
+    }
+  };
 
   return (
     <main className="chat" style={botVars(bot.avatarColor)}>
@@ -36,31 +82,82 @@ export function ChatView() {
       <VoiceCallBar />
       <Composer bot={bot} running={!!live?.isRunning} />
       <header className="chat__header">
-        <span className="chat__pill-anchor">
-          <button type="button" className="chat__pill" onClick={() => setMenu(!menu)} aria-haspopup="menu" aria-expanded={menu}>
-            <BotAvatarFor bot={bot} size={24} />
-            <span className="chat__pill-name">{displayName(bot)}</span>
-          </button>
-          {menu && (
-            <Menu
-              align="center"
-              onClose={() => setMenu(false)}
-              items={[
-                { label: detailsOpen ? 'Hide details' : 'Show details', hint: '⇧⌘,', onSelect: () => set({ detailsOpen: !detailsOpen }) },
-                { label: 'Open computer', onSelect: () => set({ viewerOpen: true }) },
-                { label: 'New conversation', onSelect: () => api.fresh(bot.id).then(() => flash('Started a new conversation')).catch((e) => flash(e.message)) },
-                { label: 'Bot settings', onSelect: () => useConfigUI.getState().openBotSettings(bot.id) },
-              ]}
-            />
-          )}
-        </span>
+        <div className="chat__header-center">
+          <span className="chat__pill-anchor">
+            <button type="button" className="chat__pill" onClick={() => setMenu(!menu)} aria-haspopup="menu" aria-expanded={menu}>
+              <BotAvatarFor bot={bot} size={24} />
+              <span className="chat__pill-name">{displayName(bot)}</span>
+            </button>
+            {menu && (
+              <Menu
+                align="center"
+                onClose={() => setMenu(false)}
+                items={[
+                  { label: detailsOpen ? 'Hide details' : 'Show details', hint: '⇧⌘,', onSelect: () => set({ detailsOpen: !detailsOpen }) },
+                  { label: 'Open computer', onSelect: () => set({ viewerOpen: true }) },
+                  { label: 'Copy conversation (.md)', onSelect: () => void shareTranscript() },
+                  { label: 'Download full transcript (.md)', onSelect: () => { window.open(api.exportBotUrl(bot.id), '_blank'); } },
+                  ...(bot.kind !== 'room' ? [{
+                    label: `Clone ${bot.name}`,
+                    onSelect: () => {
+                      api.cloneBot(bot.id).then(({ bot: cloned }) => {
+                        useStore.getState().loadBots().then(() => useStore.getState().selectBot(cloned.id));
+                        flash(`Cloned ${bot.name} → ${cloned.name}`);
+                      }).catch((e) => flash(e.message));
+                    },
+                  }] : []),
+                  { label: 'New conversation', onSelect: () => api.fresh(bot.id).then(() => flash('Started a new conversation')).catch((e) => flash(e.message)) },
+                  { label: 'Operator settings', onSelect: () => useConfigUI.getState().openBotSettings(bot.id) },
+                ]}
+              />
+            )}
+          </span>
+
+          <span className="chat__pill-anchor">
+            <button
+              type="button"
+              className={`chat__model-pill${llmConfig?.isConfigured ? ' is-live' : ''}`}
+              onClick={() => setModelMenu(!modelMenu)}
+              aria-haspopup="menu"
+              aria-expanded={modelMenu}
+              title={`Active Model: ${activeModel} (click to switch)`}
+            >
+              <span className={`chat__model-dot${llmConfig?.isConfigured ? ' is-ok' : ''}`} />
+              <span className="chat__model-name">{shortModel}</span>
+              <Icon name="chev_down" size={10} opacity={0.65} />
+            </button>
+            {modelMenu && (
+              <Menu
+                align="center"
+                onClose={() => setModelMenu(false)}
+                items={[
+                  {
+                    label: `${!bot.model ? '✓ ' : ''}Default (${(llmConfig?.defaultModel ?? 'claude-3.7-sonnet').split('/').pop()})`,
+                    onSelect: () => void pickBotModel(''),
+                  },
+                  ...curatedModels.slice(0, 8).map((m) => ({
+                    label: `${bot.model === m.id ? '✓ ' : ''}${m.name}`,
+                    hint: m.provider,
+                    onSelect: () => void pickBotModel(m.id),
+                  })),
+                  {
+                    label: 'Configure OpenRouter & BYOM…',
+                    onSelect: () => useConfigUI.getState().openAppSettings('models'),
+                  },
+                ]}
+              >
+                <div className="menu__header">Operator Model ({llmConfig?.provider?.toUpperCase() ?? 'OPENROUTER'})</div>
+              </Menu>
+            )}
+          </span>
+        </div>
         <div className="chat__header-right">
           {!detailsOpen && (
             <button type="button" className="icon-btn icon-btn--bordered" onClick={() => set({ detailsOpen: true })} aria-label="Show details" title="Show details">
               <Icon name="sidebar" opacity={0.66} style={{ transform: 'scaleX(-1)' }} />
             </button>
           )}
-          <button type="button" className="share-btn" onClick={() => flash('Sharing isn’t available in Grokbot yet')}>Share</button>
+          <button type="button" className="share-btn" onClick={() => void shareTranscript()} title="Copy conversation as Markdown">Share</button>
         </div>
       </header>
       {toast && <div className="toast" role="status">{toast}</div>}

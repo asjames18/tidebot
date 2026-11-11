@@ -1,18 +1,22 @@
 import { create } from 'zustand';
-import type { ServerEvent } from '@shared/types';
+import type { LlmConfigPublic, ModelInfo, ServerEvent } from '@shared/types';
 import { useStore } from './store';
+import { configApi } from './lib/configApi';
 
-/** UI state for bot settings, app settings, the Tasks view and the theme. Kept apart from store.ts on purpose. */
+/** UI state for bot settings, app settings, the Tasks view, BYOM/OpenRouter config, and the theme. */
 
 export type Theme = 'system' | 'light' | 'dark';
 export type BotSettingsTab = 'general' | 'skills' | 'memories' | 'routines';
-export type AppSection = 'general' | 'computer' | 'permissions' | 'apps' | 'account';
+export type AppSection = 'general' | 'models' | 'computer' | 'permissions' | 'apps' | 'account';
 
 interface ConfigUI {
   botSettings: { botId: string; tab: BotSettingsTab } | null;
   appSettings: AppSection | null;
   view: 'chat' | 'tasks';
   theme: Theme;
+  llmConfig: LlmConfigPublic | null;
+  curatedModels: ModelInfo[];
+  remoteModels: ModelInfo[];
   /** Bumped by server events (tasks, memories) so open views refetch. Keys: 'tasks', 'memories:<botId>'. */
   versions: Record<string, number>;
   openBotSettings(botId: string, tab?: BotSettingsTab): void;
@@ -21,12 +25,20 @@ interface ConfigUI {
   closeAppSettings(): void;
   setView(v: 'chat' | 'tasks'): void;
   setTheme(t: Theme): void;
+  loadLlmConfig(): Promise<void>;
+  loadModels(): Promise<void>;
+  setLlmConfig(c: LlmConfigPublic): void;
   bump(key: string): void;
 }
 
-const LS_THEME = 'grokbot.theme';
+const LS_THEME = 'tideos.theme';
 const readTheme = (): Theme => {
-  try { const t = localStorage.getItem(LS_THEME); return t === 'light' || t === 'dark' ? t : 'system'; } catch { return 'system'; }
+  try {
+    const t = localStorage.getItem(LS_THEME);
+    return t === 'light' || t === 'dark' || t === 'system' ? t : 'dark';
+  } catch {
+    return 'dark';
+  }
 };
 
 const darkQuery = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -42,6 +54,9 @@ export const useConfigUI = create<ConfigUI>((set, get) => ({
   appSettings: null,
   view: 'chat',
   theme: readTheme(),
+  llmConfig: null,
+  curatedModels: [],
+  remoteModels: [],
   versions: {},
   openBotSettings: (botId, tab = 'general') => set({ botSettings: { botId, tab } }),
   closeBotSettings: () => set({ botSettings: null }),
@@ -53,6 +68,19 @@ export const useConfigUI = create<ConfigUI>((set, get) => ({
     applyTheme(theme);
     set({ theme });
   },
+  loadLlmConfig: async () => {
+    try {
+      const llmConfig = await configApi.llmConfig();
+      set({ llmConfig });
+    } catch { /* ignore */ }
+  },
+  loadModels: async () => {
+    try {
+      const { curated, remote } = await configApi.modelsCatalog();
+      set({ curatedModels: curated, remoteModels: remote });
+    } catch { /* ignore */ }
+  },
+  setLlmConfig: (llmConfig) => set({ llmConfig }),
   bump: (key) => set({ versions: { ...get().versions, [key]: (get().versions[key] ?? 0) + 1 } }),
 }));
 

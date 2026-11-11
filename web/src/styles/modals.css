@@ -101,20 +101,58 @@
 .apps-empty { padding: 40px 0; text-align: center; font-size: 14px; color: var(--color-text-tertiary); }
 .menu__header { padding: 6px 10px 4px; font-size: 12px; line-height: 16px; color: var(--color-text-tertiary); }
 
-/* ---------- sign-in ---------- */
-.signin { position: relative; display: flex; align-items: center; justify-content: center; height: 100%; background: var(--color-bg-sidebar); }
-.signin__chrome { position: absolute; inset: 0 auto auto 0; }
-.signin__card { display: flex; flex-direction: column; align-items: center; width: 360px; max-width: calc(100% - 32px); padding: 40px 32px 28px; background: var(--color-bg-elevated); border: 0.5px solid var(--color-border-secondary); border-radius: 24px; box-shadow: var(--shadow-modal); }
-.signin__hero { margin-bottom: 20px; animation: bob 2.4s ease-in-out infinite; }
-.signin__title { margin: 0; font-size: 22px; font-weight: 600; line-height: 28px; letter-spacing: -0.2px; }
-.signin__sub { margin: 6px 0 24px; text-align: center; font-size: 14px; line-height: 20px; color: var(--color-text-secondary); }
+/* ---------- sign-in (TideOS Shader Hero Stage) ---------- */
+.signin { position: relative; display: flex; align-items: center; justify-content: center; height: 100%; background: #05070E; overflow: hidden; }
+.signin__shader { position: absolute; inset: 0; width: 100%; height: 100%; }
+.signin__chrome {
+  position: absolute; left: 0; right: 0; top: 0; height: 54px; z-index: 5;
+  display: flex; align-items: center; justify-content: flex-end; padding: 0 20px;
+}
+.signin__shader-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: var(--radius-full);
+  background: rgba(10, 14, 24, 0.72); border: 1px solid rgba(148, 163, 184, 0.2);
+  backdrop-filter: blur(12px);
+}
+.signin__shader-label {
+  font-family: var(--font-mono-stack); font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+  color: #38BDF8; padding: 0 6px;
+}
+.signin__shader-pill {
+  padding: 4px 10px; border-radius: var(--radius-full);
+  font-size: 11.5px; color: #94A3B8; transition: background-color 120ms, color 120ms;
+}
+.signin__shader-pill:hover { color: #F8FAFC; }
+.signin__shader-pill.is-active {
+  background: rgba(56, 189, 248, 0.2); color: #38BDF8; font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.4);
+}
+.signin__card {
+  position: relative; z-index: 3;
+  display: flex; flex-direction: column; align-items: center;
+  width: 420px; max-width: calc(100% - 32px); padding: 36px 34px 28px;
+  background: rgba(12, 17, 29, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 26px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.signin__badge-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
+.signin__hero { margin-bottom: 14px; animation: bob 2.8s ease-in-out infinite; }
+.signin__title { margin: 0; font-size: 28px; font-weight: 700; line-height: 34px; letter-spacing: -0.6px; color: #F8FAFC; }
+.signin__sub { margin: 8px 0 22px; text-align: center; font-size: 13.5px; line-height: 20px; color: #94A3B8; }
 .signin__google { width: 100%; gap: 10px; }
 .signin__google svg { background: #FFFFFF; border-radius: 50%; padding: 1px; width: 18px; height: 18px; }
-.signin__dev { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 20px; }
-.signin__divider { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; font-size: 12px; line-height: 16px; color: var(--color-text-tertiary); }
-.signin__divider::before, .signin__divider::after { content: ''; flex: 1; height: 0.5px; background: var(--color-border-secondary); }
+.signin__dev { display: flex; flex-direction: column; gap: 9px; width: 100%; margin-top: 18px; }
+.signin__divider { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; font-family: var(--font-mono-stack); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px; color: #64748B; }
+.signin__divider::before, .signin__divider::after { content: ''; flex: 1; height: 1px; background: rgba(148, 163, 184, 0.18); }
 .signin__error { padding: 12px 0 0; text-align: center; }
-.signin__foot { margin: 24px 0 0; font-size: 12px; line-height: 16px; color: var(--color-text-quaternary); }
+.signin__foot-grid {
+  display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 22px; padding-top: 14px; width: 100%;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  font-family: var(--font-mono-stack); font-size: 10px; letter-spacing: 0.5px; color: #64748B;
+}
 
 /* new group chat */
 .group-pick { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow: auto; margin-top: 6px; }

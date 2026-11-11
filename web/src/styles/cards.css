@@ -1,7 +1,9 @@
-/* ---------- transcript cards (screen 02 draft card language) ---------- */
+/* ---------- transcript cards (TideOS Obsidian Glass card language) ---------- */
 .card {
-  width: 414px; max-width: 100%; background: var(--color-bg-pane); border-radius: var(--radius-card);
+  width: 440px; max-width: 100%; background: var(--color-bg-pane); border-radius: var(--radius-card);
+  border: 1px solid var(--color-border-primary);
   box-shadow: var(--shadow-card); display: flex; flex-direction: column; overflow: clip;
+  backdrop-filter: blur(18px);
 }
 .card__head { display: flex; align-items: flex-start; gap: 10px; padding: 16px 16px 4px; }
 .card__titles { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; padding: 2px 0; }

@@ -118,9 +118,12 @@ export function DetailsPanel() {
   const bot = useSelectedBot();
   const routines = useStore((s) => (bot ? s.routines[bot.id] : undefined));
   const set = useStore((s) => s.set);
+  const llmConfig = useConfigUI((s) => s.llmConfig);
   const [tab, setTab] = useState<'activity' | 'tasks' | 'library'>('activity');
   const [hideSuggested, setHideSuggested] = useState(() => { try { return localStorage.getItem('grokbot.hideSuggested') === '1'; } catch { return false; } });
   if (!bot) return null;
+
+  const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
 
   const addSlack = async () => {
     const popup = openPopup('about:blank');
@@ -151,6 +154,25 @@ export function DetailsPanel() {
         </div>
         {tab === 'activity' ? (
           <div className="details__sections">
+            {bot.kind !== 'room' && (
+              <section>
+                <div className="section-label section-label--row">
+                  <span>Model & Engine</span>
+                  <button type="button" className="link-btn link-btn--small" onClick={() => useConfigUI.getState().openAppSettings('models')}>BYOM</button>
+                </div>
+                <div className="panel-card">
+                  <button type="button" className="panel-row panel-row--link" onClick={() => useConfigUI.getState().openBotSettings(bot.id, 'general')}>
+                    <span className="panel-row__text">
+                      <span className="panel-row__title" style={{ fontFamily: 'var(--font-mono-stack)', fontSize: 12 }}>{activeModel}</span>
+                      <span className="panel-row__sub">
+                        {llmConfig?.provider?.toUpperCase() ?? 'OPENROUTER'} · Effort: {(bot.effort ?? 'medium').toUpperCase()}
+                      </span>
+                    </span>
+                    <Icon name="chev_right" size={12} opacity={0.56} />
+                  </button>
+                </div>
+              </section>
+            )}
             <section>
               <div className="section-label section-label--row">
                 <span>Upcoming</span>

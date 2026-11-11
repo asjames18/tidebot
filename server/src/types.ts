@@ -24,6 +24,8 @@ export interface Bot {
   kind?: 'agent' | 'room';
   pinned: boolean;
   effort: 'low' | 'medium' | 'high' | 'xhigh';
+  /** Per-bot LLM model override (e.g. 'anthropic/claude-3.7-sonnet', 'google/gemini-2.5-pro'); empty uses global default. */
+  model?: string;
   /** Voice chat settings: xAI voice id, speed multiplier (0.7–1.5), BCP-47 language or 'auto'. */
   voice: string;
   voiceSpeed: number;
@@ -59,6 +61,12 @@ export interface MessageBody {
   type: 'message';
   role: 'user' | 'assistant';
   text: string;
+  /** Optional chain-of-thought / reasoning trace streamed from reasoning models. */
+  reasoning?: string;
+  /** Model ID that generated this assistant message. */
+  model?: string;
+  /** Turn generation latency in milliseconds. */
+  durationMs?: number;
   streaming?: boolean;
   /** Set when a message came from another bot, a routine or a voice call rather than the user typing. */
   from?: { kind: 'bot' | 'routine' | 'voice'; id: string; name: string };
@@ -178,6 +186,39 @@ export interface ComputerState {
 export interface Toolkit {
   slug: string; name: string; logo?: string; description?: string; categories: string[];
   managedAuth: boolean; noAuth: boolean; connected: boolean;
+}
+
+export type LlmProvider = 'openrouter' | 'custom' | 'xai';
+export type ShaderStyle = 'aurora' | 'plasma' | 'obsidian' | 'vortex' | 'grid';
+
+export interface LlmConfigPublic {
+  provider: LlmProvider;
+  defaultModel: string;
+  customBaseUrl: string;
+  shaderStyle: ShaderStyle;
+  hasOpenrouterKey: boolean;
+  openrouterKeyHint: string;
+  hasCustomKey: boolean;
+  customKeyHint: string;
+  hasXaiKey: boolean;
+  xaiKeyHint: string;
+  hasComposioKey?: boolean;
+  composioKeyHint?: string;
+  hasOrgoKey?: boolean;
+  orgoKeyHint?: string;
+  isConfigured: boolean;
+}
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  provider: string;
+  contextLength: number;
+  pricing?: { prompt: string; completion: string };
+  vision?: boolean;
+  tools?: boolean;
+  featured?: boolean;
+  badge?: string;
 }
 
 /** Server-sent events on GET /api/events */

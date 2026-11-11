@@ -1,4 +1,9 @@
+import { exec } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { promisify } from 'node:util';
 import { db, now } from '../db.js';
+import { env } from '../env.js';
 import { newId } from '../lib/ids.js';
 import { hub } from '../lib/hub.js';
 import { orgo } from '../orgo.js';
@@ -13,6 +18,14 @@ import { createRoom, postToRoom } from './rooms.js';
 import type { ActivityKind } from '../types.js';
 import { Cron } from 'croner';
 
+const execAsync = promisify(exec);
+
+export function localWorkspaceDir(botId: string): string {
+  const dir = path.resolve(path.dirname(env.dbPath), 'workspaces', botId);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 export interface ToolCtx {
   userId: string;
   botId: string;
@@ -24,6 +37,8 @@ export interface ToolResult {
   /** Responses API function_call_output.output: string or content array (text + images). */
   output: string | any[];
   summary?: string;
+  /** Data URL thumbnail for computer actions. */
+  screenshot?: string;
   /** End the turn after this tool (e.g. a question was asked). */
   endTurn?: boolean;
 }
@@ -53,6 +68,7 @@ async function shot(ctx: ToolCtx, caption: string): Promise<ToolResult> {
       { type: 'input_image', image_url: url, detail: 'high' },
     ],
     summary: caption,
+    screenshot: url,
   };
 }
 
@@ -66,6 +82,145 @@ function botByName(userId: string, name: string) {
 }
 
 export const TOOLS: ToolDef[] = [
+  {
+    name: 'web_search',
+    description: 'Search the live web for up-to-date information, documentation, news, or facts. Returns titles, URLs, and snippets.',
+    parameters: obj({ query: { type: 'string', description: 'Search query' } }, ['query']),
+    activity: 'searching_web',
+    label: 'Searching the web',
+    impl: async (a) => {
+      const q = String(a.query ?? '').trim();
+      if (!q) return { output: 'Empty query.' };
+      try {
+        const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36' },
+          signal: AbortSignal.timeout(12_000),
+        });
+        const html = await res.text();
+        const results: { title: string; url: string; snippet: string }[] = [];
+        const blocks = html.split(/class="result__body"/g).slice(1, 9);
+        for (const b of blocks) {
+          const titleM = b.match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+          const urlM = b.match(/href="([^"]+)"/);
+          const snipM = b.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>|class="result__snippet"[^>]*>([\s\S]*?)<\/div>/);
+          const clean = (s?: string) => (s ?? '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+          let rawUrl = urlM?.[1] ?? '';
+          const uddg = rawUrl.match(/[?&]uddg=([^&]+)/);
+          if (uddg) rawUrl = decodeURIComponent(uddg[1]);
+          if (titleM && rawUrl) {
+            results.push({ title: clean(titleM[1]), url: rawUrl, snippet: clean(snipM?.[1] ?? snipM?.[2]) });
+          }
+        }
+        return { output: JSON.stringify({ query: q, results }), summary: `${results.length} results for "${q.slice(0, 40)}"` };
+      } catch (e: any) {
+        return { output: `Search failed: ${e?.message ?? e}` };
+      }
+    },
+  },
+  {
+    name: 'fetch_webpage',
+    description: 'Fetch and extract clean readable text and links from a web URL (https://...). Fast way to read articles, documentation, or pages found via web_search.',
+    parameters: obj({ url: { type: 'string', description: 'Full URL starting with http:// or https://' } }, ['url']),
+    activity: 'reading_web',
+    label: 'Reading a page',
+    impl: async (a) => {
+      const url = String(a.url ?? '').trim();
+      if (!/^https?:\/\//i.test(url)) return { output: 'URL must start with http:// or https://' };
+      try {
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36', Accept: 'text/html,application/xhtml+xml,text/plain,application/json' },
+          signal: AbortSignal.timeout(12_000),
+        });
+        const ct = res.headers.get('content-type') ?? '';
+        const raw = await res.text();
+        if (ct.includes('application/json')) {
+          return { output: raw.slice(0, 16000), summary: `Read JSON from ${new URL(url).hostname}` };
+        }
+        const titleM = raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        const title = titleM ? titleM[1].replace(/\s+/g, ' ').trim() : url;
+        const text = raw
+          .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+          .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+          .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+          .replace(/<\/(p|div|h1|h2|h3|h4|li|tr|br|section|article)>/gi, '\n')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x27;/g, "'")
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/[ \t]+/g, ' ')
+          .replace(/\n\s*\n+/g, '\n\n')
+          .trim()
+          .slice(0, 15000);
+        return { output: JSON.stringify({ url, title, content: text }), summary: `Read ${new URL(url).hostname}` };
+      } catch (e: any) {
+        return { output: `Failed to fetch ${url}: ${e?.message ?? e}` };
+      }
+    },
+  },
+  {
+    name: 'list_files',
+    description: 'List all files saved in your Library workspace.',
+    parameters: obj({}),
+    activity: 'working',
+    label: 'Checking Library files',
+    impl: async (_a, ctx) => {
+      const dir = localWorkspaceDir(ctx.botId);
+      const entries = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => !e.name.startsWith('.'));
+      const list = entries.map((e) => {
+        const st = fs.statSync(path.join(dir, e.name));
+        return { name: e.name, size: st.size, isDir: e.isDirectory(), modifiedAt: st.mtimeMs };
+      });
+      return { output: JSON.stringify(list), summary: `${list.length} file(s) in Library` };
+    },
+  },
+  {
+    name: 'read_file',
+    description: 'Read the contents of a file from your Library workspace.',
+    parameters: obj({ filename: { type: 'string', description: 'Filename in your Library workspace' } }, ['filename']),
+    activity: 'working',
+    label: 'Reading a file',
+    impl: async (a, ctx) => {
+      const safe = path.basename(String(a.filename ?? ''));
+      const full = path.join(localWorkspaceDir(ctx.botId), safe);
+      if (!fs.existsSync(full) || fs.statSync(full).isDirectory()) {
+        return { output: `File "${safe}" not found in Library.` };
+      }
+      const content = fs.readFileSync(full, 'utf8').slice(0, 40000);
+      return { output: content, summary: `Read ${safe}` };
+    },
+  },
+  {
+    name: 'draft_message',
+    description: 'Present a polished message/email/Slack draft card in the chat so the user can review, copy, or approve sending it.',
+    parameters: obj(
+      {
+        channel: { type: 'string', enum: ['email', 'slack', 'message'] },
+        to: { type: 'string', description: 'Recipient name, email, or channel (e.g. #general or alex@acme.com)' },
+        subject: { type: 'string', description: 'Subject line (for email)' },
+        text: { type: 'string', description: 'Full body of the draft' },
+      },
+      ['channel', 'to', 'text'],
+    ),
+    activity: 'drafting_file',
+    label: 'Drafting a message',
+    impl: async (a, ctx) => {
+      const approvalId = newId('drf');
+      appendRow(ctx.botId, 'card', {
+        type: 'card',
+        card: 'draft',
+        channel: a.channel === 'email' || a.channel === 'slack' ? a.channel : 'message',
+        to: String(a.to ?? ''),
+        subject: a.subject ? String(a.subject) : undefined,
+        text: String(a.text ?? ''),
+        approvalId,
+        status: 'pending',
+      });
+      return { output: 'Draft card displayed to the user in the chat.', summary: `Drafted ${a.channel} to ${a.to}` };
+    },
+  },
   {
     name: 'computer_screenshot',
     description: "Take a screenshot of your own computer screen (a Linux desktop that only you use). Use this before acting on the screen.",
@@ -157,31 +312,54 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'save_file',
-    description: "Save a deliverable (report, notes, CSV, code, markdown) to your Library so the user can open and download it. Saved under /root/grokbot/files/<your id>/ on your computer.",
+    description: "Save a deliverable (report, notes, CSV, code, markdown) to your Library so the user can open and download it.",
     parameters: obj({ filename: { type: 'string', description: 'e.g. briefing-2026-11-09.md' }, content: { type: 'string' } }, ['filename', 'content']),
     activity: 'drafting_file',
     label: 'Saving notes',
     impl: async (a, ctx) => {
       const name = String(a.filename).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file.txt';
-      const dir = `/root/grokbot/files/${ctx.botId}`;
-      const b64 = Buffer.from(String(a.content), 'utf8').toString('base64');
-      // Chunk the base64 so very large files don't exceed a single command's size.
-      await onScreen(ctx, async (c, s) => {
-        await orgo.bash(c, s, `mkdir -p ${dir} && : > ${dir}/${name}.b64`, 30);
-        for (let i = 0; i < b64.length; i += 60000) await orgo.bash(c, s, `printf '%s' '${b64.slice(i, i + 60000)}' >> ${dir}/${name}.b64`, 30);
-        return orgo.bash(c, s, `base64 -d ${dir}/${name}.b64 > ${dir}/${name} && rm ${dir}/${name}.b64 && wc -c ${dir}/${name}`, 30);
-      });
-      return { output: JSON.stringify({ ok: true, path: `${dir}/${name}` }), summary: `Saved ${name}` };
+      const localDir = localWorkspaceDir(ctx.botId);
+      const fullPath = path.join(localDir, name);
+      fs.writeFileSync(fullPath, String(a.content ?? ''), 'utf8');
+      const comp = db.prepare("SELECT orgo_id FROM computers WHERE user_id=? AND status='running'").get(ctx.userId) as any;
+      if (env.orgoKey && comp?.orgo_id) {
+        const dir = `/root/grokbot/files/${ctx.botId}`;
+        const b64 = Buffer.from(String(a.content), 'utf8').toString('base64');
+        await onScreen(ctx, async (c, s) => {
+          await orgo.bash(c, s, `mkdir -p ${dir} && : > ${dir}/${name}.b64`, 30);
+          for (let i = 0; i < b64.length; i += 60000) await orgo.bash(c, s, `printf '%s' '${b64.slice(i, i + 60000)}' >> ${dir}/${name}.b64`, 30);
+          return orgo.bash(c, s, `base64 -d ${dir}/${name}.b64 > ${dir}/${name} && rm ${dir}/${name}.b64 && wc -c ${dir}/${name}`, 30);
+        }).catch(() => {});
+      }
+      return { output: JSON.stringify({ ok: true, path: fullPath, filename: name }), summary: `Saved ${name}` };
     },
   },
   {
     name: 'shell',
-    description: 'Run a bash command on your own Linux computer (as root). Use for files, scripts, CLIs and quick data work. Output is truncated to 20k characters.',
+    description: 'Run a bash command in your workspace. Use for files, scripts, CLIs and quick data work. Output is truncated to 20k characters.',
     parameters: obj({ command: { type: 'string' }, timeout_seconds: { type: 'integer' } }, ['command']),
     activity: 'running_commands',
     label: 'Running commands',
     impl: async (a, ctx) => {
-      const r = await onScreen(ctx, (c, s) => orgo.bash(c, s, String(a.command), Math.min(Math.max(a.timeout_seconds ?? 120, 1), 290)));
+      const timeoutSec = Math.min(Math.max(a.timeout_seconds ?? 60, 1), 290);
+      const comp = db.prepare("SELECT orgo_id FROM computers WHERE user_id=? AND status='running'").get(ctx.userId) as any;
+      if (!env.orgoKey || !comp?.orgo_id) {
+        const cwd = localWorkspaceDir(ctx.botId);
+        try {
+          const { stdout, stderr } = await execAsync(String(a.command), {
+            cwd,
+            timeout: timeoutSec * 1000,
+            maxBuffer: 2 * 1024 * 1024,
+          });
+          const out = `${stdout ?? ''}${stderr ? `\n${stderr}` : ''}`.trim().slice(-20000);
+          return { output: JSON.stringify({ exit_code: 0, output: out }), summary: 'exit 0' };
+        } catch (e: any) {
+          const code = typeof e?.code === 'number' ? e.code : 1;
+          const out = `${e?.stdout ?? ''}\n${e?.stderr ?? e?.message ?? ''}`.trim().slice(-20000);
+          return { output: JSON.stringify({ exit_code: code, output: out }), summary: `exit ${code}` };
+        }
+      }
+      const r = await onScreen(ctx, (c, s) => orgo.bash(c, s, String(a.command), timeoutSec));
       const out = (r.output ?? '').slice(-20000);
       return { output: JSON.stringify({ exit_code: r.exit_code, output: out }), summary: `exit ${r.exit_code}` };
     },
@@ -467,8 +645,19 @@ export const TOOLS: ToolDef[] = [
 
 export const toolMap = new Map(TOOLS.map((t) => [t.name, t]));
 
+const ORGO_ONLY_TOOLS = new Set([
+  'computer_screenshot',
+  'computer_click',
+  'computer_type',
+  'computer_key',
+  'computer_scroll',
+  'computer_drag',
+  'open_browser',
+]);
+
 export function functionSchemas() {
-  return TOOLS.map((t) => ({ type: 'function', name: t.name, description: t.description, parameters: t.parameters }));
+  const active = env.orgoKey ? TOOLS : TOOLS.filter((t) => !ORGO_ONLY_TOOLS.has(t.name));
+  return active.map((t) => ({ type: 'function', name: t.name, description: t.description, parameters: t.parameters }));
 }
 
 // ---------- approvals policy ----------

@@ -41,8 +41,64 @@ a { color: inherit; }
 }
 .btn--sm { height: 32px; padding: 6px 12px; font-weight: 400; }
 .btn--grow { flex: 1 1 0; }
-.btn--primary { background: var(--color-primary); color: var(--color-bg-chrome); }
-.btn--primary:hover:not(:disabled) { background: var(--color-bg-primary-hover); }
+.btn--primary {
+  background: linear-gradient(135deg, #38BDF8 0%, #6366F1 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 16px -2px rgba(56, 189, 248, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.btn--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-0.5px);
+}
+.btn--cta {
+  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 55%, #8B5CF6 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow: 0 8px 24px -4px rgba(56, 189, 248, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out), filter 140ms;
+}
+.btn--cta:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 12px 28px -4px rgba(56, 189, 248, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.tideos-shader-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tideos-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono-stack);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-secondary);
+  backdrop-filter: blur(10px);
+}
+.tideos-pill--glow {
+  color: #38BDF8;
+  border-color: rgba(56, 189, 248, 0.42);
+  background: rgba(56, 189, 248, 0.12);
+  box-shadow: 0 0 16px -2px rgba(56, 189, 248, 0.28);
+}
+.tideos-pill--interactive {
+  cursor: pointer;
+  transition: border-color 140ms, background-color 140ms, transform 140ms;
+}
+.tideos-pill--interactive:hover {
+  border-color: #38BDF8;
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+}
 .btn--primary:disabled { background: var(--color-bg-primary-disabled); color: var(--color-text-quaternary); box-shadow: var(--color-border-tertiary) 0 0 0 0.5px inset; }
 .btn--secondary { background: var(--color-bg-tertiary); color: var(--color-ink); }
 .btn--sm.btn--secondary { box-shadow: var(--color-border-secondary) 0 0 0 0.5px inset; }

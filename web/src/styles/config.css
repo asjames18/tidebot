@@ -214,3 +214,90 @@
 
 /* knob contrasts with the "on" track (matters for black bots in dark mode) */
 .toggle.is-on .toggle__knob { background: var(--bot-on-action, #FFFFFF); }
+
+/* ---------- BYOM / OpenRouter & Shader Studio Settings ---------- */
+.cfg-card--padded { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.cfg-input {
+  width: 100%; height: 38px; padding: 8px 12px; border-radius: 10px;
+  border: 1px solid var(--color-border-secondary); background: var(--color-bg-chrome);
+  font-size: 13.5px; color: var(--color-ink); outline: none;
+}
+.cfg-input:focus { border-color: #38BDF8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18); }
+
+.shader-preview-card {
+  position: relative; height: 140px; border-radius: 16px; overflow: hidden;
+  border: 1px solid var(--color-border-secondary); margin-bottom: 12px;
+  box-shadow: var(--shadow-card);
+}
+.shader-preview-card__canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.shader-preview-card__overlay {
+  position: relative; z-index: 2; height: 100%; padding: 18px 20px;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 4px;
+  background: linear-gradient(90deg, rgba(6, 8, 15, 0.78) 0%, rgba(6, 8, 15, 0.2) 100%);
+}
+.shader-preview-card__title { font-size: 17px; font-weight: 600; color: #F8FAFC; margin-top: 4px; }
+.shader-preview-card__sub { font-size: 12.5px; color: #CBD5E1; }
+
+.shader-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.shader-Option {
+  display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 12px;
+  background: var(--color-bg-pane); border: 1px solid var(--color-border-secondary); text-align: left;
+  transition: border-color 140ms, transform 140ms;
+}
+.shader-Option:hover { border-color: #38BDF888; transform: translateY(-1px); }
+.shader-Option.is-active {
+  border-color: #38BDF8; background: var(--color-bg-active);
+  box-shadow: inset 0 0 0 1px #38BDF8;
+}
+.shader-Option__name { font-size: 13px; font-weight: 600; color: var(--color-ink); }
+.shader-Option__desc { font-size: 11.5px; line-height: 15px; color: var(--color-text-secondary); }
+
+.byom-provider-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.byom-provider-card {
+  display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 14px;
+  background: var(--color-bg-pane); border: 1px solid var(--color-border-secondary); text-align: left;
+  box-shadow: var(--shadow-card); transition: border-color 140ms, transform 140ms;
+}
+.byom-provider-card:hover { border-color: #38BDF888; transform: translateY(-1px); }
+.byom-provider-card.is-active {
+  border-color: #38BDF8; background: var(--color-bg-active);
+  box-shadow: inset 0 0 0 1px #38BDF8;
+}
+.byom-provider-card__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.byom-provider-card__title { font-size: 14.5px; font-weight: 600; color: var(--color-ink); }
+.byom-provider-card__sub { font-size: 12.5px; line-height: 17px; color: var(--color-text-secondary); }
+
+.byom-actions { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
+.byom-status {
+  padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 18px;
+}
+.byom-status.is-ok { background: var(--color-success-bg); color: var(--color-success-text); border: 1px solid rgba(16, 185, 129, 0.3); }
+.byom-status.is-err { background: var(--color-danger-bg); color: var(--color-danger-text); border: 1px solid rgba(244, 63, 94, 0.3); }
+
+.cfg-section__label-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.byom-search { max-width: 280px; height: 34px; font-size: 12.5px; }
+
+.byom-model-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px;
+  max-height: 420px; overflow-y: auto; padding-right: 4px;
+}
+.byom-model-card {
+  display: flex; flex-direction: column; gap: 4px; padding: 11px 13px; border-radius: 12px;
+  background: var(--color-bg-pane); border: 1px solid var(--color-border-secondary); text-align: left;
+  transition: border-color 120ms, transform 120ms;
+}
+.byom-model-card:hover { border-color: #38BDF8; transform: translateY(-1px); }
+.byom-model-card.is-active {
+  border-color: #38BDF8; background: var(--color-bg-active);
+  box-shadow: inset 0 0 0 1px #38BDF8;
+}
+.byom-model-card__top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.byom-model-card__name { font-size: 13px; font-weight: 600; color: var(--color-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.byom-model-card__badge {
+  font-family: var(--font-mono-stack); font-size: 9.5px; font-weight: 600;
+  padding: 2px 6px; border-radius: 99px; background: rgba(56, 189, 248, 0.15); color: #38BDF8; white-space: nowrap;
+}
+.byom-model-card__id { font-family: var(--font-mono-stack); font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.byom-model-card__meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }

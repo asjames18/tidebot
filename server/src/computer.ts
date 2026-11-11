@@ -35,14 +35,15 @@ export function computerState(userId: string): ComputerState {
 }
 
 let workspaceId = env.orgoWorkspaceId;
-async function ensureWorkspace(): Promise<string> {
-  if (workspaceId) return workspaceId;
+async function ensureWorkspace(): Promise<{ id: string; existingDesktopId?: string }> {
   const ws = await orgo.workspaces();
   const list = Array.isArray(ws) ? ws : ws.workspaces ?? ws.projects ?? [];
   if (!list.length) throw new Error('No Orgo workspace available for this key');
-  workspaceId = list[0].id;
-  (env as any).orgoWorkspaceId = workspaceId;
-  return workspaceId;
+  const chosen = (workspaceId && list.find((w: any) => w.id === workspaceId)) || list[0];
+  workspaceId = chosen.id;
+  env.orgoWorkspaceId = workspaceId;
+  const existingDesktopId = chosen.desktops?.[0]?.id as string | undefined;
+  return { id: workspaceId, existingDesktopId };
 }
 
 function mapStatus(s: string): ComputerState['status'] {
@@ -65,15 +66,20 @@ export function ensureComputer(userId: string): Promise<string> {
     const r = rowFor(userId);
     try {
       if (!r.orgo_id) {
-        await ensureWorkspace();
-        setStatus(userId, 'creating');
-        const user = db.prepare('SELECT email FROM users WHERE id=?').get(userId) as any;
-        const name = `grokbot-${(user?.email ?? userId).split('@')[0].replace(/[^a-zA-Z0-9-]/g, '-').slice(0, 30)}-${userId.slice(-6)}`;
-        const c = await orgo.createComputer(name, `grokbot-box-${userId}`);
-        setStatus(userId, mapStatus(c.status), { orgoId: c.id });
-        await prepareBox(c.id);
-        setStatus(userId, 'running', { orgoId: c.id });
-        return c.id;
+        const { existingDesktopId } = await ensureWorkspace();
+        if (existingDesktopId) {
+          r.orgo_id = existingDesktopId;
+          setStatus(userId, 'starting', { orgoId: existingDesktopId });
+        } else {
+          setStatus(userId, 'creating');
+          const user = db.prepare('SELECT email FROM users WHERE id=?').get(userId) as any;
+          const name = `grokbot-${(user?.email ?? userId).split('@')[0].replace(/[^a-zA-Z0-9-]/g, '-').slice(0, 30)}-${userId.slice(-6)}`;
+          const c = await orgo.createComputer(name, `grokbot-box-${userId}`);
+          setStatus(userId, mapStatus(c.status), { orgoId: c.id });
+          await prepareBox(c.id);
+          setStatus(userId, 'running', { orgoId: c.id });
+          return c.id;
+        }
       }
       const c = await orgo.getComputer(r.orgo_id);
       if (c.status === 'running') {

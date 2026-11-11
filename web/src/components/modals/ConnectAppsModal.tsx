@@ -154,9 +154,10 @@ export function ConnectAppsModal() {
       <>
         <Section title="Picked for you" apps={apps.slice(0, 6)} onChanged={refresh} />
         {PILLS.map((p) => {
-          const list = apps.filter((a) => a.categories.includes(p.category));
+          const list = apps.filter((a) => a.categories.some((c) => c.toLowerCase() === p.category.toLowerCase()));
           return <Section key={p.category} title={p.label} apps={list.slice(0, 4)} onViewAll={list.length > 2 ? () => setView({ kind: 'category', category: p.category }) : undefined} onChanged={refresh} />;
         })}
+        {apps.length > 6 && <Section title={`All Composio Apps (${apps.length})`} apps={apps.slice(6, 42)} onChanged={refresh} />}
       </>
     );
   }
@@ -185,7 +186,7 @@ export function ConnectAppsModal() {
               <Icon name="search" size={14} opacity={0.56} />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search apps and skills" aria-label="Search apps" />
             </label>
-            <button type="button" className="pill-chip" title="Bot templates are coming soon" disabled>
+            <button type="button" className="pill-chip" title="Create a Bot from a role template" onClick={() => setModal('create')}>
               {primary && <BotAvatarFor bot={primary} size={22} />}
               <span>Bot templates</span>
               <Icon name="share" size={12} opacity={0.56} />

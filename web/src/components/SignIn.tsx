@@ -1,46 +1,113 @@
 import { useState } from 'react';
+import type { ShaderStyle } from '@shared/types';
 import { BotAvatar } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
 import { useStore } from '../store';
+import { ShaderCanvas } from './ShaderCanvas';
 import { TrafficLights } from './Sidebar';
+
+const SHADER_PRESETS: { id: ShaderStyle; label: string }[] = [
+  { id: 'aurora', label: 'Aurora Flow' },
+  { id: 'plasma', label: 'Plasma Tide' },
+  { id: 'obsidian', label: 'Obsidian Mesh' },
+  { id: 'vortex', label: 'Singularity' },
+  { id: 'grid', label: '3D Horizon' },
+];
 
 export function SignIn() {
   const devLogin = useStore((s) => s.devLogin);
   const checkAuth = useStore((s) => s.checkAuth);
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
+  const [email, setEmail] = useState('operator@tideos.local');
+  const [name, setName] = useState('Operator');
+  const [shader, setShader] = useState<ShaderStyle>('aurora');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(() => (new URLSearchParams(location.search).get('login') === 'failed' ? 'Sign-in didn’t finish. Try again.' : null));
+  const [error, setError] = useState<string | null>(() =>
+    new URLSearchParams(location.search).get('login') === 'failed' ? 'Sign-in didn’t finish. Try again.' : null,
+  );
 
   const dev = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.includes('@')) { setError('Enter an email address'); return; }
-    setBusy(true); setError(null);
-    try { await api.devLogin(email.trim(), name.trim() || undefined); await checkAuth(); } catch (err) { setError((err as Error).message); setBusy(false); }
+    if (!email.includes('@')) {
+      setError('Enter an email address');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api.devLogin(email.trim(), name.trim() || undefined);
+      await checkAuth();
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
   };
 
   return (
     <div className="signin">
-      <div className="signin__chrome"><TrafficLights /></div>
-      <div className="signin__card">
-        <div className="signin__hero">
-          <BotAvatar shape="blob" color="black" size={84} />
+      <ShaderCanvas style={shader} className="signin__shader" opacity={0.92} />
+      <div className="signin__chrome">
+        <TrafficLights />
+        <div className="signin__shader-bar" role="group" aria-label="Shader style">
+          <span className="signin__shader-label">GLSL SHADER</span>
+          {SHADER_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`signin__shader-pill${shader === p.id ? ' is-active' : ''}`}
+              onClick={() => setShader(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
-        <h1 className="signin__title">Grokbot</h1>
-        <p className="signin__sub">AI teammates with their own computers. Hand them a task and they get it done.</p>
+      </div>
+
+      <div className="signin__card">
+        <div className="signin__badge-row">
+          <span className="tideos-pill tideos-pill--glow">TIDEOS v2.4 · BYOM EDITION</span>
+          <span className="tideos-pill">OPENROUTER READY</span>
+        </div>
+        <div className="signin__hero">
+          <BotAvatar shape="hex" color="cyan" size={76} ring />
+        </div>
+        <h1 className="signin__title">TideOS</h1>
+        <p className="signin__sub">
+          Autonomous AI operators with dedicated Linux workspaces, persistent memory, and Bring-Your-Own-Model via OpenRouter.
+        </p>
         <a className="btn btn--primary signin__google" href="/api/auth/google/start">
-          <GoogleG /> Sign in with Google
+          <GoogleG /> Continue with Google
         </a>
         {devLogin && (
           <form className="signin__dev" onSubmit={dev}>
-            <div className="signin__divider"><span>Dev sign-in</span></div>
-            <input className="text-input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email" />
-            <input className="text-input" placeholder="Name (optional)" value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" />
-            <button type="submit" className="btn btn--secondary" disabled={busy}>{busy ? 'Signing in…' : 'Continue with email'}</button>
+            <div className="signin__divider"><span>Local Studio Access</span></div>
+            <input
+              className="text-input"
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              aria-label="Email"
+            />
+            <input
+              className="text-input"
+              placeholder="Name (optional)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-label="Name"
+            />
+            <button type="submit" className="btn btn--cta" disabled={busy}>
+              {busy ? 'Initializing Studio…' : 'Launch TideOS Studio →'}
+            </button>
           </form>
         )}
         {error && <div className="card__error signin__error">{error}</div>}
-        <p className="signin__foot">Open source. Not affiliated with xAI.</p>
+        <div className="signin__foot-grid">
+          <span>OPENROUTER · 250+ MODELS</span>
+          <span>•</span>
+          <span>COMPUTER USE SANDBOX</span>
+          <span>•</span>
+          <span>MULTI-AGENT ROOMS</span>
+        </div>
       </div>
     </div>
   );

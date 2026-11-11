@@ -1,13 +1,32 @@
 {
-  "name": "grokbot",
-  "private": true,
-  "description": "Grokbot: internal reverse-engineering clone of xAI Grok Bot. Internal research use only; do not distribute.",
-  "workspaces": ["server", "web"],
+  "name": "tidebot",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "TideOS (Tidebot) — Open-source Autonomous Multi-Agent Studio with OpenRouter BYOM, 1,500+ Composio app integrations, Linux cloud desktops, and WebGL shaders.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asjames18/tidebot.git"
+  },
+  "keywords": [
+    "ai-agents",
+    "openrouter",
+    "composio",
+    "multi-agent",
+    "computer-use",
+    "webgl",
+    "byom"
+  ],
+  "workspaces": [
+    "server",
+    "web"
+  ],
   "scripts": {
     "dev": "npm run dev -w server & npm run dev -w web",
     "build": "npm run build -w web && npm run build -w server",
     "start": "npm run start -w server",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w web"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }

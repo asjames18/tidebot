@@ -19,13 +19,27 @@ import { desSelfTest } from './lib/des.js';
 import { configApi } from './routes-config.js';
 import { startIdleWatcher } from './idle.js';
 import { startMemoryConsolidation } from './agent/memory.js';
+import { getPublicLlmConfig } from './agent/llm.js';
 
 if (!desSelfTest()) throw new Error('DES self-test failed');
 initSubagents();
 initRooms();
 
 const app = new Hono();
-app.get('/api/health', (c) => c.json({ ok: true, model: env.xaiModel }));
+app.get('/api/health', (c) => {
+  const llm = getPublicLlmConfig();
+  return c.json({
+    ok: true,
+    model: llm.defaultModel,
+    providers: {
+      ...env.providers,
+      openrouter: llm.hasOpenrouterKey,
+      custom: Boolean(llm.customBaseUrl),
+      xai: llm.hasXaiKey,
+    },
+    llm,
+  });
+});
 app.route('/api/checkins', checkinsApi);
 app.route('/api/rooms', roomsApi);
 app.route('/api', api);

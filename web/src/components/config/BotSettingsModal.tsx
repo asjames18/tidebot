@@ -77,7 +77,7 @@ export function BotSettingsModal() {
           {target.tab === 'general' && <GeneralTab bot={bot} onClose={onClose} />}
           {target.tab === 'skills' && <SkillsTab bot={bot} skills={data?.skills} onChange={reload} />}
           {target.tab === 'memories' && <MemoriesTab bot={bot} data={data} onChange={reload} />}
-          {target.tab === 'routines' && <RoutinesTab bot={bot} routines={routines ?? data?.routines} />}
+          {target.tab === 'routines' && <RoutinesTab bot={bot} routines={routines ?? data?.routines} onChange={reload} />}
         </div>
       </div>
     </Modal>
@@ -86,14 +86,26 @@ export function BotSettingsModal() {
 
 // ---------------------------------------------------------------------------
 
-type Draft = Pick<Bot, 'name' | 'label' | 'description' | 'instructions' | 'avatarShape' | 'avatarColor' | 'effort' | 'mode'>;
-const draftOf = (b: Bot): Draft => ({ name: b.name, label: b.label, description: b.description, instructions: b.instructions, avatarShape: b.avatarShape, avatarColor: b.avatarColor, effort: b.effort, mode: b.mode });
+type Draft = Pick<Bot, 'name' | 'label' | 'description' | 'instructions' | 'avatarShape' | 'avatarColor' | 'effort' | 'mode'> & { model: string };
+const draftOf = (b: Bot): Draft => ({
+  name: b.name,
+  label: b.label,
+  description: b.description,
+  instructions: b.instructions,
+  avatarShape: b.avatarShape,
+  avatarColor: b.avatarColor,
+  effort: b.effort,
+  mode: b.mode,
+  model: b.model ?? '',
+});
 
 function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
   const [draft, setDraft] = useState<Draft>(() => draftOf(bot));
   const [picker, setPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null);
+  const llmConfig = useConfigUI((s) => s.llmConfig);
+  const curatedModels = useConfigUI((s) => s.curatedModels);
   useEffect(() => { setDraft(draftOf(bot)); }, [bot.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const base = draftOf(bot);
@@ -150,6 +162,30 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
         <Field label="Instructions" htmlFor="cfg-instructions" hint={`Standing guidance ${draft.name || 'this Bot'} always follows, like tone, priorities or things to avoid. It also learns from chat, skills and memories.`}>
           <textarea id="cfg-instructions" className="text-input cfg-textarea cfg-textarea--tall" rows={7} value={draft.instructions} maxLength={8000} placeholder="e.g. Keep updates to three bullets. Never email anyone outside the team without asking." onChange={(e) => put('instructions', e.target.value)} />
         </Field>
+        <Field label="Model (OpenRouter / BYOM)" htmlFor="cfg-model" hint={`Leave empty to use the studio default (${llmConfig?.defaultModel ?? 'anthropic/claude-3.7-sonnet'}), or pick a specific model for this operator.`}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input
+              id="cfg-model"
+              className="text-input"
+              style={{ flex: 1, minWidth: 220 }}
+              value={draft.model}
+              placeholder={`Default (${llmConfig?.defaultModel ?? 'anthropic/claude-3.7-sonnet'})`}
+              onChange={(e) => put('model', e.target.value)}
+            />
+            <select
+              className="text-input"
+              style={{ width: 'auto', minWidth: 190 }}
+              value={curatedModels.some((m) => m.id === draft.model) ? draft.model : ''}
+              onChange={(e) => put('model', e.target.value)}
+              aria-label="Quick model preset"
+            >
+              <option value="">Use Default Model</option>
+              {curatedModels.map((m) => (
+                <option key={m.id} value={m.id}>{m.name} ({m.provider})</option>
+              ))}
+            </select>
+          </div>
+        </Field>
         <Field label="Thinking effort" hint={EFFORT_HINT[draft.effort]}>
           <Segmented label="Thinking effort" value={draft.effort} options={EFFORTS} onChange={(v) => put('effort', v)} />
         </Field>
@@ -163,6 +199,8 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
         <button type="button" className="cfg-btn cfg-btn--secondary" disabled={!dirty || saving} onClick={() => setDraft(draftOf(bot))}>Discard</button>
         <button type="button" className="cfg-btn cfg-btn--primary" disabled={!dirty || saving || !nameOk} onClick={save}>{saving ? 'Saving…' : 'Save changes'}</button>
       </div>
+
+      {bot.isPrimary && <CheckinsSection botName={bot.name} onFlash={flash} />}
 
       <section className="cfg-section">
         <div className="cfg-section__label">Conversation</div>
@@ -220,6 +258,100 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
 
 const SHAPE_ROWS = [PICKER_SHAPES.slice(0, 7), PICKER_SHAPES.slice(7)];
 
+function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: string, tone?: 'ok' | 'error') => void }) {
+  const [enabled, setEnabled] = useState(false);
+  const [timesStr, setTimesStr] = useState('09:00, 16:30');
+  const [timezone, setTimezone] = useState('UTC');
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    configApi.checkins().then((c) => {
+      setEnabled(c.enabled);
+      setTimesStr(c.times.join(', '));
+      setTimezone(c.timezone || 'UTC');
+      setLoaded(true);
+    }).catch(() => {});
+  }, []);
+
+  if (!loaded) return null;
+
+  const saveCheckins = async (nextEnabled = enabled, nextTimesStr = timesStr, nextTz = timezone) => {
+    setSaving(true);
+    try {
+      const times = nextTimesStr.split(',').map((t) => t.trim()).filter(Boolean);
+      const res = await configApi.setCheckins({ enabled: nextEnabled, times, timezone: nextTz.trim() || 'UTC' });
+      setEnabled(res.enabled);
+      setTimesStr(res.times.join(', '));
+      setTimezone(res.timezone);
+      onFlash(res.enabled ? `Check-ins scheduled (${res.times.join(', ')} ${res.timezone})` : 'Check-ins paused');
+    } catch (e) {
+      onFlash((e as Error).message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const triggerNow = async () => {
+    setRunning(true);
+    try {
+      await configApi.checkinNow();
+      onFlash(`${botName} is checking in now`);
+    } catch (e) {
+      onFlash((e as Error).message, 'error');
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+  return (
+    <section className="cfg-section">
+      <div className="cfg-section__label">Proactive check-ins</div>
+      <div className="cfg-card">
+        <div className="cfg-row">
+          <div className="cfg-row__text">
+            <div className="cfg-row__title">Scheduled check-ins</div>
+            <div className="cfg-row__sub">{botName} reviews tasks, approvals, and routines at set times and messages you only when there’s something worth sharing.</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={running} onClick={triggerNow}>
+              {running ? 'Checking…' : 'Check in now'}
+            </button>
+            <Switch on={enabled} onChange={(v) => { setEnabled(v); void saveCheckins(v, timesStr, timezone); }} label="Proactive check-ins" />
+          </div>
+        </div>
+        {enabled && (
+          <div className="cfg-row" style={{ flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ flex: '1 1 180px' }}>
+              <div className="cfg-field__label" style={{ marginBottom: 4 }}>Times (24h HH:MM)</div>
+              <input className="text-input" value={timesStr} onChange={(e) => setTimesStr(e.target.value)} placeholder="09:00, 16:30" aria-label="Check-in times" />
+            </div>
+            <div style={{ flex: '1 1 180px' }}>
+              <div className="cfg-field__label" style={{ marginBottom: 4 }}>Timezone</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input className="text-input" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="America/New_York" aria-label="Check-in timezone" />
+                {timezone !== localTz && (
+                  <button type="button" className="cfg-btn cfg-btn--secondary" title={`Use ${localTz}`} onClick={() => setTimezone(localTz)}>
+                    Local
+                  </button>
+                )}
+              </div>
+            </div>
+            <div style={{ alignSelf: 'flex-end' }}>
+              <button type="button" className="cfg-btn cfg-btn--primary" disabled={saving} onClick={() => void saveCheckins()}>
+                {saving ? 'Saving…' : 'Update schedule'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function LookPicker({ shape, color, onShape, onColor }: { shape: AvatarShape; color: AvatarColor; onShape: (s: AvatarShape) => void; onColor: (c: AvatarColor) => void }) {
   return (
     <div className="cfg-picker">
@@ -249,21 +381,57 @@ function LookPicker({ shape, color, onShape, onColor }: { shape: AvatarShape; co
 
 // ---------------------------------------------------------------------------
 
+const SKILL_TEMPLATES: { name: string; description: string; body: string }[] = [
+  {
+    name: 'Deep Web Researcher',
+    description: 'Multi-source web research with citations and structured Markdown briefing',
+    body: '1. Use `web_search` with 2-3 targeted queries to gather authoritative sources.\n2. Use `fetch_webpage` on the top 2-3 URLs to read full articles or documentation.\n3. Synthesize findings with inline links and save a clean deliverable to the Library using `save_file`.',
+  },
+  {
+    name: 'GitHub PR & Code Reviewer',
+    description: 'Review pull requests, check diffs, and summarize security or logic issues',
+    body: '1. Search for GitHub tools via `COMPOSIO_SEARCH_TOOLS` (or use `shell` / `fetch_webpage`).\n2. Inspect the PR diff, changed files, and commit messages.\n3. Report high-severity bugs, edge cases, and actionable suggestions concisely.',
+  },
+  {
+    name: 'Executive Daily Briefing',
+    description: 'Morning synthesis of open tasks, calendar events, and key priorities',
+    body: '1. Check open tasks and recent memories using `recall`.\n2. If Google Calendar or Gmail is connected, check today’s schedule and urgent threads.\n3. Deliver a crisp 5-bullet executive summary and save `daily-briefing.md` via `save_file`.',
+  },
+  {
+    name: 'Email & Slack Triage',
+    description: 'Draft polished responses using interactive Draft Cards for user approval',
+    body: '1. Identify the recipient, channel (`email` or `slack`), and key message points.\n2. Call `draft_message` so the user gets an interactive Draft Card in chat to review, copy, or approve sending.',
+  },
+];
+
 function SkillsTab({ bot, skills, onChange }: { bot: Bot; skills: Skill[] | undefined; onChange: () => void }) {
   const [editing, setEditing] = useState<string | 'new' | null>(null);
+  const [installing, setInstalling] = useState<string | null>(null);
+  const existingNames = new Set((skills ?? []).map((s) => s.name.toLowerCase()));
+
+  const installTemplate = async (tpl: (typeof SKILL_TEMPLATES)[number]) => {
+    setInstalling(tpl.name);
+    try {
+      await configApi.createSkill(bot.id, tpl);
+      onChange();
+    } finally {
+      setInstalling(null);
+    }
+  };
+
   return (
     <div className="cfg-page">
       <div className="cfg-page__head">
         <div>
-          <div className="cfg-page__title">Skills</div>
-          <div className="cfg-page__sub">Step-by-step how-tos {bot.name} follows for specific jobs. Ask for one by name in chat.</div>
+          <div className="cfg-page__title">Operator Skills</div>
+          <div className="cfg-page__sub">Step-by-step playbooks {bot.name} follows for specific workflows.</div>
         </div>
         {editing !== 'new' && <button type="button" className="cfg-btn cfg-btn--primary" onClick={() => setEditing('new')}><Icon name="plus" size={12} /> New skill</button>}
       </div>
       {editing === 'new' && <SkillEditor botId={bot.id} onDone={() => { setEditing(null); onChange(); }} />}
       {!skills ? <div className="cfg-empty">Loading…</div> : skills.length === 0 && editing !== 'new' ? (
         <div className="cfg-empty">
-          No skills yet. Write down how you like something done, like “Prep for a sales call”, and {bot.name} will follow it every time.
+          No custom skills installed yet. Add a custom playbook above or install a 1-click template below.
         </div>
       ) : (
         <div className="cfg-list">
@@ -284,6 +452,31 @@ function SkillsTab({ bot, skills, onChange }: { bot: Bot; skills: Skill[] | unde
           ))}
         </div>
       )}
+
+      <section className="cfg-section" style={{ marginTop: 18 }}>
+        <div className="cfg-section__label">1-Click Skill Templates</div>
+        <div className="cfg-card">
+          {SKILL_TEMPLATES.map((tpl) => {
+            const installed = existingNames.has(tpl.name.toLowerCase());
+            return (
+              <div key={tpl.name} className="cfg-row">
+                <div className="cfg-row__text">
+                  <div className="cfg-row__title">{tpl.name}</div>
+                  <div className="cfg-row__sub">{tpl.description}</div>
+                </div>
+                <button
+                  type="button"
+                  className="cfg-btn cfg-btn--secondary"
+                  disabled={installed || installing === tpl.name}
+                  onClick={() => void installTemplate(tpl)}
+                >
+                  {installed ? '✓ Installed' : installing === tpl.name ? 'Installing…' : '+ Install'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }
@@ -322,11 +515,56 @@ function SkillEditor({ botId, skill, onDone }: { botId: string; skill?: Skill; o
 
 function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundle | null; onChange: () => void }) {
   const [q, setQ] = useState('');
+  const [newText, setNewText] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [maintBusy, setMaintBusy] = useState<'consolidate' | 'compact' | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const say = (t: string) => { setFlash(t); setTimeout(() => setFlash(null), 2600); };
   const memories = useMemo(() => (data?.memories ?? []).filter((m) => !hidden.has(m.id) && (!q || m.text.toLowerCase().includes(q.toLowerCase()))), [data, hidden, q]);
   const remove = async (m: Memory) => {
     setHidden((h) => new Set(h).add(m.id));
     try { await configApi.deleteMemory(m.id); onChange(); } catch { setHidden((h) => { const n = new Set(h); n.delete(m.id); return n; }); }
+  };
+  const addMemory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newText.trim();
+    if (!clean || adding) return;
+    setAdding(true);
+    try {
+      await configApi.addMemory(bot.id, clean);
+      setNewText('');
+      onChange();
+      say('Memory saved');
+    } catch (err) {
+      say((err as Error).message);
+    } finally {
+      setAdding(false);
+    }
+  };
+  const runConsolidate = async () => {
+    setMaintBusy('consolidate');
+    try {
+      const r = await configApi.consolidateMemories(bot.id);
+      onChange();
+      say(r.added.length ? `Learned ${r.added.length} new memor${r.added.length === 1 ? 'y' : 'ies'}` : 'Up to date (no new memories found)');
+    } catch (err) {
+      say((err as Error).message);
+    } finally {
+      setMaintBusy(null);
+    }
+  };
+  const runCompact = async () => {
+    setMaintBusy('compact');
+    try {
+      const r = await configApi.compactHistory(bot.id, true);
+      onChange();
+      say(r.compacted ? `Compacted (${r.itemsBefore} → ${r.itemsAfter} items)` : 'Context is already compact');
+    } catch (err) {
+      say((err as Error).message);
+    } finally {
+      setMaintBusy(null);
+    }
   };
   const fill = data ? Math.min(100, Math.round((data.memory.historyChars / data.memory.compactAtChars) * 100)) : 0;
   return (
@@ -336,12 +574,26 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
           <div className="cfg-page__title">Memories</div>
           <div className="cfg-page__sub">What {bot.name} remembers about you. It saves things when you share them, and picks up more on its own once a chat goes quiet.</div>
         </div>
+        {flash && <span className="cfg-savebar__note" role="status">{flash}</span>}
       </div>
+      <form style={{ display: 'flex', gap: 8 }} onSubmit={addMemory}>
+        <input
+          className="text-input"
+          placeholder={`Add a fact or preference for ${bot.name} to remember…`}
+          value={newText}
+          maxLength={400}
+          onChange={(e) => setNewText(e.target.value)}
+          aria-label="New memory"
+        />
+        <button type="submit" className="cfg-btn cfg-btn--primary" disabled={!newText.trim() || adding} style={{ flexShrink: 0 }}>
+          <Icon name="plus" size={12} /> {adding ? 'Saving…' : 'Add'}
+        </button>
+      </form>
       {(data?.memories.length ?? 0) > 6 && (
         <input className="text-input" placeholder="Search memories" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search memories" />
       )}
       {!data ? <div className="cfg-empty">Loading…</div> : memories.length === 0 ? (
-        <div className="cfg-empty">{q ? 'No memories match.' : `Nothing yet. Tell ${bot.name} about yourself, or just chat. It’ll pick things up.`}</div>
+        <div className="cfg-empty">{q ? 'No memories match.' : `Nothing yet. Add a note above or tell ${bot.name} about yourself in chat.`}</div>
       ) : (
         <div className="cfg-list">
           {memories.map((m) => (
@@ -368,6 +620,14 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
             When it fills up, older messages get summarized so {bot.name} can keep going.
             {data.memory.lastCompaction ? ` Last summarized ${shortDate(data.memory.lastCompaction.created_at)}.` : ''}
           </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={maintBusy !== null} onClick={runConsolidate}>
+              {maintBusy === 'consolidate' ? 'Extracting…' : 'Extract memories now'}
+            </button>
+            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={maintBusy !== null} onClick={runCompact}>
+              {maintBusy === 'compact' ? 'Compacting…' : 'Compact context'}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -376,35 +636,142 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
 
 // ---------------------------------------------------------------------------
 
-function RoutinesTab({ bot, routines }: { bot: Bot; routines: Routine[] | undefined }) {
+const CRON_PRESETS: { label: string; cron: string }[] = [
+  { label: 'Weekdays 9am', cron: '0 9 * * 1-5' },
+  { label: 'Daily 8am', cron: '0 8 * * *' },
+  { label: 'Mondays 9am', cron: '0 9 * * 1' },
+  { label: 'Fridays 4pm', cron: '0 16 * * 5' },
+  { label: 'Hourly', cron: '0 * * * *' },
+];
+
+function RoutinesTab({ bot, routines, onChange }: { bot: Bot; routines: Routine[] | undefined; onChange: () => void }) {
   const [flash, setFlash] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | 'new' | null>(null);
   const say = (t: string) => { setFlash(t); setTimeout(() => setFlash(null), 2200); };
+  const refresh = () => {
+    onChange();
+    useStore.getState().loadRoutines(bot.id).catch(() => {});
+  };
   return (
     <div className="cfg-page">
       <div className="cfg-page__head">
         <div>
           <div className="cfg-page__title">Routines</div>
-          <div className="cfg-page__sub">Recurring jobs {bot.name} runs on a schedule. To add or change one, ask in chat.</div>
+          <div className="cfg-page__sub">Recurring jobs {bot.name} runs on a schedule. Create one here or ask in chat.</div>
         </div>
-        {flash && <span className="cfg-savebar__note" role="status">{flash}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {flash && <span className="cfg-savebar__note" role="status">{flash}</span>}
+          {editing !== 'new' && (
+            <button type="button" className="cfg-btn cfg-btn--primary" onClick={() => setEditing('new')}>
+              <Icon name="plus" size={12} /> New routine
+            </button>
+          )}
+        </div>
       </div>
-      {!routines ? <div className="cfg-empty">Loading…</div> : routines.length === 0 ? (
-        <div className="cfg-empty">No routines yet. Try asking {bot.name}: “every Friday at 4pm, recap my week”.</div>
+      {editing === 'new' && (
+        <RoutineEditor
+          botId={bot.id}
+          onDone={(msg) => {
+            setEditing(null);
+            if (msg) say(msg);
+            refresh();
+          }}
+        />
+      )}
+      {!routines ? <div className="cfg-empty">Loading…</div> : routines.length === 0 && editing !== 'new' ? (
+        <div className="cfg-empty">No routines yet. Click “New routine” above or ask {bot.name}: “every Friday at 4pm, recap my week”.</div>
       ) : (
         <div className="cfg-list">
-          {routines.map((r) => <RoutineItem key={r.id} r={r} onFlash={say} />)}
+          {routines.map((r) =>
+            editing === r.id ? (
+              <RoutineEditor
+                key={r.id}
+                botId={bot.id}
+                routine={r}
+                onDone={(msg) => {
+                  setEditing(null);
+                  if (msg) say(msg);
+                  refresh();
+                }}
+              />
+            ) : (
+              <RoutineItem key={r.id} r={r} onFlash={say} onEdit={() => setEditing(r.id)} onRefresh={refresh} />
+            ),
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function RoutineItem({ r, onFlash }: { r: Routine; onFlash: (t: string) => void }) {
+function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Routine; onDone: (msg?: string) => void }) {
+  const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const [name, setName] = useState(routine?.name ?? '');
+  const [schedule, setSchedule] = useState(routine?.schedule ?? '0 9 * * 1-5');
+  const [timezone, setTimezone] = useState(routine?.timezone ?? localTz);
+  const [prompt, setPrompt] = useState(routine?.prompt ?? '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const isEvent = schedule.startsWith('event:');
+  const can = name.trim() && schedule.trim() && prompt.trim() && !busy;
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!can) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if (routine) {
+        await configApi.updateRoutine(routine.id, { name: name.trim(), schedule: schedule.trim(), timezone: timezone.trim() || 'UTC', prompt: prompt.trim() });
+        onDone('Routine updated');
+      } else {
+        await configApi.createRoutine(botId, { name: name.trim(), schedule: schedule.trim(), timezone: timezone.trim() || 'UTC', prompt: prompt.trim() });
+        onDone('Routine created');
+      }
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="cfg-editor" onSubmit={save}>
+      <input className="text-input" placeholder="Routine name, e.g. Morning briefing" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus aria-label="Routine name" />
+      {!isEvent && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {CRON_PRESETS.map((p) => (
+            <button
+              key={p.cron}
+              type="button"
+              className={`cfg-chip${schedule === p.cron ? '' : ' cfg-chip--muted'}`}
+              style={{ cursor: 'pointer', border: 'none' }}
+              onClick={() => setSchedule(p.cron)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input className="text-input" placeholder="Cron schedule (e.g. 0 9 * * 1-5)" value={schedule} disabled={isEvent} onChange={(e) => setSchedule(e.target.value)} aria-label="Cron schedule" style={{ flex: 1 }} />
+        <input className="text-input" placeholder="Timezone (e.g. America/New_York)" value={timezone} disabled={isEvent} onChange={(e) => setTimezone(e.target.value)} aria-label="Routine timezone" style={{ flex: 1 }} />
+      </div>
+      <textarea className="text-input cfg-textarea" rows={4} placeholder="What should this Bot do each time the routine runs?" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Routine instructions" />
+      {error && <div className="cfg-error">{error}</div>}
+      <div className="cfg-editor__actions">
+        <button type="button" className="cfg-btn cfg-btn--secondary" onClick={() => onDone()}>Cancel</button>
+        <button type="submit" className="cfg-btn cfg-btn--primary" disabled={!can}>{busy ? 'Saving…' : routine ? 'Save routine' : 'Create routine'}</button>
+      </div>
+    </form>
+  );
+}
+
+function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (t: string) => void; onEdit: () => void; onRefresh: () => void }) {
   const [enabled, setEnabled] = useState(r.enabled);
   useEffect(() => setEnabled(r.enabled), [r.enabled]);
   const toggle = async (v: boolean) => {
     setEnabled(v);
-    try { await configApi.setRoutine(r.id, v); onFlash(v ? 'Resumed' : 'Paused'); } catch { setEnabled(!v); }
+    try { await configApi.setRoutine(r.id, v); onFlash(v ? 'Resumed' : 'Paused'); onRefresh(); } catch { setEnabled(!v); }
   };
   return (
     <div className="cfg-item cfg-item--routine">
@@ -418,7 +785,10 @@ function RoutineItem({ r, onFlash }: { r: Routine; onFlash: (t: string) => void 
         <button type="button" className="cfg-icon-btn" title="Run now" aria-label={`Run ${r.name} now`} onClick={() => configApi.runRoutine(r.id).then(() => onFlash('Running now')).catch((e) => onFlash(e.message))}>
           <Glyph name="play" size={13} />
         </button>
-        <ConfirmButton className="cfg-icon-btn" title="Delete" onConfirm={() => configApi.deleteRoutine(r.id).then(() => onFlash('Deleted'))}><Glyph name="trash" size={14} /></ConfirmButton>
+        <button type="button" className="cfg-icon-btn" title="Edit" aria-label={`Edit ${r.name}`} onClick={onEdit}>
+          <Icon name="edit" size={14} />
+        </button>
+        <ConfirmButton className="cfg-icon-btn" title="Delete" onConfirm={() => configApi.deleteRoutine(r.id).then(() => { onFlash('Deleted'); onRefresh(); })}><Glyph name="trash" size={14} /></ConfirmButton>
         <Switch on={enabled} onChange={toggle} label={`${r.name} ${enabled ? 'on' : 'paused'}`} />
       </div>
     </div>

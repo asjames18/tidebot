@@ -51,6 +51,7 @@ export function Sidebar() {
   const live = useStore((s) => s.live);
   const storeSelectedBotId = useStore((s) => s.selectedBotId);
   const inTasks = useConfigUI((s) => s.view === 'tasks');
+  const llmConfig = useConfigUI((s) => s.llmConfig);
   const selectedBotId = inTasks ? null : storeSelectedBotId; // nothing highlighted while the Tasks view is open
   const user = useStore((s) => s.user);
   const collapsed = useStore((s) => s.sidebarCollapsed);
@@ -68,7 +69,10 @@ export function Sidebar() {
   return (
     <aside className={`sidebar${collapsed ? ' is-collapsed' : ''}`}>
       <div className="sidebar__titlebar">
-        <TrafficLights />
+        <div className="sidebar__brand">
+          <TrafficLights />
+          {!collapsed && <span className="sidebar__brand-mark">TIDE<span>OS</span></span>}
+        </div>
         <div className="sidebar__controls">
           <button type="button" className="icon-btn icon-btn--plain" onClick={() => set({ sidebarCollapsed: !collapsed })} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title="Toggle sidebar (⌘B)">
             <Icon name="sidebar" opacity={0.66} />
@@ -124,29 +128,53 @@ export function Sidebar() {
       <div className="sidebar__footer">
         <div className="sidebar__fade" />
         {!collapsed && (
-          <div className="account">
-            <button type="button" className="account__btn" onClick={() => setAccountMenu(!accountMenu)} aria-haspopup="menu" aria-expanded={accountMenu} title={user?.email}>
-              <span className="account__initials">{initials(user?.name ?? user?.email ?? '')}</span>
-              <span className="account__name">{user?.name ?? user?.email}</span>
+          <div className="sidebar__byom-bar">
+            <button
+              type="button"
+              className="sidebar__byom-btn"
+              onClick={() => useConfigUI.getState().openAppSettings('models')}
+              title="Configure OpenRouter / Bring Your Own Model"
+            >
+              <span className={`sidebar__byom-dot ${llmConfig?.isConfigured ? 'is-ok' : 'is-warn'}`} />
+              <span className="sidebar__byom-meta">
+                <span className="sidebar__byom-prov">
+                  {llmConfig?.provider === 'custom' ? 'CUSTOM BYOM' : llmConfig?.provider === 'xai' ? 'XAI ENGINE' : 'OPENROUTER'}
+                </span>
+                <span className="sidebar__byom-model">
+                  {(llmConfig?.defaultModel ?? 'anthropic/claude-3.7-sonnet').split('/').pop()}
+                </span>
+              </span>
+              <span className="sidebar__byom-tag">{llmConfig?.isConfigured ? 'LIVE' : 'SET KEY'}</span>
             </button>
-            {accountMenu && (
-              <Menu
-                placement="above"
-                onClose={() => setAccountMenu(false)}
-                items={[
-                  { label: 'Settings', hint: '⌘,', onSelect: () => useConfigUI.getState().openAppSettings() },
-                  { label: 'Connect apps', onSelect: () => setModal('apps') },
-                  { label: 'Log out', danger: true, onSelect: logout },
-                ]}
-              >
-                <div className="menu__header">{user?.email}</div>
-              </Menu>
-            )}
           </div>
         )}
-        <button type="button" className="icon-btn icon-btn--bordered" onClick={() => setModal('apps')} aria-label="Connect apps" title="Connect apps">
-          <Icon name="apps" />
-        </button>
+        <div className="sidebar__footer-row">
+          {!collapsed && (
+            <div className="account">
+              <button type="button" className="account__btn" onClick={() => setAccountMenu(!accountMenu)} aria-haspopup="menu" aria-expanded={accountMenu} title={user?.email}>
+                <span className="account__initials">{initials(user?.name ?? user?.email ?? '')}</span>
+                <span className="account__name">{user?.name ?? user?.email}</span>
+              </button>
+              {accountMenu && (
+                <Menu
+                  placement="above"
+                  onClose={() => setAccountMenu(false)}
+                  items={[
+                    { label: 'Models & OpenRouter (BYOM)', onSelect: () => useConfigUI.getState().openAppSettings('models') },
+                    { label: 'Settings', hint: '⌘,', onSelect: () => useConfigUI.getState().openAppSettings() },
+                    { label: 'Connect apps', onSelect: () => setModal('apps') },
+                    { label: 'Log out', danger: true, onSelect: logout },
+                  ]}
+                >
+                  <div className="menu__header">{user?.email}</div>
+                </Menu>
+              )}
+            </div>
+          )}
+          <button type="button" className="icon-btn icon-btn--bordered" onClick={() => setModal('apps')} aria-label="Connect apps" title="Connect apps">
+            <Icon name="apps" />
+          </button>
+        </div>
       </div>
     </aside>
   );
