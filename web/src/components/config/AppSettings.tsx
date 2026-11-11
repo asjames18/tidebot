@@ -125,9 +125,11 @@ function GeneralSection() {
   const setLlmConfig = useConfigUI((s) => s.setLlmConfig);
   const openAppSettings = useConfigUI((s) => s.openAppSettings);
   const [health, setHealth] = useState<{ model?: string; providers?: { openrouter?: boolean; custom?: boolean; xai: boolean; composio: boolean; orgo: boolean } } | null>(null);
+  const [sysStatus, setSysStatus] = useState<{ bots: number; activeTasks: number; activeRoutines: number; memories: number; messages: number } | null>(null);
 
   useEffect(() => {
     fetch('/api/health').then((r) => r.json()).then(setHealth).catch(() => {});
+    fetch('/api/system/status', { credentials: 'include' }).then((r) => (r.ok ? r.json() : null)).then(setSysStatus).catch(() => {});
   }, [llmConfig]);
 
   const currentShader: ShaderStyle = llmConfig?.shaderStyle ?? 'aurora';
@@ -185,6 +187,22 @@ function GeneralSection() {
       {p && (
         <section className="cfg-section">
           <div className="cfg-section__label">System Telemetry & Providers</div>
+          {sysStatus && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 12 }}>
+              {[
+                { label: 'Operators', val: sysStatus.bots },
+                { label: 'Messages', val: sysStatus.messages },
+                { label: 'Memories', val: sysStatus.memories },
+                { label: 'Open Tasks', val: sysStatus.activeTasks },
+                { label: 'Routines', val: sysStatus.activeRoutines },
+              ].map((stat) => (
+                <div key={stat.label} className="cfg-card" style={{ padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>{stat.val}</div>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="cfg-card">
             <div className="cfg-row">
               <div className="cfg-row__text">

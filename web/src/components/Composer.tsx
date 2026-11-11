@@ -30,6 +30,7 @@ const SLASH_COMMANDS: { cmd: string; desc: string; template?: string; action?: '
 export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   const [text, setText] = useState(() => drafts.get(bot.id) ?? '');
   const [sending, setSending] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -73,6 +74,24 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
 
   const stop = () => api.interrupt(bot.id).catch((e) => setError(e.message));
   const fresh = () => api.fresh(bot.id).catch((e) => setError(e.message));
+
+  const enhance = async () => {
+    const raw = text.trim();
+    if (!raw || enhancing) return;
+    setEnhancing(true);
+    setError(null);
+    try {
+      const res = await configApi.enhancePrompt(raw, bot.name, bot.label);
+      if (res.ok && res.text) {
+        setText(res.text);
+        requestAnimationFrame(() => ref.current?.focus());
+      }
+    } catch (e) {
+      setError((e as Error).message || 'Could not enhance prompt');
+    } finally {
+      setEnhancing(false);
+    }
+  };
 
   // Dictation: insert the transcript at the cursor.
   const insertText = (t: string) => {
@@ -178,6 +197,18 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           />
         </div>
         <div className="composer__right">
+          {hasText && !slashQuery && (
+            <button
+              type="button"
+              className="composer__btn"
+              onClick={enhance}
+              disabled={enhancing}
+              title="Enhance prompt with AI for clearer tool & deliverable instructions"
+              style={{ width: 'auto', padding: '0 8px', fontSize: 11.5, fontWeight: 600, color: '#38BDF8', gap: 4 }}
+            >
+              <span>{enhancing ? 'Enhancing…' : '✨ Enhance'}</span>
+            </button>
+          )}
           <button
             type="button"
             className={`composer__btn${dictation.state === 'recording' ? ' is-recording' : dictation.state === 'transcribing' ? ' is-transcribing' : ''}`}

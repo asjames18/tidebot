@@ -14,7 +14,7 @@ import { catalog } from './composio.js';
 import { runInBotQueue } from './agent/loop.js';
 import { localWorkspaceDir } from './agent/tools.js';
 import { consolidateBot, historySize, maybeCompact, memoryConfig } from './agent/memory.js';
-import { fetchModelsCatalog, getPublicLlmConfig, saveLlmConfig, testLlmConnection } from './agent/llm.js';
+import { completeText, fetchModelsCatalog, getPublicLlmConfig, saveLlmConfig, testLlmConnection } from './agent/llm.js';
 import { idleConfig, viewerCount } from './idle.js';
 import { loadHistory } from './store.js';
 import type { LibraryFile, Memory, Skill } from './types.js';
@@ -66,6 +66,25 @@ configApi.post('/llm/test-composio', async (c) => {
 
 configApi.get('/llm/models', async (c) => {
   return c.json(await fetchModelsCatalog());
+});
+
+configApi.post('/llm/enhance', async (c) => {
+  const { text, botName, botRole } = await c.req.json().catch(() => ({}));
+  const raw = String(text ?? '').trim();
+  if (!raw) return c.json({ error: 'Prompt text is required' }, 400);
+  try {
+    const enhanced = await completeText({
+      system:
+        `You are a prompt optimizer for TideBot autonomous AI operators${botName ? ` (currently targeting ${botName}${botRole ? `, ${botRole}` : ''})` : ''}. ` +
+        `Rewrite the user's draft instruction into a clear, actionable, high-signal prompt that specifies concrete deliverables, relevant tools (e.g., web_search, fetch_webpage, save_file, shell, or connected Composio apps), and formatting expectations. ` +
+        `Keep it concise (1-4 sentences). Output ONLY the improved prompt text with no surrounding quotes or preamble.`,
+      user: raw,
+      maxTokens: 320,
+    });
+    return c.json({ ok: true, text: enhanced.trim() || raw });
+  } catch (e: any) {
+    return c.json({ ok: false, error: String(e?.message ?? e) }, 502);
+  }
 });
 
 const ownBot = (userId: string, id: string) => {

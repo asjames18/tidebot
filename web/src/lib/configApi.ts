@@ -40,6 +40,7 @@ export const configApi = {
     req<LlmConfigPublic>('PUT', '/llm/config', p),
   testLlm: () => req<{ ok: boolean; model: string; provider: string; latencyMs: number; reply?: string; error?: string }>('POST', '/llm/test'),
   testComposio: () => req<{ ok: boolean; count?: number; latencyMs?: number; error?: string }>('POST', '/llm/test-composio'),
+  enhancePrompt: (text: string, botName?: string, botRole?: string) => req<{ ok: boolean; text: string; error?: string }>('POST', '/llm/enhance', { text, botName, botRole }),
   modelsCatalog: () => req<{ curated: ModelInfo[]; remote: ModelInfo[] }>('GET', '/llm/models'),
 
   settings: (botId: string) => req<BotSettingsBundle>('GET', `/bots/${botId}/settings`),
