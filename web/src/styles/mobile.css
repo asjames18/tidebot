@@ -209,6 +209,14 @@
     to { transform: translateY(0); }
   }
 
+  .create-modal__body {
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 14px calc(20px + env(safe-area-inset-bottom));
+  }
+  .create-modal__name {
+    width: 100%;
+  }
+
   /* Tactile touch feedback on tap */
   button:active, .icon-btn:active, .cfg-btn:active, .byom-model-card:active, .bot-row:active {
     transform: scale(0.98);
