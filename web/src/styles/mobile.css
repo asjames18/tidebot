@@ -821,7 +821,11 @@ button { touch-action: manipulation; }
   .cfg-grid { grid-template-columns: 1fr; }
   .cfg-input { font-size: 16px; height: 44px; }
   .byom-provider-grid { grid-template-columns: 1fr; }
-  .byom-provider-card { min-height: 48px; }
+  .byom-provider-card { min-height: 48px; padding: 12px 14px; }
+  .sys-telemetry-grid {
+    grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)) !important;
+    gap: 6px !important;
+  }
   .byom-filter-tabs {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
@@ -837,7 +841,27 @@ button { touch-action: manipulation; }
   .byom-actions { flex-wrap: wrap; gap: 8px; }
   .byom-actions .cfg-btn { flex: 1 1 auto; min-height: 44px; }
   .byom-search { max-width: 100%; width: 100%; }
-  .theme-tiles { justify-content: center; }
+  .theme-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    justify-items: center;
+  }
+  .theme-tile {
+    width: 100%;
+    max-width: 160px;
+  }
+  .theme-tile__art {
+    width: 100%;
+    max-width: 148px;
+  }
+  .shader-preview-card {
+    height: 128px;
+    margin-bottom: 10px;
+  }
+  .shader-preview-card__overlay {
+    padding: 12px 14px;
+  }
   .shader-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 8px; }
   .shader-Option { min-height: 48px; padding: 10px 12px; }
 
