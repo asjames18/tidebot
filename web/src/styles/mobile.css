@@ -1170,6 +1170,27 @@ button { touch-action: manipulation; }
   .viewer__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .viewer__title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .viewer__stage { padding: 0 6px; }
+  .viewer__screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+  }
+  .viewer__screen canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain;
+  }
+  .viewer__overlay {
+    padding: 16px;
+    text-align: center;
+  }
+  .viewer__overlay span {
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
   .viewer__close { width: 44px; height: 44px; }
   .viewer__status { display: none; }
   .viewer__bar {
