@@ -390,7 +390,8 @@
   .panel-row--call:active, .composer-telemetry__chip:active,
   .lib-row__main:active, .lib-crumbs .link-btn:active,
   .tideos-pill--interactive:active, .bot-list__empty:active,
-  .slash-palette__item:active {
+  .slash-palette__item:active, .app-settings__back:active,
+  .cfg-icon-btn:active, .mini-select--native:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -503,7 +504,13 @@ button { touch-action: manipulation; }
   .question-card__foot .link-btn { min-height: 38px; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; }
 
   /* Menus stay on-screen with comfortable >=44px touch targets. */
-  .menu { max-width: calc(100vw - 24px); min-width: min(240px, calc(100vw - 32px)); }
+  .menu {
+    max-width: calc(100vw - 24px);
+    min-width: min(240px, calc(100vw - 32px));
+    max-height: min(340px, 60vh);
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
   .menu__header { padding: 8px 14px; font-size: 12px; }
   .menu__item { min-height: 44px; height: auto; padding: 10px 14px; font-size: 14.5px; }
   .menu__hint { display: none; }
@@ -548,8 +555,28 @@ button { touch-action: manipulation; }
   /* Tasks stats fit three-across without forcing width. */
   .tasks-stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .tasks-stats .cfg-card { min-width: 0; padding: 10px; }
-  .tasks-view__inner form { min-width: 0; }
-  .tasks-view__inner form .text-input { min-width: 0; flex: 1 1 auto; }
+  .tasks-view__inner form {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tasks-view__inner form .text-input {
+    min-width: 0;
+    flex: 1 1 auto;
+    font-size: 16px;
+    height: 44px;
+  }
+  .tasks-view__inner form select.text-input {
+    min-width: 140px;
+    height: 44px;
+    font-size: 16px;
+  }
+  .tasks-view__inner form .cfg-btn {
+    min-height: 44px;
+    height: 44px;
+    flex: 1 1 auto;
+    justify-content: center;
+  }
   .composer__error { font-size: 13px; }
 
   /* Voice call bar compacts & enlarges touch controls. */
@@ -566,9 +593,13 @@ button { touch-action: manipulation; }
     align-items: center;
     justify-content: center;
   }
-  .vcall__log { -webkit-overflow-scrolling: touch; }
-  .voice-preview { min-height: 36px; padding: 0 12px; font-size: 13px; }
-  .mini-select--native { min-height: 36px; padding: 0 10px; }
+  .vcall__log {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    max-height: 180px;
+  }
+  .voice-preview { min-height: 40px; padding: 0 12px; font-size: 13px; }
+  .mini-select--native { min-height: 40px; padding: 0 10px; }
   .mini-select--native select { font-size: 16px; }
   .panel-row--call { min-height: 48px; font-size: 14px; }
 
@@ -598,7 +629,7 @@ button { touch-action: manipulation; }
   .cfg-input { font-size: 16px; height: 44px; }
   .byom-provider-grid { grid-template-columns: 1fr; }
   .byom-provider-card { min-height: 48px; }
-  .byom-filter-tab { min-height: 38px; height: 38px; padding: 0 14px; font-size: 13px; }
+  .byom-filter-tab { min-height: 40px; height: 40px; padding: 0 14px; font-size: 13px; }
   .byom-model-grid { grid-template-columns: 1fr; max-height: 380px; -webkit-overflow-scrolling: touch; }
   .byom-model-card { min-height: 52px; }
   .byom-actions { flex-wrap: wrap; gap: 8px; }
@@ -665,8 +696,8 @@ button { touch-action: manipulation; }
     font-size: 13.5px;
   }
   .cfg-icon-btn {
-    min-width: 38px;
-    min-height: 38px;
+    min-width: 40px;
+    min-height: 40px;
   }
   .cfg-row {
     min-height: 52px;
@@ -682,7 +713,7 @@ button { touch-action: manipulation; }
     overflow-wrap: anywhere;
   }
   .cfg-row .cfg-btn {
-    min-height: 38px;
+    min-height: 40px;
     padding: 0 14px;
     flex-shrink: 0;
   }
@@ -692,10 +723,10 @@ button { touch-action: manipulation; }
     min-height: 56px;
   }
   .cfg-item__actions .cfg-icon-btn {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    min-height: 38px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
   .cfg-textarea {
     font-size: 16px;
