@@ -1447,16 +1447,28 @@ button { touch-action: manipulation; }
     .chat__pill-name { max-width: 60px; }
     .chat__model-name { max-width: 40px; }
     .chat__briefing-btn {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-full);
-  }
-  .chat__briefing-btn span { display: none; }
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-full);
+    }
+    .chat__briefing-btn span { display: none; }
+    .composer__btn--enhance {
+      width: 36px !important;
+      min-width: 36px;
+      height: 36px;
+      min-height: 36px;
+      padding: 0 !important;
+      border-radius: var(--radius-full);
+      justify-content: center;
+    }
+    .composer__btn--enhance-text {
+      display: none;
+    }
     .bubble { font-size: 14px; }
     .composer { margin: 0 6px 4px; }
     .signin__card { padding: 22px 16px 18px; }

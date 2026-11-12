@@ -298,9 +298,10 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
               onClick={enhance}
               disabled={enhancing}
               title="Enhance prompt with AI for clearer tool & deliverable instructions"
-              style={{ width: 'auto', padding: '0 8px', fontSize: 11.5, fontWeight: 600, color: '#38BDF8', gap: 4 }}
+              aria-label={enhancing ? 'Enhancing prompt' : 'Enhance prompt with AI'}
             >
-              <span>{enhancing ? 'Enhancing…' : '✨ Enhance'}</span>
+              <span className="composer__btn--enhance-icon">✨</span>
+              <span className="composer__btn--enhance-text">{enhancing ? 'Enhancing…' : 'Enhance'}</span>
             </button>
           )}
           <button

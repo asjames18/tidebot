@@ -484,6 +484,31 @@
   background: var(--color-bg-tertiary); box-shadow: var(--color-border-tertiary) 0 0 0 0.5px inset; flex-shrink: 0; color: var(--color-text-primary);
 }
 .composer__btn:hover:not(:disabled) { background: var(--color-bg-secondary-hover); }
+.composer__btn--enhance {
+  width: auto;
+  border-radius: var(--radius-full);
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #38BDF8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  gap: 4px;
+}
+.composer__btn--enhance:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.18);
+}
+.composer__btn--enhance:disabled {
+  opacity: 0.6;
+}
+.composer__btn--enhance-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+.composer__btn--enhance-text {
+  font-size: 11.5px;
+  white-space: nowrap;
+}
 .composer__input {
   flex: 1 1 0; min-width: 0; border: 0; outline: none; resize: none; background: transparent;
   padding: 12px 0; margin: 0; font-size: 14px; line-height: 20px; letter-spacing: 0.14px; color: var(--color-ink);
