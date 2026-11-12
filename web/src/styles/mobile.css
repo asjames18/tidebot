@@ -488,6 +488,7 @@ button { touch-action: manipulation; }
   .task-row { flex-wrap: wrap; align-items: center; gap: 8px; }
   .task-row__text { flex: 1 1 calc(100% - 40px); }
   .task-row .cfg-btn { min-height: 32px; }
+  .task-row__check { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Computer viewer. */
   .viewer__top { padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: 56px; }

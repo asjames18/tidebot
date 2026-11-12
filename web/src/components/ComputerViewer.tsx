@@ -21,7 +21,10 @@ export function ComputerViewer() {
   const [conn, setConn] = useState<Conn>('connecting');
   const [attempt, setAttempt] = useState(0);
   const running = computer?.status === 'running';
-  const close = () => set({ viewerOpen: false });
+  const close = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    set({ viewerOpen: false });
+  };
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -107,12 +110,30 @@ export function ComputerViewer() {
           {mode === 'watch' ? (
             <>
               <span className="viewer__bar-text"><b>Watching</b> · Take control to use the mouse and keyboard</span>
-              <button type="button" className="btn btn--light" onClick={() => setMode('control')}>Take control</button>
+              <button
+                type="button"
+                className="btn btn--light"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  setMode('control');
+                }}
+              >
+                Take control
+              </button>
             </>
           ) : (
             <>
               <span className="viewer__bar-text"><span className="viewer__live-dot" /> <b>You're in control</b></span>
-              <button type="button" className="btn btn--light" onClick={() => setMode('watch')}>I'm done</button>
+              <button
+                type="button"
+                className="btn btn--light"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  setMode('watch');
+                }}
+              >
+                I'm done
+              </button>
             </>
           )}
         </div>

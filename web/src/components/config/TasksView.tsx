@@ -30,6 +30,7 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
   const open = () => { if (bot) { useStore.getState().selectBot(bot.id); useConfigUI.getState().setView('chat'); } };
   const toggleDone = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     const nextState: Task['state'] = t.state === 'done' ? 'working' : 'done';
     await configApi.updateTask(t.id, { state: nextState }).catch(() => {});
     refreshTaskViews(t.botId);
@@ -37,12 +38,14 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
   const runTaskNow = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!bot) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     useStore.getState().selectBot(bot.id);
     useConfigUI.getState().setView('chat');
     await api.send(bot.id, `Please execute this task and mark it done when complete: "${t.title}" (task_id: ${t.id})${t.note ? ` — Notes: ${t.note}` : ''}`).catch(() => {});
   };
   const remove = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     await configApi.deleteTask(t.id).catch(() => {});
     refreshTaskViews(t.botId);
   };
@@ -138,6 +141,7 @@ export function TasksView() {
     e.preventDefault();
     const title = newTitle.trim();
     if (!title || !effectiveBotId || adding) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     setAdding(true);
     try {
       await configApi.createTask(effectiveBotId, { title });
@@ -174,7 +178,19 @@ export function TasksView() {
         </div>
         <div className="segmented" role="tablist" aria-label="Filter tasks">
           {([['open', `In progress${counts.open ? ` (${counts.open})` : ''}`], ['done', `Done${counts.done ? ` (${counts.done})` : ''}`], ['all', 'All']] as [Filter, string][]).map(([f, label]) => (
-            <button key={f} type="button" role="tab" aria-selected={filter === f} className={filter === f ? 'is-active' : ''} onClick={() => setFilter(f)}>{label}</button>
+            <button
+              key={f}
+              type="button"
+              role="tab"
+              aria-selected={filter === f}
+              className={filter === f ? 'is-active' : ''}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setFilter(f);
+              }}
+            >
+              {label}
+            </button>
           ))}
         </div>
       </header>
