@@ -1,0 +1,19 @@
+{
+  "name": "TideBot — Autonomous Agent Studio",
+  "short_name": "TideBot",
+  "description": "Multi-agent autonomous workspace for research, code, tasks, and operator orchestration.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07090e",
+  "theme_color": "#07090e",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
