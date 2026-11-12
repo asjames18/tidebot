@@ -429,7 +429,8 @@
   .tideos-pill--interactive:active, .bot-list__empty:active,
   .slash-palette__item:active, .app-settings__back:active,
   .cfg-icon-btn:active, .mini-select--native:active,
-  .apps-section__head .link-btn:active, button.cfg-chip:active {
+  .apps-section__head .link-btn:active, button.cfg-chip:active,
+  .task-row__text[role="button"]:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -941,6 +942,10 @@ button { touch-action: manipulation; }
   }
 
   /* Tasks view responsive layout */
+  .tasks-view__scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
   .tasks-view__header {
     padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
     flex-wrap: wrap;
