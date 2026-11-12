@@ -58,6 +58,19 @@ export function MembersCard({ room }: { room: Bot }) {
       })}
       {adding ? (
         <div className="members__add">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px' }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-tertiary)' }}>Choose an Operator</span>
+            <button
+              type="button"
+              className="link-btn link-btn--small"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                setAdding(false);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
           {candidates.length ? candidates.map((b) => (
             <button
               key={b.id}
