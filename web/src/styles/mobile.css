@@ -310,6 +310,7 @@
 
   .create-modal__body {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 10px 14px 16px;
   }
   .modal__footer {
@@ -351,7 +352,7 @@
     padding: 8px 12px;
   }
   .create-modal__template-pill {
-    min-height: 36px;
+    min-height: 40px;
     padding: 0 14px;
     font-size: 13px;
     font-weight: 500;
@@ -393,7 +394,7 @@
   .tideos-pill--interactive:active, .bot-list__empty:active,
   .slash-palette__item:active, .app-settings__back:active,
   .cfg-icon-btn:active, .mini-select--native:active,
-  .apps-section__head .link-btn:active {
+  .apps-section__head .link-btn:active, button.cfg-chip:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -696,6 +697,27 @@ button { touch-action: manipulation; }
     flex: 1 1 0;
     min-height: 42px;
     justify-content: center;
+  }
+  .cfg-editor > div:has(input) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cfg-editor > div:has(input) input {
+    min-width: 120px;
+  }
+  button.cfg-chip {
+    min-height: 32px;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .cfg-meter > div:last-child {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cfg-meter > div:last-child .cfg-btn {
+    flex: 1 1 auto;
+    min-height: 40px;
   }
   .cfg-btn {
     min-height: 40px;
