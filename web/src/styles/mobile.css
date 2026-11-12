@@ -527,8 +527,28 @@ button { touch-action: manipulation; }
 
   /* Markdown content can never push the bubble wider than the screen. */
   .bubble .md { min-width: 0; overflow-wrap: anywhere; }
+  .bubble .md code:not(pre code) {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .md-localhost {
+    font-size: 12px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--color-bg-tertiary);
+    border: 1px dashed var(--color-border-primary);
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
   .md-table { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: thin; margin: 8px 0; }
-  .md pre { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .md pre {
+    max-width: calc(100vw - 44px);
+    padding-right: 76px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
   .md-copy-btn {
     min-height: 36px;
     padding: 6px 14px;
@@ -540,6 +560,26 @@ button { touch-action: manipulation; }
   }
   .md table { font-size: 13px; min-width: 280px; }
   .md th, .md td { padding: 4px 8px 4px 0; }
+
+  /* Tool-call steps: clean mobile ergonomics & overflow protection */
+  .steps__list {
+    margin: 8px 0 6px 10px;
+    padding: 0 0 0 10px;
+  }
+  .step {
+    max-width: 100%;
+    font-size: 12.5px;
+    line-height: 18px;
+  }
+  .step__summary {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .step__shot {
+    max-width: min(100%, 280px);
+    height: auto;
+  }
 
   /* Cards: full width, stacked comfortable actions, 44px options. */
   .card, .panel-card, .question-card { max-width: 100%; }
