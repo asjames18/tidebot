@@ -70,8 +70,8 @@ export function SignIn() {
 
       <div className="signin__card">
         <div className="signin__badge-row">
-          <span className="tideos-pill tideos-pill--glow">TIDEBOT v2.4 · BYOM EDITION</span>
-          <span className="tideos-pill">OPENROUTER READY</span>
+          <span className="tidebot-pill tideos-pill tideos-pill--glow">TIDEBOT v2.4 · BYOM EDITION</span>
+          <span className="tidebot-pill tideos-pill">OPENROUTER READY</span>
         </div>
         <div className="signin__hero">
           <BotAvatar shape="hex" color="cyan" size={76} ring />

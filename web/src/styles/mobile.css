@@ -478,6 +478,13 @@ button { touch-action: manipulation; }
   .signin__card {
     padding: 28px 22px 22px;
   }
+  .signin__google, .signin__dev .btn {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .signin__dev .text-input {
+    min-height: 42px;
+  }
   .signin__foot-grid { flex-wrap: wrap; justify-content: center; row-gap: 4px; }
 
   /* Sidebar rows are finger-sized. */
