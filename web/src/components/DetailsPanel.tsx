@@ -164,6 +164,7 @@ export function DetailsPanel() {
     if (touchStartX.current === null) return;
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     if (deltaX > 45 && window.innerWidth <= 900) {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
       set({ detailsOpen: false });
     }
     touchStartX.current = null;
@@ -248,10 +249,28 @@ export function DetailsPanel() {
               <section>
                 <div className="section-label section-label--row">
                   <span>Model & Engine</span>
-                  <button type="button" className="link-btn link-btn--small" onClick={() => { if (window.innerWidth <= 900) set({ detailsOpen: false }); useConfigUI.getState().openAppSettings('models'); }}>BYOM</button>
+                  <button
+                    type="button"
+                    className="link-btn link-btn--small"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                      if (window.innerWidth <= 900) set({ detailsOpen: false });
+                      useConfigUI.getState().openAppSettings('models');
+                    }}
+                  >
+                    BYOM
+                  </button>
                 </div>
                 <div className="panel-card">
-                  <button type="button" className="panel-row panel-row--link" onClick={() => { if (window.innerWidth <= 900) set({ detailsOpen: false }); useConfigUI.getState().openBotSettings(bot.id, 'general'); }}>
+                  <button
+                    type="button"
+                    className="panel-row panel-row--link"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                      if (window.innerWidth <= 900) set({ detailsOpen: false });
+                      useConfigUI.getState().openBotSettings(bot.id, 'general');
+                    }}
+                  >
                     <span className="panel-row__text">
                       <span className="panel-row__title" style={{ fontFamily: 'var(--font-mono-stack)', fontSize: 12 }}>{activeModel}</span>
                       <span className="panel-row__sub">
@@ -266,7 +285,17 @@ export function DetailsPanel() {
             <section>
               <div className="section-label section-label--row">
                 <span>Upcoming</span>
-                <button type="button" className="link-btn link-btn--small" onClick={() => { if (window.innerWidth <= 900) set({ detailsOpen: false }); useConfigUI.getState().openBotSettings(bot.id, 'routines'); }}>Manage</button>
+                <button
+                  type="button"
+                  className="link-btn link-btn--small"
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                    if (window.innerWidth <= 900) set({ detailsOpen: false });
+                    useConfigUI.getState().openBotSettings(bot.id, 'routines');
+                  }}
+                >
+                  Manage
+                </button>
               </div>
               <div className="panel-card">
                 {routines?.length ? routines.map((r) => <RoutineRow key={r.id} r={r} />) : (
@@ -284,10 +313,27 @@ export function DetailsPanel() {
               <section>
                 <div className="section-label section-label--row">
                   <span>Suggested</span>
-                  <button type="button" className="link-btn link-btn--small" onClick={() => { setHideSuggested(true); try { localStorage.setItem('grokbot.hideSuggested', '1'); } catch { /* ignore */ } }}>Hide</button>
+                  <button
+                    type="button"
+                    className="link-btn link-btn--small"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                      setHideSuggested(true);
+                      try { localStorage.setItem('grokbot.hideSuggested', '1'); } catch { /* ignore */ }
+                    }}
+                  >
+                    Hide
+                  </button>
                 </div>
                 <div className="panel-card">
-                  <button type="button" className="panel-row panel-row--link" onClick={addSlack}>
+                  <button
+                    type="button"
+                    className="panel-row panel-row--link"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                      addSlack();
+                    }}
+                  >
                     <span className="panel-row__glyph"><ToolkitLogo name="Slack" logo="/assets/icons/slack.svg" size={16} radius={4} /></span>
                     <span className="panel-row__title" style={{ flex: 1 }}>Add to Slack</span>
                     <Icon name="chev_right" size={12} opacity={0.56} />

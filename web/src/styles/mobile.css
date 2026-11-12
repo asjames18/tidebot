@@ -293,8 +293,16 @@
     font-size: 13px;
   }
 
-  /* Toasts span the width. */
-  .toasts { width: calc(100vw - 24px); }
+  /* Toasts span the width and respect notch safe-area. */
+  .toast {
+    top: calc(14px + env(safe-area-inset-top));
+    max-width: calc(100vw - 32px);
+    text-align: center;
+  }
+  .toasts {
+    width: calc(100vw - 24px);
+    top: calc(14px + env(safe-area-inset-top));
+  }
   .toasts .toast--item { max-width: 100%; text-align: center; }
 }
 
