@@ -35,6 +35,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
   useEffect(() => { load(); }, [load, awake]);
 
   const download = async (f: LibraryFile) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     const rel = path ? `${path}/${f.name}` : f.name;
     setBusyFile(f.name); setError(null);
     try {
@@ -169,7 +170,16 @@ export function LibraryTab({ bot }: { bot: Bot }) {
               onChange={(e) => setNewContent(e.target.value)}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-              <button type="button" className="cfg-btn cfg-btn--secondary" onClick={() => setCreating(false)}>Cancel</button>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--secondary"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  setCreating(false);
+                }}
+              >
+                Cancel
+              </button>
               <button type="button" className="cfg-btn cfg-btn--primary" onClick={() => void createNewFile()}>Save File</button>
             </div>
           </div>
@@ -197,14 +207,20 @@ export function LibraryTab({ bot }: { bot: Bot }) {
                 <button
                   type="button"
                   className="link-btn link-btn--small"
-                  onClick={() => setPreview({ ...preview, editing: !preview.editing })}
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                    setPreview({ ...preview, editing: !preview.editing });
+                  }}
                 >
                   {preview.editing ? 'Preview' : 'Edit'}
                 </button>
                 <button
                   type="button"
                   className="link-btn link-btn--small"
-                  onClick={() => setPreview(null)}
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                    setPreview(null);
+                  }}
                 >
                   Close
                 </button>
@@ -225,12 +241,16 @@ export function LibraryTab({ bot }: { bot: Bot }) {
               </>
             ) : preview.name.endsWith('.md') ? (
               <div
-                style={{ fontSize: 12.5, maxHeight: 260, overflowY: 'auto', padding: '6px 4px', borderTop: '1px solid var(--color-border-tertiary)' }}
+                className="lib-preview__content"
+                style={{ fontSize: 12.5, maxHeight: 260, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '6px 4px', borderTop: '1px solid var(--color-border-tertiary)' }}
               >
                 <Markdown text={preview.content} />
               </div>
             ) : (
-              <pre style={{ margin: 0, fontSize: 11.5, maxHeight: 260, overflow: 'auto', padding: 8, borderRadius: 8, background: 'var(--color-bg-tertiary)', color: 'var(--color-ink)', whiteSpace: 'pre-wrap' }}>
+              <pre
+                className="lib-preview__content"
+                style={{ margin: 0, fontSize: 11.5, maxHeight: 260, overflow: 'auto', WebkitOverflowScrolling: 'touch', padding: 8, borderRadius: 8, background: 'var(--color-bg-tertiary)', color: 'var(--color-ink)', whiteSpace: 'pre-wrap' }}
+              >
                 {preview.content}
               </pre>
             )}

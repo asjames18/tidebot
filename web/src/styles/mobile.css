@@ -386,7 +386,8 @@
   .pill-chip:active, .apps-modal__connected:active, .apps-modal__close:active,
   .cfg-row .cfg-btn:active, .card__actions .btn:active,
   .question-card__foot .link-btn:active, .voice-preview:active,
-  .panel-row--call:active, .composer-telemetry__chip:active {
+  .panel-row--call:active, .composer-telemetry__chip:active,
+  .lib-row__main:active, .lib-crumbs .link-btn:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -517,7 +518,8 @@ button { touch-action: manipulation; }
   .panel-card .link-btn { min-height: 36px; padding: 6px 10px; display: inline-flex; align-items: center; font-size: 13px; }
   .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .lib-crumbs::-webkit-scrollbar { display: none; }
-  .lib-crumbs .link-btn { min-height: 36px; padding: 6px 8px; font-size: 13px; display: inline-flex; align-items: center; }
+  .lib-crumbs .link-btn { min-height: 36px; padding: 6px 10px; font-size: 13px; display: inline-flex; align-items: center; }
+  .lib-preview__content { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 
   /* Switch toggles have expanded >=44px touch target on mobile */
   .toggle { position: relative; }
