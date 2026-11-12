@@ -1106,11 +1106,13 @@ button { touch-action: manipulation; }
   .task-row__check { width: 40px; height: 40px; min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
   .task-row__run-btn { height: 34px !important; min-height: 34px; padding: 0 12px !important; font-size: 12.5px !important; }
   .bot-tasks__form { gap: 8px; margin-bottom: 10px; }
-  .bot-tasks__input { min-height: 40px; font-size: 16px; }
-  .bot-tasks__submit { min-height: 40px; min-width: 44px; padding: 0 14px; }
+  .bot-tasks__input { min-height: 44px; height: 44px; font-size: 16px; padding: 0 12px; }
+  .bot-tasks__submit { min-height: 44px; height: 44px; min-width: 44px; padding: 0 14px; }
 
   /* Computer viewer. */
   .viewer__top { padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: 56px; }
+  .viewer__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .viewer__title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .viewer__stage { padding: 0 6px; }
   .viewer__close { width: 44px; height: 44px; }
   .viewer__status { display: none; }
@@ -1124,7 +1126,7 @@ button { touch-action: manipulation; }
     justify-content: space-between;
   }
   .viewer__bar-text { font-size: 12px; }
-  .viewer__bar .btn { min-height: 40px; padding: 0 14px; font-size: 13px; font-weight: 500; }
+  .viewer__bar .btn { min-height: 44px; padding: 0 16px; font-size: 13.5px; font-weight: 500; }
   .viewer__overlay .btn { min-height: 44px; padding: 0 18px; font-size: 14px; font-weight: 600; }
 
   /* Sign-in fits small screens. */
