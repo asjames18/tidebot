@@ -87,7 +87,18 @@ function Section({ title, apps, onViewAll, onChanged }: { title: string; apps: T
     <section className="apps-section">
       <div className="apps-section__head">
         <span className="apps-section__title">{title}</span>
-        {onViewAll && <button type="button" className="link-btn link-btn--small" onClick={onViewAll}>View all</button>}
+        {onViewAll && (
+          <button
+            type="button"
+            className="link-btn link-btn--small"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              onViewAll();
+            }}
+          >
+            View all
+          </button>
+        )}
       </div>
       <Grid apps={apps} onChanged={onChanged} />
     </section>

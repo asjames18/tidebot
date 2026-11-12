@@ -24,7 +24,10 @@ function NativeSelect<T extends string | number>({ label, value, options, onChan
         value={String(value)}
         onChange={(e) => {
           const o = options.find((x) => String(x.value) === e.target.value);
-          if (o) onChange(o.value);
+          if (o) {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+            onChange(o.value);
+          }
         }}
       >
         {options.map((o) => <option key={String(o.value)} value={String(o.value)}>{o.label}</option>)}

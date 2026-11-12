@@ -159,7 +159,10 @@ export function TasksView() {
           <button
             type="button"
             className="icon-btn icon-btn--bordered mobile-nav-btn mobile-nav-btn--inline"
-            onClick={() => useStore.getState().set({ mobileSidebarOpen: true, sidebarCollapsed: false })}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              useStore.getState().set({ mobileSidebarOpen: true, sidebarCollapsed: false });
+            }}
             aria-label="Open operators list"
           >
             <Icon name="sidebar" opacity={0.8} />
@@ -167,7 +170,10 @@ export function TasksView() {
           <button
             type="button"
             className="cfg-btn cfg-btn--secondary mobile-only-btn"
-            onClick={() => useConfigUI.getState().setView('chat')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              useConfigUI.getState().setView('chat');
+            }}
             style={{ height: 32, padding: '0 8px', fontSize: 12, gap: 4 }}
             title="Return to Operator Chat"
           >
@@ -261,7 +267,17 @@ export function TasksIsland() {
   const tasks = useTasks();
   const waiting = tasks?.filter((t) => t.state === 'needs_input').length ?? 0;
   return (
-    <button type="button" className={`sidebar-island${view === 'tasks' ? ' is-active' : ''}`} onClick={() => useConfigUI.getState().setView(view === 'tasks' ? 'chat' : 'tasks')} title="Tasks" aria-pressed={view === 'tasks'}>
+    <button
+      type="button"
+      className={`sidebar-island${view === 'tasks' ? ' is-active' : ''}`}
+      onClick={() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+        useStore.getState().set({ mobileSidebarOpen: false });
+        useConfigUI.getState().setView(view === 'tasks' ? 'chat' : 'tasks');
+      }}
+      title="Tasks"
+      aria-pressed={view === 'tasks'}
+    >
       <span className="sidebar-island__icon"><Glyph name="tasks" size={18} /></span>
       <span className="sidebar-island__label">Tasks</span>
       {waiting > 0 && <span className="sidebar-island__count" aria-label={`${waiting} waiting on you`}>{waiting}</span>}
@@ -280,6 +296,7 @@ export function BotTasks({ bot }: { bot: Bot }) {
     e.preventDefault();
     const title = newTitle.trim();
     if (!title || adding) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     setAdding(true);
     try {
       await configApi.createTask(bot.id, { title });
@@ -295,7 +312,16 @@ export function BotTasks({ bot }: { bot: Bot }) {
       <section>
         <div className="section-label section-label--row">
           <span>Tasks</span>
-          <button type="button" className="link-btn link-btn--small" onClick={() => useConfigUI.getState().setView('tasks')}>See all</button>
+          <button
+            type="button"
+            className="link-btn link-btn--small"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              useConfigUI.getState().setView('tasks');
+            }}
+          >
+            See all
+          </button>
         </div>
         <form onSubmit={add} style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
           <input

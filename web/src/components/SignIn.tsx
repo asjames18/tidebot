@@ -29,6 +29,7 @@ export function SignIn() {
 
   const dev = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     if (!email.includes('@')) {
       setError('Enter an email address');
       return;
@@ -60,7 +61,10 @@ export function SignIn() {
               key={p.id}
               type="button"
               className={`signin__shader-pill${shader === p.id ? ' is-active' : ''}`}
-              onClick={() => setShader(p.id)}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                setShader(p.id);
+              }}
             >
               {p.label}
             </button>
@@ -80,7 +84,13 @@ export function SignIn() {
         <p className="signin__sub">
           Autonomous AI operators with dedicated Linux workspaces, persistent memory, and Bring-Your-Own-Model via OpenRouter.
         </p>
-        <a className="btn btn--primary signin__google" href="/api/auth/google/start">
+        <a
+          className="btn btn--primary signin__google"
+          href="/api/auth/google/start"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+          }}
+        >
           <GoogleG /> Continue with Google
         </a>
         <form className="signin__dev" onSubmit={dev}>
