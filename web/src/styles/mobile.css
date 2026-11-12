@@ -1357,6 +1357,22 @@ button { touch-action: manipulation; }
     min-width: 0 !important;
   }
   .tasks-view__inner form .cfg-btn { flex: 1 1 auto; min-height: 42px; }
+  .tasks-empty {
+    padding: 36px 16px;
+    gap: 6px;
+  }
+  .tasks-empty__title {
+    font-size: 15px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .tasks-empty__sub {
+    max-width: 100%;
+    font-size: 12.5px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   .task-row { flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; }
   .task-row__text { flex: 1 1 calc(100% - 46px); min-width: 0; }
   .task-row__note { overflow-wrap: anywhere; word-break: break-word; }
@@ -1499,5 +1515,8 @@ button { touch-action: manipulation; }
     .vcall__status { max-width: 36vw; }
     .search-modal__field input { font-size: 16px; }
     .tasks-view__header { padding: calc(8px + env(safe-area-inset-top)) 8px 8px; }
+    .tasks-stats { gap: 6px !important; }
+    .tasks-stats .cfg-card { padding: 8px 6px !important; }
+    .tasks-stats .cfg-card > div:first-child { font-size: 9.5px !important; }
   }
 }
