@@ -1024,6 +1024,8 @@ button { touch-action: manipulation; }
   .signin {
     padding: calc(64px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   .signin__chrome {
     justify-content: center;
@@ -1035,6 +1037,7 @@ button { touch-action: manipulation; }
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
   .signin__shader-bar::-webkit-scrollbar { display: none; }
   .signin__shader-label { display: none; }
