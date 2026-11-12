@@ -286,6 +286,8 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     max-height: min(220px, 35vh);
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .steps__toggle { min-height: 38px; padding: 6px 14px; font-size: 13px; }
 
@@ -612,6 +614,22 @@ button { touch-action: manipulation; }
   .step__shot {
     max-width: min(100%, 280px);
     height: auto;
+  }
+  .sender-label {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .sender-label span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .system-event, .notice {
+    max-width: calc(100% - 24px);
+    margin: 4px 12px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Cards: full width, stacked comfortable actions, 44px options. */
