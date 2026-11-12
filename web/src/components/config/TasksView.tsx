@@ -80,7 +80,7 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
       {t.state !== 'done' && bot && (
         <button
           type="button"
-          className="cfg-btn cfg-btn--secondary"
+          className="cfg-btn cfg-btn--secondary task-row__run-btn"
           onClick={runTaskNow}
           style={{ height: 26, padding: '0 8px', fontSize: 11.5 }}
           title={`Have ${bot.name} work on this task now`}

@@ -283,7 +283,8 @@
   .shader-Option:active, .byom-provider-card:active, .theme-tile:active, .byom-filter-tab:active,
   .toggle:active, .lib-row:active, .signin__shader-pill:active, .viewer__close:active,
   .viewer__bar .btn:active, .viewer__overlay .btn:active, .cfg-nav__item:active, .modal__close:active,
-  .cfg-seg button:active, .app-row__connect:active, .app-row:active {
+  .cfg-seg button:active, .app-row__connect:active, .app-row:active,
+  .task-row__check:active, .task-row__run-btn:active, .task-chip:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -592,7 +593,8 @@ button { touch-action: manipulation; }
   .task-row { flex-wrap: wrap; align-items: center; gap: 8px; }
   .task-row__text { flex: 1 1 calc(100% - 40px); }
   .task-row .cfg-btn { min-height: 32px; }
-  .task-row__check { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
+  .task-row__check { width: 38px; height: 38px; min-width: 38px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; }
+  .task-row__run-btn { height: 32px !important; min-height: 32px; padding: 0 10px !important; font-size: 12px !important; }
 
   /* Computer viewer. */
   .viewer__top { padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: 56px; }
