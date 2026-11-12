@@ -218,6 +218,12 @@
   border-color: rgba(56, 189, 248, 0.4);
   background: rgba(56, 189, 248, 0.12);
 }
+.bubble__meta-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
 .bubble__meta-bar--user {
   margin-top: 6px;
   justify-content: flex-end;

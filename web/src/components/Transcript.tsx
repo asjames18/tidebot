@@ -138,7 +138,7 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
           <div className="bubble__meta-bar">
             {shortModel && <span className="bubble__meta-tag">{shortModel}</span>}
             {b.durationMs && <span className="bubble__meta-tag">{(b.durationMs / 1000).toFixed(1)}s</span>}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+            <span className="bubble__meta-actions">
               <button
                 type="button"
                 className="bubble__copy-btn"
