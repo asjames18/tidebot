@@ -169,12 +169,11 @@ export function TasksView() {
           </button>
           <button
             type="button"
-            className="cfg-btn cfg-btn--secondary mobile-only-btn"
+            className="cfg-btn cfg-btn--secondary mobile-only-btn tasks-view__back-btn"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
               useConfigUI.getState().setView('chat');
             }}
-            style={{ height: 32, padding: '0 8px', fontSize: 12, gap: 4 }}
             title="Return to Operator Chat"
           >
             <Glyph name="arrow_left" size={12} /> Chat
@@ -323,17 +322,16 @@ export function BotTasks({ bot }: { bot: Bot }) {
             See all
           </button>
         </div>
-        <form onSubmit={add} style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+        <form className="bot-tasks__form" onSubmit={add}>
           <input
-            className="text-input"
+            className="text-input bot-tasks__input"
             placeholder={`Add task for ${bot.name}…`}
             value={newTitle}
             maxLength={200}
             onChange={(e) => setNewTitle(e.target.value)}
             aria-label={`Add task for ${bot.name}`}
-            style={{ flex: 1, height: 32, fontSize: 12.5 }}
           />
-          <button type="submit" className="cfg-btn cfg-btn--secondary" disabled={!newTitle.trim() || adding} style={{ height: 32, padding: '0 10px' }}>
+          <button type="submit" className="cfg-btn cfg-btn--secondary bot-tasks__submit" disabled={!newTitle.trim() || adding} aria-label="Add task">
             <Icon name="plus" size={12} />
           </button>
         </form>

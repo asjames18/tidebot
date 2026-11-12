@@ -359,7 +359,8 @@
   .modal__footer .btn:active, .modal__footer .link-btn:active,
   .cfg-editor__actions .cfg-btn:active, .group-pick__opt:active,
   .account__btn:active, .sidebar__byom-btn:active, .signin__google:active,
-  .activity-line .bubble__copy-btn:active {
+  .activity-line .bubble__copy-btn:active, .tasks-view__back-btn:active,
+  .bot-tasks__submit:active, .task-row .cfg-icon-btn:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -699,7 +700,27 @@ button { touch-action: manipulation; }
   }
 
   /* Tasks view responsive layout */
-  .tasks-view__header { padding: 10px 12px; flex-wrap: wrap; height: auto; min-height: 56px; gap: 8px; }
+  .tasks-view__header {
+    padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: calc(56px + env(safe-area-inset-top));
+    gap: 8px;
+  }
+  .tasks-view__back-btn {
+    min-height: 38px;
+    height: 38px;
+    padding: 0 10px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tasks-view__header .segmented button {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
   .tasks-view__inner { padding: 14px 12px calc(32px + env(safe-area-inset-bottom)); }
   .tasks-view__inner form { flex-wrap: wrap; gap: 8px; }
   .tasks-view__inner form select { flex: 1 1 120px; }
@@ -707,8 +728,12 @@ button { touch-action: manipulation; }
   .task-row { flex-wrap: wrap; align-items: center; gap: 8px; }
   .task-row__text { flex: 1 1 calc(100% - 40px); }
   .task-row .cfg-btn { min-height: 32px; }
+  .task-row .cfg-icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; }
   .task-row__check { width: 38px; height: 38px; min-width: 38px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; }
   .task-row__run-btn { height: 32px !important; min-height: 32px; padding: 0 10px !important; font-size: 12px !important; }
+  .bot-tasks__form { gap: 8px; margin-bottom: 10px; }
+  .bot-tasks__input { min-height: 40px; font-size: 16px; }
+  .bot-tasks__submit { min-height: 40px; min-width: 44px; padding: 0 14px; }
 
   /* Computer viewer. */
   .viewer__top { padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: 56px; }
