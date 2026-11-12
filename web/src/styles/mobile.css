@@ -188,7 +188,10 @@
     border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
   }
-  .cite-chip { padding: 5px 10px; }
+  .cite-chip { min-height: 32px; padding: 6px 12px; font-size: 12.5px; display: inline-flex; align-items: center; }
+  .earlier-btn { min-height: 38px; padding: 8px 16px; font-size: 13px; }
+  .bubble__reasoning-toggle { min-height: 36px; padding: 8px 12px; font-size: 13px; }
+  .steps__toggle { min-height: 36px; padding: 6px 14px; font-size: 13px; }
 
   /* Modals fit small screens with native bottom-sheet presentation. */
   .sheet-handle-wrap {

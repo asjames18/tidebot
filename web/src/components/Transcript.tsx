@@ -85,7 +85,10 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
             <button
               type="button"
               className="bubble__reasoning-toggle"
-              onClick={() => setShowReasoning(!showReasoning)}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setShowReasoning(!showReasoning);
+              }}
               aria-expanded={reasoningOpen}
             >
               <span className={`bubble__reasoning-dot${isThinkingNow ? ' is-pulsing' : ''}`} />
@@ -139,7 +142,10 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
               <button
                 type="button"
                 className="bubble__copy-btn"
-                onClick={() => api.retry(row.botId).catch(() => {})}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  api.retry(row.botId).catch(() => {});
+                }}
                 title="Re-run with current model"
               >
                 Retry
@@ -179,7 +185,15 @@ function Steps({ rows, hideRunning }: { rows: Row[]; hideRunning: boolean }) {
   const n = visible.length;
   return (
     <div className={`steps${open ? ' is-open' : ''}`}>
-      <button type="button" className="steps__toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
+      <button
+        type="button"
+        className="steps__toggle"
+        onClick={() => {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+          setOpen(!open);
+        }}
+        aria-expanded={open}
+      >
         {n} {n === 1 ? 'step' : 'steps'}
         <Icon name="chev_down" size={10} opacity={0.66} className="steps__chev" />
       </button>
@@ -269,7 +283,14 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
           </div>
         )}
         {hiddenCount > 0 && (
-          <button type="button" className="earlier-btn" onClick={() => setExpanded(true)}>
+          <button
+            type="button"
+            className="earlier-btn"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              setExpanded(true);
+            }}
+          >
             Show earlier messages ({hiddenCount} more)
           </button>
         )}
