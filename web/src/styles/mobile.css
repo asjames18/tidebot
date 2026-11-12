@@ -970,13 +970,38 @@ button { touch-action: manipulation; }
     align-items: stretch;
     gap: 10px;
   }
+  .cfg-look {
+    gap: 12px;
+    min-width: 0;
+  }
+  .cfg-look__text {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .cfg-look__name {
+    font-size: 16px;
+    line-height: 22px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   .cfg-savebar {
     margin: -4px -14px 0;
     padding: 10px 14px calc(12px + env(safe-area-inset-bottom));
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cfg-savebar__note {
+    width: 100%;
+    font-size: 12px;
+    line-height: 16px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    margin-bottom: 2px;
   }
   .cfg-savebar .cfg-btn {
     min-height: 42px;
     padding: 0 16px;
+    flex: 1 1 auto;
   }
   .cfg-editor__actions {
     gap: 10px;
