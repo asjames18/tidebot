@@ -282,7 +282,8 @@
   .search-row:active, .search-modal__clear:active, .swatch-cell:active, .shape-cell:active,
   .shader-Option:active, .byom-provider-card:active, .theme-tile:active, .byom-filter-tab:active,
   .toggle:active, .lib-row:active, .signin__shader-pill:active, .viewer__close:active,
-  .viewer__bar .btn:active, .viewer__overlay .btn:active {
+  .viewer__bar .btn:active, .viewer__overlay .btn:active, .cfg-nav__item:active, .modal__close:active,
+  .cfg-seg button:active, .app-row__connect:active, .app-row:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -459,8 +460,10 @@ button { touch-action: manipulation; }
   .cfg-nav__item {
     width: auto;
     flex-shrink: 0;
-    height: 34px;
-    padding: 0 12px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 13.5px;
   }
   .cfg-page {
     padding: 16px 14px 24px;
@@ -476,8 +479,8 @@ button { touch-action: manipulation; }
     padding: 10px 14px;
   }
   .cfg-btn {
-    min-height: 38px;
-    padding: 0 14px;
+    min-height: 40px;
+    padding: 0 16px;
     font-size: 13.5px;
   }
   .cfg-icon-btn {
@@ -485,8 +488,8 @@ button { touch-action: manipulation; }
     min-height: 38px;
   }
   .cfg-seg button {
-    height: 32px;
-    padding: 0 12px;
+    height: 36px;
+    padding: 0 14px;
     font-size: 13px;
   }
 
@@ -526,10 +529,10 @@ button { touch-action: manipulation; }
     opacity: 1;
   }
   .app-row__connect, .app-row__connected {
-    height: 34px;
-    min-height: 34px;
-    font-size: 13px;
-    padding: 0 14px;
+    height: 40px;
+    min-height: 40px;
+    font-size: 13.5px;
+    padding: 0 16px;
     width: auto;
     min-width: 90px;
   }
