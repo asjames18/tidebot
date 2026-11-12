@@ -318,7 +318,15 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
       </div>
     </div>
       {showJump && (
-        <button type="button" className="jump-btn" onClick={jump} aria-label="Scroll to bottom">
+        <button
+          type="button"
+          className="jump-btn"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            jump();
+          }}
+          aria-label="Scroll to bottom"
+        >
           <Icon name="arrow_down" size={16} />
         </button>
       )}
@@ -349,7 +357,10 @@ function EmptyChat({ bot }: { bot: Bot }) {
             <button
               type="button"
               className="tidebot-pill tideos-pill tideos-pill--interactive"
-              onClick={() => useConfigUI.getState().openAppSettings('models')}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                useConfigUI.getState().openAppSettings('models');
+              }}
               title="Click to configure OpenRouter key or switch default model"
             >
               {activeModel} · {llmConfig?.isConfigured ? 'Connected' : 'Configure Key →'}
