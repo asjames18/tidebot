@@ -154,6 +154,9 @@ class VoiceCall {
         if (!this.ready) {
           this.ready = true;
           if (this.connectTimer) clearTimeout(this.connectTimer);
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            try { navigator.vibrate([15, 60, 15]); } catch {}
+          }
           setV({ status: 'live', startedAt: Date.now() });
           this.watchTranscript();
           this.send({ type: 'response.create' }); // the bot greets first

@@ -48,6 +48,9 @@ export function useDictation(onText: (text: string) => void, onError: (msg: stri
         stream.getTracks().forEach((t) => t.stop());
         rec.current = null;
         toggleMode.current = false;
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate(10); } catch {}
+        }
         if (r.cancelled || !r.chunks.length || Date.now() - r.downAt < 250) { setState('idle'); return; }
         setState('transcribing');
         try {
@@ -60,6 +63,9 @@ export function useDictation(onText: (text: string) => void, onError: (msg: stri
         }
       };
       mr.start(250);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(15); } catch {}
+      }
       setState('recording');
     } catch (e) {
       cb.current.onError(micErrorMessage(e));
