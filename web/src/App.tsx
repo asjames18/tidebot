@@ -78,7 +78,10 @@ function Shell() {
       {(mobileSidebarOpen || detailsOpen) && (
         <div
           className="mobile-scrim"
-          onClick={() => set({ mobileSidebarOpen: false, detailsOpen: false })}
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            set({ mobileSidebarOpen: false, detailsOpen: false });
+          }}
           aria-hidden="true"
         />
       )}

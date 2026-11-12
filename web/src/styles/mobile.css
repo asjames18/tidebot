@@ -601,10 +601,12 @@ button { touch-action: manipulation; }
   /* Sidebar rows are finger-sized. */
   .sidebar__scroll { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 
-  /* Very narrow phones (≤380px): squeeze pills further. */
+  /* Very narrow phones (≤380px): squeeze pills further and adjust composer padding. */
   @media (max-width: 380px) {
-    .chat__pill-name { max-width: 64px; }
-    .chat__model-name { max-width: 44px; }
-    .bubble { font-size: 14.5px; }
+    .chat__header { padding-left: 6px; padding-right: 6px; gap: 4px; }
+    .chat__pill-name { max-width: 60px; }
+    .chat__model-name { max-width: 40px; }
+    .bubble { font-size: 14px; }
+    .composer { margin: 0 6px 4px; }
   }
 }
