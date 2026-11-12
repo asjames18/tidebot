@@ -271,8 +271,11 @@
   }
 
   /* Tactile touch feedback on tap */
-  button:active, .icon-btn:active, .cfg-btn:active, .byom-model-card:active, .bot-row:active {
-    transform: scale(0.98);
+  button:active, .icon-btn:active, .cfg-btn:active, .byom-model-card:active, .bot-row:active,
+  .pinned__tile:active, .composer-quick-chip:active, .sidebar-island:active, .segmented button:active,
+  .cat-pill:active, .empty-chat__prompt-chip:active, .chat__pill:active, .chat__model-pill:active,
+  .share-btn:active, .jump-btn:active {
+    transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
 
