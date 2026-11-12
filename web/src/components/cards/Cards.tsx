@@ -11,6 +11,9 @@ function useBusy() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const run = async (key: string, fn: () => Promise<unknown>) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setBusy(key); setError(null);
     try { await fn(); } catch (e) { setError((e as Error).message || 'Something went wrong'); } finally { setBusy(null); }
   };
@@ -156,7 +159,16 @@ export function DraftCard({ body }: { body: Card<'draft'> }) {
   const user = useStore((s) => s.user);
   const pending = body.status === 'pending';
   const [copied, setCopied] = useState(false);
-  const copy = async () => { try { await navigator.clipboard.writeText(body.text); setCopied(true); setTimeout(() => setCopied(false), 1200); } catch { /* ignore */ } };
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(body.text);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(12); } catch {}
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch { /* ignore */ }
+  };
   const handle = user?.email ? `@${user.email.split('@')[0]}` : '';
   return (
     <div className={`card draft-card${pending ? '' : ' is-resolved'}`}>

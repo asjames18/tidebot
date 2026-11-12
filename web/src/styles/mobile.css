@@ -227,7 +227,18 @@
   .empty-chat { padding: 20px 10px; }
   .empty-chat__title { font-size: 26px; }
   .empty-chat__prompts { width: 100%; }
-  .empty-chat__prompt-chip { width: 100%; }
+  .empty-chat__prompt-chip {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .activity-line {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    font-size: 13px;
+  }
 
   /* Toasts span the width. */
   .toasts { width: calc(100vw - 24px); }

@@ -37,7 +37,10 @@ export function ActivityLine({ bot, live, rows }: { bot: Bot; live: LiveState; r
           type="button"
           className="bubble__copy-btn"
           style={{ marginLeft: 6 }}
-          onClick={() => api.interrupt(bot.id).catch(() => {})}
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+            api.interrupt(bot.id).catch(() => {});
+          }}
           title="Stop operator turn"
         >
           Stop

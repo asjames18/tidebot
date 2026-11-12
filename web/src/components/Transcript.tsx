@@ -349,7 +349,10 @@ function EmptyChat({ bot }: { bot: Bot }) {
                 key={i}
                 type="button"
                 className="empty-chat__prompt-chip"
-                onClick={() => api.send(bot.id, p).catch(() => useStore.getState().notify('Message failed to send'))}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  api.send(bot.id, p).catch(() => useStore.getState().notify('Message failed to send'));
+                }}
               >
                 <span>{p}</span>
                 <span className="empty-chat__prompt-arrow">↗</span>
