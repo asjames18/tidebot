@@ -65,7 +65,7 @@ export function AppSettings() {
     <div className="app-settings" role="dialog" aria-modal="true" aria-label="Settings">
       <aside className="app-settings__nav">
         <button type="button" className="app-settings__back" onClick={handleClose}>
-          <Glyph name="arrow_left" size={14} /> Back to Studio
+          <Glyph name="arrow_left" size={14} /> Back
         </button>
         <div className="app-settings__heading">TideBot Settings</div>
         {SECTIONS.map((s) => (
