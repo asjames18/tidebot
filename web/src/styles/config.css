@@ -111,6 +111,9 @@
 .cfg-meter__track span { display: block; height: 100%; border-radius: inherit; background: var(--bot-action, var(--color-primary)); }
 .cfg-meter__actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .cfg-inline-form { display: flex; gap: 8px; }
+.cfg-chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.cfg-routine-fields { display: flex; gap: 8px; }
+.cfg-routine-fields .text-input { flex: 1; }
 
 /* ---------- details panel: header gear, library, tasks ---------- */
 .details__gear { margin-right: auto; }

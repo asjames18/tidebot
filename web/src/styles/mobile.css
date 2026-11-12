@@ -1069,6 +1069,16 @@ button { touch-action: manipulation; }
     flex: 1 1 auto;
     min-height: 42px;
   }
+  .cfg-routine-fields {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cfg-routine-fields .text-input {
+    width: 100%;
+    min-height: 42px;
+    height: 42px;
+    font-size: 16px;
+  }
   .cfg-meter__actions {
     flex-wrap: wrap;
     gap: 8px;
@@ -1156,6 +1166,20 @@ button { touch-action: manipulation; }
     height: 44px;
     min-width: 44px;
     min-height: 44px;
+  }
+  .cfg-item--routine {
+    flex-wrap: wrap;
+  }
+  .cfg-item--routine .cfg-item__actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 6px;
+    border-top: 0.5px solid var(--color-border-tertiary);
+    margin-top: 4px;
+  }
+  .group-pick__name {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .cfg-textarea {
     font-size: 16px;

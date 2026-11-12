@@ -938,13 +938,12 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
     <form className="cfg-editor" onSubmit={save}>
       <input className="text-input" placeholder="Routine name, e.g. Morning briefing" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus aria-label="Routine name" />
       {!isEvent && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div className="cfg-chips-wrap">
           {CRON_PRESETS.map((p) => (
             <button
               key={p.cron}
               type="button"
               className={`cfg-chip${schedule === p.cron ? '' : ' cfg-chip--muted'}`}
-              style={{ cursor: 'pointer', border: 'none' }}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                   try { navigator.vibrate(8); } catch {}
@@ -957,9 +956,9 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
           ))}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input className="text-input" placeholder="Cron schedule (e.g. 0 9 * * 1-5)" value={schedule} disabled={isEvent} onChange={(e) => setSchedule(e.target.value)} aria-label="Cron schedule" style={{ flex: 1 }} />
-        <input className="text-input" placeholder="Timezone (e.g. America/New_York)" value={timezone} disabled={isEvent} onChange={(e) => setTimezone(e.target.value)} aria-label="Routine timezone" style={{ flex: 1 }} />
+      <div className="cfg-routine-fields">
+        <input className="text-input" placeholder="Cron schedule (e.g. 0 9 * * 1-5)" value={schedule} disabled={isEvent} onChange={(e) => setSchedule(e.target.value)} aria-label="Cron schedule" />
+        <input className="text-input" placeholder="Timezone (e.g. America/New_York)" value={timezone} disabled={isEvent} onChange={(e) => setTimezone(e.target.value)} aria-label="Routine timezone" />
       </div>
       <textarea className="text-input cfg-textarea" rows={4} placeholder="What should this Bot do each time the routine runs?" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Routine instructions" />
       {error && <div className="cfg-error">{error}</div>}
