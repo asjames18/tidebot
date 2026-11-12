@@ -253,12 +253,16 @@ export function SearchModal() {
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search Operators, switch models (claude, gemini, deepseek…), or run commands…"
+          placeholder={typeof window !== 'undefined' && window.innerWidth <= 640 ? "Search Operators, models, commands…" : "Search Operators, switch models (claude, gemini, deepseek…), or run commands…"}
           aria-label="Command and search palette"
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, Math.max(0, items.length - 1))); }
             else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
-            else if (e.key === 'Enter' && items[active]) { e.preventDefault(); items[active].run(); }
+            else if (e.key === 'Enter' && items[active]) {
+              e.preventDefault();
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              items[active].run();
+            }
           }}
         />
       </div>
@@ -276,7 +280,10 @@ export function SearchModal() {
                 data-idx={i}
                 className={`search-row${i === active ? ' is-active' : ''}`}
                 onMouseMove={() => setActive(i)}
-                onClick={() => item.run()}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  item.run();
+                }}
               >
                 {item.render()}
               </button>

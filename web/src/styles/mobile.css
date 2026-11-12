@@ -229,6 +229,14 @@
   .create-modal__name {
     width: 100%;
   }
+  .swatch-cell {
+    width: 38px;
+    height: 38px;
+  }
+  .group-pick__opt {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
 
   /* Tactile touch feedback on tap */
   button:active, .icon-btn:active, .cfg-btn:active, .byom-model-card:active, .bot-row:active {

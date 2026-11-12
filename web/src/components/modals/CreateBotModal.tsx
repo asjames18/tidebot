@@ -88,6 +88,7 @@ export function CreateBotModal() {
   const canCreate = name.trim().length > 0 && !busy;
 
   const applyTemplate = (t: BotTemplate) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     setName(t.name);
     setLabel(t.label);
     setDescription(t.description);
@@ -99,6 +100,7 @@ export function CreateBotModal() {
 
   const create = async () => {
     if (!canCreate) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     setBusy(true); setError(null);
     try {
       const { bot } = await api.createBot({
@@ -178,7 +180,18 @@ export function CreateBotModal() {
             {ROWS.map((row, i) => (
               <div key={i} className="shape-grid__row">
                 {row.map((s) => (
-                  <button key={s} type="button" role="radio" aria-checked={shape === s} aria-label={s} className="shape-cell" onClick={() => setShape(s)}>
+                  <button
+                    key={s}
+                    type="button"
+                    role="radio"
+                    aria-checked={shape === s}
+                    aria-label={s}
+                    className="shape-cell"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                      setShape(s);
+                    }}
+                  >
                     <BotAvatar shape={s} color={color} size={36} ring={shape === s} />
                   </button>
                 ))}
@@ -189,7 +202,18 @@ export function CreateBotModal() {
             {COLOR_ROWS.map((row, i) => (
               <div key={i} className="swatches__row">
                 {row.map((c) => (
-                  <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={c} className="swatch-cell" onClick={() => setColor(c)}>
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={color === c}
+                    aria-label={c}
+                    className="swatch-cell"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                      setColor(c);
+                    }}
+                  >
                     <span className={`swatch${color === c ? ' is-selected' : ''}`} style={{ background: palette(c).fill }} />
                   </button>
                 ))}
@@ -197,11 +221,29 @@ export function CreateBotModal() {
             ))}
           </div>
           <div className="mode-pick" role="radiogroup" aria-label="Bot type">
-            <button type="button" role="radio" aria-checked={mode === 'personal'} className={`mode-pick__opt${mode === 'personal' ? ' is-active' : ''}`} onClick={() => setMode('personal')}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === 'personal'}
+              className={`mode-pick__opt${mode === 'personal' ? ' is-active' : ''}`}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setMode('personal');
+              }}
+            >
               <span className="mode-pick__title">Personal assistant</span>
               <span className="mode-pick__sub">Works for you, with your apps</span>
             </button>
-            <button type="button" role="radio" aria-checked={mode === 'teammate'} className={`mode-pick__opt${mode === 'teammate' ? ' is-active' : ''}`} onClick={() => setMode('teammate')}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === 'teammate'}
+              className={`mode-pick__opt${mode === 'teammate' ? ' is-active' : ''}`}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setMode('teammate');
+              }}
+            >
               <span className="mode-pick__title">Teammate</span>
               <span className="mode-pick__sub">Works with your whole team</span>
             </button>

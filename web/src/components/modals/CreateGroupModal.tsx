@@ -16,10 +16,14 @@ export function CreateGroupModal() {
   const [error, setError] = useState<string | null>(null);
   const close = useCallback(() => setModal(null), [setModal]);
   const canCreate = name.trim().length > 0 && picked.length >= 2 && !busy;
-  const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const toggle = (id: string) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  };
 
   const create = async () => {
     if (!canCreate) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     setBusy(true); setError(null);
     try {
       const { id } = await api.createRoom(name.trim(), picked);
