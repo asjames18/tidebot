@@ -281,7 +281,8 @@
   .share-btn:active, .jump-btn:active, .vcall__btn:active, .vcall__captions:active, .draft-card__copy:active,
   .search-row:active, .search-modal__clear:active, .swatch-cell:active, .shape-cell:active,
   .shader-Option:active, .byom-provider-card:active, .theme-tile:active, .byom-filter-tab:active,
-  .toggle:active, .lib-row:active {
+  .toggle:active, .lib-row:active, .signin__shader-pill:active, .viewer__close:active,
+  .viewer__bar .btn:active, .viewer__overlay .btn:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -605,7 +606,8 @@ button { touch-action: manipulation; }
     justify-content: space-between;
   }
   .viewer__bar-text { font-size: 12px; }
-  .viewer__bar .btn { min-height: 34px; padding: 0 12px; font-size: 12px; }
+  .viewer__bar .btn { min-height: 40px; padding: 0 14px; font-size: 13px; font-weight: 500; }
+  .viewer__overlay .btn { min-height: 44px; padding: 0 18px; font-size: 14px; font-weight: 600; }
 
   /* Sign-in fits small screens. */
   .signin {
@@ -625,7 +627,7 @@ button { touch-action: manipulation; }
   }
   .signin__shader-bar::-webkit-scrollbar { display: none; }
   .signin__shader-label { display: none; }
-  .signin__shader-pill { white-space: nowrap; flex-shrink: 0; }
+  .signin__shader-pill { white-space: nowrap; flex-shrink: 0; min-height: 32px; padding: 6px 12px; font-size: 12.5px; }
   .signin__card {
     padding: 28px 22px 22px;
   }
