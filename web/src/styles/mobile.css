@@ -280,7 +280,8 @@
   .cat-pill:active, .empty-chat__prompt-chip:active, .chat__pill:active, .chat__model-pill:active,
   .share-btn:active, .jump-btn:active, .vcall__btn:active, .vcall__captions:active, .draft-card__copy:active,
   .search-row:active, .search-modal__clear:active, .swatch-cell:active, .shape-cell:active,
-  .shader-Option:active, .byom-provider-card:active, .theme-tile:active, .byom-filter-tab:active {
+  .shader-Option:active, .byom-provider-card:active, .theme-tile:active, .byom-filter-tab:active,
+  .toggle:active, .lib-row:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -364,6 +365,21 @@ button { touch-action: manipulation; }
   .members__remove { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; }
   .lib-row { min-height: 44px; }
   .lib-row__main { min-height: 44px; padding: 8px 10px; }
+  .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .lib-crumbs::-webkit-scrollbar { display: none; }
+  .lib-crumbs .link-btn { min-height: 36px; padding: 6px 8px; font-size: 13px; display: inline-flex; align-items: center; }
+
+  /* Switch toggles have expanded >=44px touch target on mobile */
+  .toggle { position: relative; }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+  }
 
   /* Composer extras. */
   .slash-palette { max-height: 42dvh; overflow-y: auto; box-sizing: border-box; }
