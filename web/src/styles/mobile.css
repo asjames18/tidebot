@@ -867,16 +867,18 @@ button { touch-action: manipulation; }
   }
   .cfg-meter > div:last-child .cfg-btn {
     flex: 1 1 auto;
-    min-height: 40px;
+    min-height: 44px;
   }
   .cfg-btn {
-    min-height: 40px;
+    min-height: 44px;
     padding: 0 16px;
     font-size: 13.5px;
   }
   .cfg-icon-btn {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
   }
   .cfg-row {
     min-height: 52px;
@@ -892,7 +894,7 @@ button { touch-action: manipulation; }
     overflow-wrap: anywhere;
   }
   .cfg-row .cfg-btn {
-    min-height: 40px;
+    min-height: 44px;
     padding: 0 14px;
     flex-shrink: 0;
   }
@@ -902,16 +904,24 @@ button { touch-action: manipulation; }
     min-height: 56px;
   }
   .cfg-item__actions .cfg-icon-btn {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
   .cfg-textarea {
     font-size: 16px;
   }
+  .cfg-page .text-input,
+  .cfg-page select.text-input {
+    font-size: 16px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 12px;
+  }
   .cfg-seg button {
-    height: 36px;
+    height: 40px;
+    min-height: 40px;
     padding: 0 14px;
     font-size: 13px;
   }
