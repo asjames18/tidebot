@@ -177,6 +177,7 @@ export function Sidebar() {
               className="bot-list__empty"
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                set({ mobileSidebarOpen: false });
                 setModal('create');
               }}
             >
