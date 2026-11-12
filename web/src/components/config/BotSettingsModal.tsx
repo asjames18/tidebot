@@ -313,7 +313,8 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
   );
 }
 
-const SHAPE_ROWS = [PICKER_SHAPES.slice(0, 7), PICKER_SHAPES.slice(7)];
+const SHAPE_ROWS = [PICKER_SHAPES.slice(0, 5), PICKER_SHAPES.slice(5, 10), PICKER_SHAPES.slice(10)];
+const COLOR_ROWS = [COLOR_ORDER.slice(0, 6), COLOR_ORDER.slice(6)];
 
 function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: string, tone?: 'ok' | 'error') => void }) {
   const [enabled, setEnabled] = useState(false);
@@ -474,26 +475,28 @@ function LookPicker({ shape, color, onShape, onColor }: { shape: AvatarShape; co
         ))}
       </div>
       <div className="swatches" role="radiogroup" aria-label="Character color">
-        <div className="swatches__row">
-          {COLOR_ORDER.map((c) => (
-            <button
-              key={c}
-              type="button"
-              role="radio"
-              aria-checked={color === c}
-              aria-label={c}
-              className="swatch-cell"
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                  try { navigator.vibrate(8); } catch {}
-                }
-                onColor(c);
-              }}
-            >
-              <span className={`swatch${color === c ? ' is-selected' : ''}`} style={{ background: palette(c).fill }} />
-            </button>
-          ))}
-        </div>
+        {COLOR_ROWS.map((row, i) => (
+          <div key={i} className="swatches__row">
+            {row.map((c) => (
+              <button
+                key={c}
+                type="button"
+                role="radio"
+                aria-checked={color === c}
+                aria-label={c}
+                className="swatch-cell"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                    try { navigator.vibrate(8); } catch {}
+                  }
+                  onColor(c);
+                }}
+              >
+                <span className={`swatch${color === c ? ' is-selected' : ''}`} style={{ background: palette(c).fill }} />
+              </button>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

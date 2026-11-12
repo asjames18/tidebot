@@ -405,6 +405,21 @@
     width: 28px;
     height: 28px;
   }
+  .shape-grid, .swatches {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  .shape-grid__row, .swatches__row {
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 100%;
+    gap: 6px;
+  }
+  .cfg-picker {
+    max-width: 100%;
+    overflow: hidden;
+    padding: 8px 6px;
+  }
   .group-pick__opt {
     min-height: 44px;
     padding: 8px 12px;
@@ -924,6 +939,15 @@ button { touch-action: manipulation; }
     min-height: 40px;
     padding: 0 14px;
     font-size: 13px;
+  }
+  .cfg-meter div[style*="display: flex"] {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cfg-meter div[style*="display: flex"] .cfg-btn {
+    flex: 1 1 140px;
+    min-height: 44px;
+    padding: 0 12px;
   }
 
   /* Connect Apps Marketplace on mobile */
