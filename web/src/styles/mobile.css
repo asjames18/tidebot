@@ -374,6 +374,10 @@
   .create-modal__name {
     width: 100%;
   }
+  .shape-cell {
+    width: 44px;
+    height: 44px;
+  }
   .swatch-cell {
     width: 42px;
     height: 42px;
@@ -750,6 +754,8 @@ button { touch-action: manipulation; }
   .cfg-page {
     padding: 16px 14px 24px;
     gap: 16px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   .cfg-page__head {
     flex-direction: column;
@@ -759,6 +765,10 @@ button { touch-action: manipulation; }
   .cfg-savebar {
     margin: -4px -14px 0;
     padding: 10px 14px calc(12px + env(safe-area-inset-bottom));
+  }
+  .cfg-savebar .cfg-btn {
+    min-height: 42px;
+    padding: 0 16px;
   }
   .cfg-editor__actions {
     gap: 10px;
