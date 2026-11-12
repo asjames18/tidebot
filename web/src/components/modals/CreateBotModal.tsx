@@ -250,8 +250,27 @@ export function CreateBotModal() {
           {error && <div className="card__error">{error}</div>}
         </div>
         <div className="modal__footer">
-          <button type="button" className="link-btn link-btn--small" style={{ marginRight: 'auto' }} onClick={() => setModal('group')}>New group chat instead</button>
-          <button type="button" className="btn btn--secondary btn--sm" onClick={close}>Cancel</button>
+          <button
+            type="button"
+            className="link-btn link-btn--small"
+            style={{ marginRight: 'auto' }}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              setModal('group');
+            }}
+          >
+            New group chat instead
+          </button>
+          <button
+            type="button"
+            className="btn btn--secondary btn--sm"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              close();
+            }}
+          >
+            Cancel
+          </button>
           <button type="submit" className="btn btn--primary btn--sm" disabled={!canCreate}>{busy ? 'Creating…' : 'Create'}</button>
         </div>
       </form>

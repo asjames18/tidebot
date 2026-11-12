@@ -60,7 +60,16 @@ export function CreateGroupModal() {
           {error && <div className="card__error">{error}</div>}
         </div>
         <div className="modal__footer">
-          <button type="button" className="btn btn--secondary btn--sm" onClick={close}>Cancel</button>
+          <button
+            type="button"
+            className="btn btn--secondary btn--sm"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              close();
+            }}
+          >
+            Cancel
+          </button>
           <button type="submit" className="btn btn--primary btn--sm" disabled={!canCreate}>{busy ? 'Creating…' : 'Create War Room'}</button>
         </div>
       </form>
