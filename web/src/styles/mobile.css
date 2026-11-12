@@ -622,6 +622,7 @@ button { touch-action: manipulation; }
     flex-direction: row;
     overflow-x: auto;
     overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
     padding: 8px 10px;
     border-right: 0;
     border-bottom: 0.5px solid var(--color-border-tertiary);

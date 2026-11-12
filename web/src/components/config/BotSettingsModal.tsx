@@ -377,7 +377,15 @@ function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: s
             <div className="cfg-row__sub">{botName} reviews tasks, approvals, and routines at set times and messages you only when there’s something worth sharing.</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={running} onClick={triggerNow}>
+            <button
+              type="button"
+              className="cfg-btn cfg-btn--secondary"
+              disabled={running}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                triggerNow();
+              }}
+            >
               {running ? 'Checking…' : 'Check in now'}
             </button>
             <Switch
@@ -404,14 +412,30 @@ function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: s
               <div style={{ display: 'flex', gap: 6 }}>
                 <input className="text-input" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="America/New_York" aria-label="Check-in timezone" />
                 {timezone !== localTz && (
-                  <button type="button" className="cfg-btn cfg-btn--secondary" title={`Use ${localTz}`} onClick={() => setTimezone(localTz)}>
+                  <button
+                    type="button"
+                    className="cfg-btn cfg-btn--secondary"
+                    title={`Use ${localTz}`}
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                      setTimezone(localTz);
+                    }}
+                  >
                     Local
                   </button>
                 )}
               </div>
             </div>
             <div style={{ alignSelf: 'flex-end' }}>
-              <button type="button" className="cfg-btn cfg-btn--primary" disabled={saving} onClick={() => void saveCheckins()}>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--primary"
+                disabled={saving}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
+                  void saveCheckins();
+                }}
+              >
                 {saving ? 'Saving…' : 'Update schedule'}
               </button>
             </div>
