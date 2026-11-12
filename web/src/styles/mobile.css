@@ -3,6 +3,7 @@
 .mobile-nav-btn { display: none; }
 .mobile-scrim { display: none; }
 .mobile-only-btn { display: none; }
+.sheet-handle-wrap { display: none; }
 .sheet-handle { display: none; }
 
 @media (max-width: 900px) {
@@ -190,13 +191,21 @@
   .cite-chip { padding: 5px 10px; }
 
   /* Modals fit small screens with native bottom-sheet presentation. */
+  .sheet-handle-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 8px 0 2px;
+    touch-action: pan-y;
+    cursor: grab;
+  }
   .sheet-handle {
     display: block;
     width: 38px;
     height: 4.5px;
     border-radius: 99px;
     background: var(--color-border-primary);
-    margin: 8px auto 2px;
     flex-shrink: 0;
     opacity: 0.6;
   }
@@ -301,10 +310,17 @@ button { touch-action: manipulation; }
   .question-card__options { padding: 6px; }
   .question-card__options button, .question-card__options [role="button"] { min-height: 44px; }
 
-  /* Menus stay on-screen. */
+  /* Menus stay on-screen with comfortable >=44px touch targets. */
   .menu { max-width: calc(100vw - 24px); min-width: min(240px, calc(100vw - 32px)); }
-  .menu__item { height: 40px; font-size: 14px; }
+  .menu__item { min-height: 44px; height: auto; padding: 10px 14px; font-size: 14.5px; }
   .menu__hint { display: none; }
+
+  /* Details panel rows & member action targets */
+  .panel-row--action { min-height: 44px; font-size: 14px; }
+  .panel-row--setting { min-height: 42px; font-size: 13.5px; }
+  .panel-row--link { min-height: 40px; }
+  .members__row { min-height: 44px; }
+  .members__remove { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Composer extras. */
   .slash-palette { max-height: 42dvh; overflow-y: auto; box-sizing: border-box; }

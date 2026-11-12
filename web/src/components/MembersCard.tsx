@@ -43,7 +43,12 @@ export function MembersCard({ room }: { room: Bot }) {
               className="icon-btn members__remove"
               aria-label={`Remove ${m.name}`}
               title={`Remove ${m.name}`}
-              onClick={() => save(ids.filter((x) => x !== m.id))}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(8); } catch {}
+                }
+                save(ids.filter((x) => x !== m.id));
+              }}
               disabled={ids.length <= 2}
             >
               <Icon name="close" size={10} opacity={0.56} />
@@ -54,14 +59,34 @@ export function MembersCard({ room }: { room: Bot }) {
       {adding ? (
         <div className="members__add">
           {candidates.length ? candidates.map((b) => (
-            <button key={b.id} type="button" className="panel-row panel-row--link" onClick={() => { setAdding(false); save([...ids, b.id]); }}>
+            <button
+              key={b.id}
+              type="button"
+              className="panel-row panel-row--link"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(10); } catch {}
+                }
+                setAdding(false);
+                save([...ids, b.id]);
+              }}
+            >
               <BotAvatarFor bot={b} size={20} />
               <span className="panel-row__title" style={{ flex: 1 }}>{b.name}</span>
             </button>
           )) : <div className="panel-empty">Every Bot is already here.</div>}
         </div>
       ) : (
-        <button type="button" className="panel-row panel-row--action" onClick={() => setAdding(true)}>
+        <button
+          type="button"
+          className="panel-row panel-row--action"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              try { navigator.vibrate(8); } catch {}
+            }
+            setAdding(true);
+          }}
+        >
           <Icon name="plus" size={12} opacity={0.56} /> Add a Bot
         </button>
       )}

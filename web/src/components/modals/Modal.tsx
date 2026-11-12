@@ -6,6 +6,31 @@ const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), in
 /** 50% black scrim + centered dialog. Escape and scrim click close. Focus is trapped inside and restored on close. */
 export function Modal({ onClose, children, className, label, top }: { onClose: () => void; children: ReactNode; className?: string; label: string; top?: number }) {
   const ref = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const onHandleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const onHandleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    if (deltaY > 45) {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(8); } catch {}
+      }
+      onClose();
+    }
+    touchStartY.current = null;
+  };
+
+  const handleScrim = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
+    onClose();
+  };
+
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     const k = (e: KeyboardEvent) => {
@@ -28,9 +53,16 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
   }, [onClose]);
   return createPortal(
     <div className="modal-root">
-      <div className="modal-scrim" onMouseDown={onClose} />
+      <div className="modal-scrim" onMouseDown={handleScrim} />
       <div ref={ref} className={`modal ${className ?? ''}`} role="dialog" aria-modal="true" aria-label={label} style={top !== undefined ? { marginTop: top } : undefined}>
-        <div className="sheet-handle" aria-hidden="true" />
+        <div
+          className="sheet-handle-wrap"
+          onTouchStart={onHandleTouchStart}
+          onTouchEnd={onHandleTouchEnd}
+          aria-hidden="true"
+        >
+          <div className="sheet-handle" />
+        </div>
         {children}
       </div>
     </div>,

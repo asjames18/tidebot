@@ -16,7 +16,19 @@ export function Menu({ items, onClose, align = 'left', placement = 'below', chil
     <div ref={ref} className={`menu is-${align} is-${placement}`} role="menu">
       {children}
       {items.map((it) => (
-        <button key={it.label} type="button" role="menuitem" className={`menu__item${it.danger ? ' is-danger' : ''}`} onClick={() => { onClose(); it.onSelect(); }}>
+        <button
+          key={it.label}
+          type="button"
+          role="menuitem"
+          className={`menu__item${it.danger ? ' is-danger' : ''}`}
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              try { navigator.vibrate(8); } catch {}
+            }
+            onClose();
+            it.onSelect();
+          }}
+        >
           <span>{it.label}</span>
           {it.hint && <span className="menu__hint">{it.hint}</span>}
         </button>

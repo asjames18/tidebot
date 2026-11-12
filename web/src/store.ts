@@ -68,6 +68,9 @@ export const useStore = create<State>((set, get) => ({
   viewerOpen: false,
   toasts: [],
   notify(text) {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     const id = Date.now() + Math.random();
     set((s) => ({ toasts: [...s.toasts.slice(-2), { id, text }] }));
     setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), 4200);
