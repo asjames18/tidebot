@@ -190,6 +190,18 @@ export function ChatView() {
               </Menu>
             )}
           </span>
+          <button
+            type="button"
+            className="chat__model-pill chat__briefing-btn"
+            title="Get your briefing: tasks, routines, connected apps, one focus"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              api.send(bot.id, 'Give me my daily briefing: 1) open tasks and anything waiting on me, 2) routines coming up in the next 24 hours, 3) anything important from my connected apps (email, calendar, Slack) if available, 4) one suggested focus for today. Keep it tight and spoken-friendly — short sentences, no tables, no code.').catch(() => useStore.getState().notify('Briefing request failed'));
+            }}
+          >
+            <Icon name="clock" size={12} opacity={0.7} />
+            <span>Briefing</span>
+          </button>
         </div>
         <div className="chat__header-right">
           <button

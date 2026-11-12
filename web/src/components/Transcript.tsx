@@ -150,6 +150,7 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
               >
                 Retry
               </button>
+              <SpeakButton text={b.text} />
               <button
                 type="button"
                 className={`bubble__copy-btn${copied ? ' is-copied' : ''}`}
@@ -166,6 +167,26 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
     </div>
   );
 });
+
+function SpeakButton({ text }: { text: string }) {
+  const [speaking, setSpeaking] = useState(false);
+  if (!('speechSynthesis' in window)) return null;
+  const toggle = () => {
+    if (speaking) { speechSynthesis.cancel(); setSpeaking(false); return; }
+    const clean = text.replace(/```[\s\S]*?```/g, ' code block ').replace(/[#*_`>[\]()]/g, '').slice(0, 1200);
+    const u = new SpeechSynthesisUtterance(clean);
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+    setSpeaking(true);
+  };
+  return (
+    <button type="button" className="bubble__copy-btn" onClick={toggle} title={speaking ? 'Stop reading' : 'Read aloud'}>
+      {speaking ? 'Stop' : 'Listen'}
+    </button>
+  );
+}
 
 function SenderLabel({ from }: { from: NonNullable<MessageBody['from']> }) {
   const bot = useStore((s) => (from.kind === 'bot' ? s.bots.find((b) => b.id === from.id) : undefined));

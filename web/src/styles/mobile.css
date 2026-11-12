@@ -123,6 +123,7 @@
     border: 1px solid var(--color-border-secondary);
   }
   .share-btn__label { display: none; }
+  .chat__briefing-btn span { display: none; }
   .chat__header {
     justify-content: space-between;
     gap: 6px;
@@ -432,9 +433,24 @@
     font-size: 13px;
     font-weight: 500;
   }
+  .mode-pick {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
   .mode-pick__opt {
+    flex: 1 1 140px;
     min-height: 52px;
     padding: 10px 12px;
+  }
+  .mode-pick__title {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .mode-pick__sub {
+    font-size: 11.5px;
+    line-height: 15px;
+    overflow-wrap: anywhere;
   }
 
   /* Tactile touch feedback on tap */
@@ -1420,6 +1436,7 @@ button { touch-action: manipulation; }
     .chat__header { padding-left: 6px; padding-right: 6px; gap: 4px; }
     .chat__pill-name { max-width: 60px; }
     .chat__model-name { max-width: 40px; }
+    .chat__briefing-btn span { display: none; }
     .bubble { font-size: 14px; }
     .composer { margin: 0 6px 4px; }
     .signin__card { padding: 22px 16px 18px; }
