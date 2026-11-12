@@ -34,6 +34,7 @@ const globalHeaders = secureHeaders({
     styleSrc: ["'self'", "'unsafe-inline'"],
     imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
     connectSrc: ["'self'", 'ws:', 'wss:'],
+    workerSrc: ["'self'", 'blob:'],
     frameAncestors: ["'self'"],
   },
   xFrameOptions: 'SAMEORIGIN',

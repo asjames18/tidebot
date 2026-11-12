@@ -4,7 +4,9 @@
 import { create } from 'zustand';
 import type { Row } from '@shared/types';
 import { sortedRows, useStore } from '../store';
+import { api } from '../lib/api';
 import { voiceApi, type VoiceSession } from './api';
+import { SpeechRecognitionCtor } from './dictation';
 import { MicCapture, PcmPlayer, base64ToPcm, createAudioContext, micErrorMessage, openMic, pcmToBase64 } from './audio';
 
 export interface Caption { id: string; role: 'user' | 'assistant'; text: string; final: boolean }
@@ -37,9 +39,21 @@ export const useVoice = create<VoiceState>(() => ({
 const setV = (p: Partial<VoiceState>) => useVoice.setState(p);
 
 let current: VoiceCall | null = null;
+let currentLite: LiteCall | null = null;
 
-/** Start a call with a bot. Must be called from a user gesture (click) so audio can start. */
+/** Start a call with a bot. Must be called from a user gesture (click) so audio can start.
+ *  Uses the xAI realtime call when a key is configured, otherwise the free lite mode
+ *  (browser dictation in, text agent replies, browser text-to-speech out). */
 export function startCall(botId: string) {
+  if (!useStore.getState().voiceRealtime) {
+    if (currentLite && !currentLite.ended) {
+      if (currentLite.botId === botId) return;
+      currentLite.end();
+    }
+    currentLite = new LiteCall(botId);
+    currentLite.start();
+    return;
+  }
   if (current && !current.ended) {
     if (current.botId === botId) return;
     current.end();
@@ -48,8 +62,12 @@ export function startCall(botId: string) {
   void current.start();
 }
 
-export function endCall() { current?.end(); }
-export function toggleMute() { current?.setMuted(!useVoice.getState().muted); }
+export function endCall() { current?.end(); currentLite?.end(); }
+export function toggleMute() {
+  const m = !useVoice.getState().muted;
+  current?.setMuted(m);
+  currentLite?.setMuted(m);
+}
 export function callLevels(): { out: number; mic: number } {
   return current && !current.ended ? { out: current.player.level(), mic: current.micLevel() } : { out: 0, mic: 0 };
 }
@@ -440,6 +458,132 @@ function landedNote(request: string, replies: Row[], after: Row[]): string {
     .filter((b) => b.type === 'card' && b.status === 'pending')
     .map((b) => (b.type === 'card' ? (b.card === 'approval' ? b.title : b.card === 'question' ? `a question: ${b.question}` : b.card === 'connect' ? `connecting ${b.toolkitName}` : 'a draft to review') : ''));
   return `The work you handed off just finished. Request: "${clip(request, 200)}". ${text ? `Your text agent replied:\n"""\n${clip(text, 1800)}\n"""` : 'It finished without a written reply.'}${waiting.length ? `\nStill waiting on the user in the chat: ${waiting.join('; ')}.` : ''}`;
+}
+
+/** Free voice chat: browser dictation -> text agent -> browser text-to-speech. No API key needed. */
+class LiteCall {
+  ended = false;
+  private sr: any = null;
+  private unsub: (() => void) | null = null;
+  private baselineSeq = 0;
+  private awaitingSpoken = false;
+
+  constructor(readonly botId: string) {}
+
+  start() {
+    if (!SpeechRecognitionCtor || !('speechSynthesis' in window)) {
+      setV({ status: 'error', error: 'Free voice chat needs speech recognition in this browser (try Safari or Chrome).', botId: this.botId });
+      setTimeout(() => { if (useVoice.getState().status === 'error') setV({ status: 'idle', botId: null, error: null }); }, 6000);
+      return;
+    }
+    setV({ status: 'live', botId: this.botId, callId: 'lite', muted: false, speaking: false, listening: false, thinking: false, working: [], captions: [], error: null, startedAt: Date.now() });
+    this.listen();
+  }
+
+  private listen() {
+    if (this.ended || useVoice.getState().muted || !SpeechRecognitionCtor) return;
+    const sr = new SpeechRecognitionCtor();
+    this.sr = sr;
+    const bot = useStore.getState().bots.find((b) => b.id === this.botId);
+    sr.lang = bot?.voiceLanguage && bot.voiceLanguage !== 'auto' ? bot.voiceLanguage : navigator.language;
+    sr.interimResults = false;
+    sr.continuous = false;
+    sr.onresult = (e: any) => {
+      let text = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) text += e.results[i][0].transcript;
+      text = text.trim();
+      if (text) void this.handleUser(text);
+    };
+    sr.onerror = (e: any) => {
+      if (this.ended) return;
+      if (e.error === 'not-allowed') { this.end('Microphone access was denied. Allow it in your browser’s site settings.'); return; }
+      if (e.error !== 'aborted' && e.error !== 'no-speech') setTimeout(() => this.listen(), 700);
+    };
+    sr.onend = () => {
+      setV({ listening: false });
+      // Single-utterance recognition stops after each sentence; restart while the call is live and idle.
+      if (!this.ended && !useVoice.getState().muted && !useVoice.getState().speaking && !useVoice.getState().thinking) {
+        setTimeout(() => this.listen(), 350);
+      }
+    };
+    try { sr.start(); setV({ listening: true }); } catch { /* already running */ }
+  }
+
+  private async handleUser(text: string) {
+    if (this.ended) return;
+    try { this.sr?.stop(); } catch { /* ignore */ }
+    const caps = useVoice.getState().captions;
+    setV({ captions: [...caps, { id: `u${Date.now()}`, role: 'user' as const, text, final: true }].slice(-200), thinking: true, listening: false });
+    this.baselineSeq = sortedRows(useStore.getState().transcripts[this.botId]).reduce((m, r) => Math.max(m, r.seq), 0);
+    this.awaitingSpoken = false;
+    try {
+      await api.send(this.botId, text);
+    } catch (e) {
+      setV({ thinking: false });
+      this.speak(`Sorry, that didn't go through. ${(e as Error).message}`);
+      return;
+    }
+    this.watchReply();
+  }
+
+  private watchReply() {
+    this.unsub?.();
+    this.unsub = useStore.subscribe((s) => {
+      if (this.ended) return;
+      const live = s.live[this.botId];
+      if (live?.awaiting && !this.awaitingSpoken) {
+        this.awaitingSpoken = true;
+        this.speak('I need your approval on screen to continue.');
+        return;
+      }
+      if (live?.isRunning) return;
+      const rows = sortedRows(s.transcripts[this.botId]).filter((r) => r.seq > this.baselineSeq && r.body.type === 'message' && r.body.role === 'assistant' && !r.body.streaming);
+      if (!rows.length) return;
+      const text = rows.map((r) => (r.body.type === 'message' ? r.body.text : '')).join('\n').trim();
+      this.unsub?.();
+      this.unsub = null;
+      if (text) this.speak(text);
+      else { setV({ thinking: false }); this.listen(); }
+    });
+  }
+
+  private speak(text: string) {
+    if (this.ended) return;
+    const clean = text.replace(/```[\s\S]*?```/g, ' (code in chat) ').replace(/[#*_`>[\]()]/g, '').slice(0, 900);
+    const bot = useStore.getState().bots.find((b) => b.id === this.botId);
+    const caps = useVoice.getState().captions;
+    setV({ captions: [...caps, { id: `a${Date.now()}`, role: 'assistant' as const, text: text.slice(0, 900), final: true }].slice(-200), thinking: false, speaking: true });
+    const u = new SpeechSynthesisUtterance(clean);
+    u.rate = bot?.voiceSpeed ?? 1;
+    u.onend = () => { setV({ speaking: false }); if (!this.ended) this.listen(); };
+    u.onerror = () => { setV({ speaking: false }); if (!this.ended) this.listen(); };
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }
+
+  setMuted(m: boolean) {
+    setV({ muted: m, listening: m ? false : useVoice.getState().listening });
+    if (m) {
+      try { this.sr?.stop(); } catch { /* ignore */ }
+      speechSynthesis.cancel();
+      setV({ speaking: false });
+    } else if (!this.ended) this.listen();
+  }
+
+  end(error?: string) {
+    if (this.ended) return;
+    this.ended = true;
+    this.unsub?.();
+    try { this.sr?.abort?.(); } catch { /* ignore */ }
+    speechSynthesis.cancel();
+    if (currentLite === this) currentLite = null;
+    if (error) {
+      setV({ status: 'error', error, speaking: false, listening: false, thinking: false, working: [] });
+      setTimeout(() => { if (useVoice.getState().status === 'error' && !currentLite) setV({ status: 'idle', botId: null, error: null }); }, 6000);
+    } else {
+      setV({ status: 'idle', botId: null, callId: null, speaking: false, listening: false, thinking: false, working: [], startedAt: null });
+    }
+  }
 }
 
 /** Play a short TTS sample through the same PCM path the call uses. */

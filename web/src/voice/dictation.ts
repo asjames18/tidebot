@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { voiceApi } from './api';
 import { micErrorMessage, openMic } from './audio';
 
-const SpeechRecognitionCtor = typeof window !== 'undefined'
+export const SpeechRecognitionCtor = typeof window !== 'undefined'
   ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
   : undefined;
 

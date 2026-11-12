@@ -31,7 +31,7 @@ export interface SearchResults {
 }
 
 export const api = {
-  me: () => req<{ user: User | null; devLogin: boolean; studioEmail?: string; providers?: { xai: boolean; composio: boolean; orgo: boolean } }>('GET', '/auth/me'),
+  me: () => req<{ user: User | null; devLogin: boolean; studioEmail?: string; hasXaiKey?: boolean; providers?: { xai: boolean; composio: boolean; orgo: boolean } }>('GET', '/auth/me'),
   devLogin: (email: string, name?: string) => req<{ ok: true }>('POST', '/auth/dev', { email, name }),
   passwordLogin: (email: string, password: string, name?: string) => req<{ ok: true }>('POST', '/auth/password', { email, password, name }),
   logout: () => req<{ ok: true }>('POST', '/auth/logout'),

@@ -10,6 +10,7 @@ interface State {
   user: User | null;
   devLogin: boolean;
   studioEmail: string;
+  voiceRealtime: boolean;
   authChecked: boolean;
 
   bots: Bot[];
@@ -52,6 +53,7 @@ export const useStore = create<State>((set, get) => ({
   user: null,
   devLogin: false,
   studioEmail: '',
+  voiceRealtime: false,
   authChecked: false,
   bots: [],
   live: {},
@@ -78,8 +80,8 @@ export const useStore = create<State>((set, get) => ({
 
   async checkAuth() {
     try {
-      const { user, devLogin, studioEmail } = await api.me();
-      set({ user, devLogin, studioEmail: studioEmail ?? '', authChecked: true });
+      const { user, devLogin, studioEmail, hasXaiKey } = await api.me();
+      set({ user, devLogin, studioEmail: studioEmail ?? '', voiceRealtime: Boolean(hasXaiKey), authChecked: true });
     } catch {
       set({ user: null, authChecked: true });
     }

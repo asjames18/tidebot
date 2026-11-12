@@ -11,6 +11,7 @@ import { hub } from './lib/hub.js';
 import { createSession, destroySession, requireUser, userFromCookieHeader, type AuthVars } from './lib/auth.js';
 import { allLive, appendRow, clearConversation, describeCron, emitBot, getBot, getBotRow, getRow, listBots, listRoutines, listRows, listTasks, toRoutine, updateRow } from './store.js';
 import { enqueue, interrupt, resolveApproval } from './agent/loop.js';
+import { getPublicLlmConfig } from './agent/llm.js';
 import { computerState, ensureComputer, refreshComputer, suspendComputer } from './computer.js';
 import { orgo } from './orgo.js';
 import { catalog, connectedToolkits, deleteConnection, disconnect, googleProfile, startConnect, startGoogleLogin, toolkitInfo } from './composio.js';
@@ -60,7 +61,7 @@ function findOrCreateUser(email: string, name?: string, preferId?: string) {
 
 api.get('/auth/me', (c) => {
   const user = userFromCookieHeader(c.req.header('cookie'));
-  return c.json({ user, devLogin: env.devLogin, studioEmail: env.studioEmail || undefined, providers: env.providers });
+  return c.json({ user, devLogin: env.devLogin, studioEmail: env.studioEmail || undefined, hasXaiKey: getPublicLlmConfig().hasXaiKey, providers: env.providers });
 });
 
 api.get('/auth/google/start', async (c) => {
