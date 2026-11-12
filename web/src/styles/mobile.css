@@ -742,7 +742,18 @@ button { touch-action: manipulation; }
 
   /* Details panel rows & member action targets */
   .panel-row--action { min-height: 44px; font-size: 14px; padding: 8px 10px; }
-  .panel-row--setting { min-height: 42px; font-size: 13.5px; }
+  .panel-row--setting {
+    height: auto;
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 13.5px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .voice-setting__right {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
   .panel-row--link { min-height: 44px; padding: 8px 10px; }
   .panel-row--routine { min-height: 48px; }
   .panel-row--computer { min-height: 54px; }
