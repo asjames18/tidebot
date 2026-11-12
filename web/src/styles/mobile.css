@@ -645,6 +645,28 @@ button { touch-action: manipulation; }
   .menu__header { padding: 8px 14px; font-size: 12px; }
   .menu__item { min-height: 44px; height: auto; padding: 10px 14px; font-size: 14.5px; }
   .menu__hint { display: none; }
+  .chat__header-center .menu {
+    position: fixed;
+    top: calc(56px + env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: min(360px, calc(100vw - 24px));
+    margin: 0 auto;
+    transform: none;
+  }
+  .composer__plus-anchor .menu {
+    bottom: calc(100% + 8px);
+    left: 0;
+    max-width: min(280px, calc(100vw - 32px));
+  }
+  .account .menu {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: calc(100% - 20px);
+    bottom: calc(100% + 8px);
+  }
 
   /* Details panel rows & member action targets */
   .panel-row--action { min-height: 44px; font-size: 14px; padding: 8px 10px; }
@@ -652,8 +674,8 @@ button { touch-action: manipulation; }
   .panel-row--link { min-height: 44px; padding: 8px 10px; }
   .panel-row--routine { min-height: 48px; }
   .panel-row--computer { min-height: 54px; }
-  .section-label--row { min-height: 32px; height: auto; }
-  .section-label--row .link-btn { min-height: 32px; padding: 6px 10px; font-size: 12.5px; display: inline-flex; align-items: center; }
+  .section-label--row { min-height: 36px; height: auto; }
+  .section-label--row .link-btn { min-height: 36px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; }
   .members__row { min-height: 44px; }
   .members__remove { width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
   .members__add {
