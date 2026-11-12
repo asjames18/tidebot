@@ -27,7 +27,17 @@ export function computerStatusText(c: ComputerState | null): string {
 
 function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label} className={`toggle${on ? ' is-on' : ''}`} onClick={() => onChange(!on)}>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      className={`toggle${on ? ' is-on' : ''}`}
+      onClick={() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+        onChange(!on);
+      }}
+    >
       <span className="toggle__knob" />
     </button>
   );
@@ -88,7 +98,16 @@ function ComputerCard({ bot }: { bot: Bot }) {
   const busy = computer?.status === 'starting' || computer?.status === 'resuming' || computer?.status === 'creating';
   return (
     <div className="panel-card">
-      <div className="panel-row panel-row--computer" role="button" tabIndex={0} onClick={() => set({ viewerOpen: true })} onKeyDown={(e) => { if (e.key === 'Enter') set({ viewerOpen: true }); }}>
+      <div
+        className="panel-row panel-row--computer"
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+          set({ viewerOpen: true });
+        }}
+        onKeyDown={(e) => { if (e.key === 'Enter') set({ viewerOpen: true }); }}
+      >
         <span className="panel-row__text">
           <span className="panel-row__title">Bot's computer</span>
           <span className="panel-row__meta">{computerStatusText(computer)}{computer?.error && computer.status === 'error' ? ` · ${computer.error}` : ''}</span>
@@ -106,7 +125,14 @@ function ComputerCard({ bot }: { bot: Bot }) {
         </span>
       </div>
       {!running && !busy && (
-        <button type="button" className="panel-row panel-row--action" onClick={() => api.ensureComputer().catch(() => {})}>
+        <button
+          type="button"
+          className="panel-row panel-row--action"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+            api.ensureComputer().catch(() => {});
+          }}
+        >
           <Icon name="monitor" size={14} opacity={0.56} /> Wake computer
         </button>
       )}
@@ -156,6 +182,7 @@ export function DetailsPanel() {
           type="button"
           className="icon-btn icon-btn--bordered details__gear"
           onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
             if (window.innerWidth <= 900) set({ detailsOpen: false });
             useConfigUI.getState().openBotSettings(bot.id);
           }}
@@ -164,7 +191,15 @@ export function DetailsPanel() {
         >
           <Glyph name="gear" size={16} opacity={0.7} />
         </button>
-        <button type="button" className="icon-btn icon-btn--bordered" onClick={() => set({ detailsOpen: false })} aria-label="Close details">
+        <button
+          type="button"
+          className="icon-btn icon-btn--bordered"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            set({ detailsOpen: false });
+          }}
+          aria-label="Close details"
+        >
           <Icon name="close" opacity={0.92} />
         </button>
       </div>
@@ -175,9 +210,36 @@ export function DetailsPanel() {
         </div>
         <div className="details__tabs">
           <div className="segmented">
-            <button type="button" className={tab === 'activity' ? 'is-active' : ''} onClick={() => setTab('activity')}>Activity</button>
-            <button type="button" className={tab === 'tasks' ? 'is-active' : ''} onClick={() => setTab('tasks')}>Tasks</button>
-            <button type="button" className={tab === 'library' ? 'is-active' : ''} onClick={() => setTab('library')}>Library</button>
+            <button
+              type="button"
+              className={tab === 'activity' ? 'is-active' : ''}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setTab('activity');
+              }}
+            >
+              Activity
+            </button>
+            <button
+              type="button"
+              className={tab === 'tasks' ? 'is-active' : ''}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setTab('tasks');
+              }}
+            >
+              Tasks
+            </button>
+            <button
+              type="button"
+              className={tab === 'library' ? 'is-active' : ''}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setTab('library');
+              }}
+            >
+              Library
+            </button>
           </div>
         </div>
         {tab === 'activity' ? (

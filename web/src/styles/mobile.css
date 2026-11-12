@@ -324,6 +324,8 @@ button { touch-action: manipulation; }
   .panel-row--link { min-height: 40px; }
   .members__row { min-height: 44px; }
   .members__remove { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; }
+  .lib-row { min-height: 44px; }
+  .lib-row__main { min-height: 44px; padding: 8px 10px; }
 
   /* Composer extras. */
   .slash-palette { max-height: 42dvh; overflow-y: auto; box-sizing: border-box; }

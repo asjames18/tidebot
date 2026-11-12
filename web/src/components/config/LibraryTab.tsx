@@ -47,6 +47,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
   };
 
   const openFile = async (f: LibraryFile) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     const rel = path ? `${path}/${f.name}` : f.name;
     setBusyFile(f.name); setError(null);
     try {
@@ -61,6 +62,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
 
   const savePreviewEdit = async () => {
     if (!preview) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     setBusyFile(preview.name);
     try {
       await configApi.saveFile(bot.id, preview.rel, preview.content);
@@ -76,6 +78,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
   const createNewFile = async () => {
     const clean = newFilename.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
     if (!clean) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     const rel = path ? `${path}/${clean}` : clean;
     setLoading(true);
     try {
@@ -92,6 +95,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
   };
 
   const removeFile = async (rel: string) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     try {
       await configApi.deleteFile(bot.id, rel);
       if (preview?.rel === rel) setPreview(null);
@@ -121,10 +125,28 @@ export function LibraryTab({ bot }: { bot: Bot }) {
             ) : 'Workspace Library'}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <button type="button" className="link-btn link-btn--small" onClick={() => { setCreating((v) => !v); setPreview(null); }}>
+            <button
+              type="button"
+              className="link-btn link-btn--small"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setCreating((v) => !v);
+                setPreview(null);
+              }}
+            >
               {creating ? 'Cancel' : '+ New'}
             </button>
-            <button type="button" className="link-btn link-btn--small" onClick={() => load()} disabled={loading} aria-label="Refresh files" title="Refresh">
+            <button
+              type="button"
+              className="link-btn link-btn--small"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                load();
+              }}
+              disabled={loading}
+              aria-label="Refresh files"
+              title="Refresh"
+            >
               <Icon name="refresh" size={12} opacity={0.7} style={loading ? { animation: 'cfg-spin 0.8s linear infinite' } : undefined} />
             </button>
           </span>
@@ -165,6 +187,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
                   className="link-btn link-btn--small"
                   onClick={() => {
                     navigator.clipboard?.writeText(preview.content);
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
                     setCopied(true);
                     setTimeout(() => setCopied(false), 1400);
                   }}
