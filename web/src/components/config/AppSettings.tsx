@@ -970,7 +970,17 @@ function AccountSection() {
               <div className="cfg-row__title">{user?.name}</div>
               <div className="cfg-row__sub">{user?.email}</div>
             </div>
-            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={busy} onClick={async () => { setBusy(true); await configApi.logout().catch(() => {}); location.reload(); }}>
+            <button
+              type="button"
+              className="cfg-btn cfg-btn--secondary"
+              disabled={busy}
+              onClick={async () => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                setBusy(true);
+                await configApi.logout().catch(() => {});
+                location.reload();
+              }}
+            >
               {busy ? 'Signing out…' : 'Sign out'}
             </button>
           </div>

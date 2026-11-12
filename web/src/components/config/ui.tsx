@@ -3,7 +3,18 @@ import '../../styles/config.css';
 
 export function Switch({ on, onChange, label, disabled }: { on: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={disabled} className={`toggle${on ? ' is-on' : ''}`} onClick={() => onChange(!on)}>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      className={`toggle${on ? ' is-on' : ''}`}
+      onClick={() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+        onChange(!on);
+      }}
+    >
       <span className="toggle__knob" />
     </button>
   );
@@ -24,7 +35,17 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
   return (
     <div className="cfg-seg" role="radiogroup" aria-label={label}>
       {options.map((o) => (
-        <button key={o.value} type="button" role="radio" aria-checked={value === o.value} className={value === o.value ? 'is-active' : ''} onClick={() => onChange(o.value)}>
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          className={value === o.value ? 'is-active' : ''}
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            onChange(o.value);
+          }}
+        >
           {o.label}
         </button>
       ))}
@@ -41,13 +62,32 @@ export function ConfirmButton({ children, confirmLabel = 'Delete', onConfirm, cl
     const t = setTimeout(() => setAsking(false), 4000);
     return () => clearTimeout(t);
   }, [asking]);
-  if (!asking) return <button type="button" className={className} disabled={disabled} title={title} onClick={() => setAsking(true)}>{children}</button>;
+  if (!asking) {
+    return (
+      <button
+        type="button"
+        className={className}
+        disabled={disabled}
+        title={title}
+        onClick={() => {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+          setAsking(true);
+        }}
+      >
+        {children}
+      </button>
+    );
+  }
   return (
     <button
       type="button"
       className="cfg-btn cfg-btn--danger"
       disabled={busy}
-      onClick={async () => { setBusy(true); try { await onConfirm(); } finally { setBusy(false); setAsking(false); } }}
+      onClick={async () => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
+        setBusy(true);
+        try { await onConfirm(); } finally { setBusy(false); setAsking(false); }
+      }}
     >
       {busy ? 'Working…' : confirmLabel}
     </button>
