@@ -449,6 +449,11 @@
     top: calc(14px + env(safe-area-inset-top));
     max-width: calc(100vw - 32px);
     text-align: center;
+    min-height: 40px;
+    padding: 10px 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .toasts {
     width: calc(100vw - 24px);
@@ -477,11 +482,11 @@ button { touch-action: manipulation; }
 
   /* Markdown content can never push the bubble wider than the screen. */
   .bubble .md { min-width: 0; overflow-wrap: anywhere; }
-  .md-table { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; margin: 8px 0; }
-  .md pre { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; }
+  .md-table { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: thin; margin: 8px 0; }
+  .md pre { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .md-copy-btn {
-    min-height: 34px;
-    padding: 6px 12px;
+    min-height: 36px;
+    padding: 6px 14px;
     font-size: 12px;
     opacity: 0.92;
     display: inline-flex;
@@ -531,10 +536,10 @@ button { touch-action: manipulation; }
   .lib-row { min-height: 44px; }
   .lib-row__main { min-height: 44px; padding: 8px 10px; }
   .lib-row .cfg-icon-btn { min-width: 40px; min-height: 40px; }
-  .panel-card .link-btn { min-height: 36px; padding: 6px 10px; display: inline-flex; align-items: center; font-size: 13px; }
-  .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .panel-card .link-btn { min-height: 38px; padding: 6px 12px; display: inline-flex; align-items: center; font-size: 13px; }
+  .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
   .lib-crumbs::-webkit-scrollbar { display: none; }
-  .lib-crumbs .link-btn { min-height: 36px; padding: 6px 10px; font-size: 13px; display: inline-flex; align-items: center; }
+  .lib-crumbs .link-btn { min-height: 38px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; }
   .lib-preview__content { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 
   /* Switch toggles have expanded >=44px touch target on mobile */
