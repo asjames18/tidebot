@@ -888,6 +888,21 @@ button { touch-action: manipulation; }
   .byom-model-card { min-height: 52px; }
   .byom-actions { flex-wrap: wrap; gap: 8px; }
   .byom-actions .cfg-btn { flex: 1 1 auto; min-height: 44px; }
+  .byom-status {
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 17px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .cfg-empty {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    padding: 16px 12px;
+    font-size: 12.5px;
+    line-height: 18px;
+  }
   .byom-search { max-width: 100%; width: 100%; }
   .theme-tiles {
     display: grid;
