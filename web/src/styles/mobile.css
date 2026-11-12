@@ -262,8 +262,12 @@
     width: 100%;
   }
   .swatch-cell {
-    width: 38px;
-    height: 38px;
+    width: 42px;
+    height: 42px;
+  }
+  .swatch {
+    width: 28px;
+    height: 28px;
   }
   .group-pick__opt {
     min-height: 44px;
@@ -274,7 +278,8 @@
   button:active, .icon-btn:active, .cfg-btn:active, .byom-model-card:active, .bot-row:active,
   .pinned__tile:active, .composer-quick-chip:active, .sidebar-island:active, .segmented button:active,
   .cat-pill:active, .empty-chat__prompt-chip:active, .chat__pill:active, .chat__model-pill:active,
-  .share-btn:active, .jump-btn:active, .vcall__btn:active, .vcall__captions:active, .draft-card__copy:active {
+  .share-btn:active, .jump-btn:active, .vcall__btn:active, .vcall__captions:active, .draft-card__copy:active,
+  .search-row:active, .search-modal__clear:active, .swatch-cell:active, .shape-cell:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -530,9 +535,16 @@ button { touch-action: manipulation; }
   .search-modal__field {
     height: 52px;
     padding: 10px 14px;
+    gap: 10px;
   }
   .search-modal__field input {
     font-size: 17px;
+  }
+  .search-modal__clear {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 14px;
   }
   .search-modal__results {
     -webkit-overflow-scrolling: touch;

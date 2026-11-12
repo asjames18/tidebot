@@ -44,6 +44,8 @@
 .search-modal__icon { display: flex; align-items: center; width: 24px; height: 22px; }
 .search-modal__field input { flex: 1 1 0; min-width: 0; border: 0; outline: none; background: transparent; font-size: 22px; line-height: 28px; letter-spacing: 0.22px; color: var(--color-ink); }
 .search-modal__field input::placeholder { color: var(--color-text-quaternary); }
+.search-modal__clear { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; min-width: 32px; border-radius: 50%; background: var(--color-bg-tertiary); color: var(--color-text-secondary); font-size: 13px; flex-shrink: 0; transition: background 120ms, color 120ms; }
+.search-modal__clear:hover { background: var(--color-bg-hover); color: var(--color-ink); }
 .search-modal__results { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-height: 0; overflow-y: auto; padding: 8px 10px; scrollbar-width: thin; }
 .search-modal__section { padding: 2px 0 6px 12px; font-size: 12px; line-height: 16px; letter-spacing: 0.12px; color: var(--color-text-tertiary); }
 .search-row { display: flex; align-items: center; gap: 16px; height: 56px; padding: 8px 12px; border-radius: 14px; flex-shrink: 0; width: 100%; }

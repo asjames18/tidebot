@@ -265,6 +265,20 @@ export function SearchModal() {
             }
           }}
         />
+        {q && (
+          <button
+            type="button"
+            className="search-modal__clear"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              setQ('');
+            }}
+            aria-label="Clear search input"
+            title="Clear"
+          >
+            ✕
+          </button>
+        )}
       </div>
       <div className="search-modal__results" ref={listRef} role="listbox">
         {items.map((item, i) => {
