@@ -387,14 +387,19 @@
   .cfg-row .cfg-btn:active, .card__actions .btn:active,
   .question-card__foot .link-btn:active, .voice-preview:active,
   .panel-row--call:active, .composer-telemetry__chip:active,
-  .lib-row__main:active, .lib-crumbs .link-btn:active {
+  .lib-row__main:active, .lib-crumbs .link-btn:active,
+  .tideos-pill--interactive:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
 
   /* Empty-chat hero scales down. */
-  .empty-chat { padding: 20px 10px; }
-  .empty-chat__title { font-size: 26px; }
+  .empty-chat { padding: 18px 8px; }
+  .empty-chat__stage-inner { padding: 24px 14px 20px; gap: 8px; }
+  .empty-chat__badges { gap: 6px; margin-bottom: 4px; }
+  .tideos-pill { min-height: 28px; padding: 4px 10px; font-size: 11px; line-height: 16px; }
+  .tideos-pill--interactive { min-height: 32px; padding: 6px 12px; }
+  .empty-chat__title { font-size: 24px; }
   .empty-chat__prompts { width: 100%; }
   .empty-chat__prompt-chip {
     width: 100%;
