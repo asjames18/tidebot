@@ -67,13 +67,21 @@
     padding-top: max(12px, env(safe-area-inset-top));
     justify-content: space-between;
   }
+  .details__top .icon-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
   .details__scroll {
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
     -webkit-overflow-scrolling: touch;
   }
   .details__tabs .segmented button {
-    min-height: 34px;
-    padding: 0 12px;
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
   }
 
   /* Header: flexbox row so left nav, center pills, and right buttons never overlap. */
@@ -198,6 +206,33 @@
   .composer textarea,
   input, select, textarea { font-size: 16px; }
 
+  /* Mobile composer buttons & CTA */
+  .composer__cta {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+  }
+  .composer__btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+  }
+  .composer__btn--enhance {
+    width: auto !important;
+    min-width: auto;
+    min-height: 38px;
+    padding: 0 10px;
+  }
+  .composer__plus-anchor {
+    padding: 5px 0;
+  }
+  .composer__right {
+    gap: 6px;
+    padding: 5px 0;
+  }
+
   /* Touch targets. */
   .icon-btn { min-width: 40px; min-height: 40px; }
   .jump-btn {
@@ -284,7 +319,10 @@
   .toggle:active, .lib-row:active, .signin__shader-pill:active, .viewer__close:active,
   .viewer__bar .btn:active, .viewer__overlay .btn:active, .cfg-nav__item:active, .modal__close:active,
   .cfg-seg button:active, .app-row__connect:active, .app-row:active,
-  .task-row__check:active, .task-row__run-btn:active, .task-chip:active {
+  .task-row__check:active, .task-row__run-btn:active, .task-chip:active,
+  .composer__btn:active, .composer__cta:active, .composer__btn--enhance:active,
+  .panel-row--action:active, .members__remove:active, .question-option:active,
+  .draft-card__actions .btn:active, .earlier-btn:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -352,8 +390,12 @@ button { touch-action: manipulation; }
   .card__body { padding: 8px 14px 0; }
   .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; }
   .card__actions .btn { min-height: 44px; }
+  .draft-card__actions { padding: 10px 14px 14px; flex-wrap: wrap; }
+  .draft-card__actions .btn { min-height: 44px; }
   .question-card__options { padding: 6px; }
   .question-card__options button, .question-card__options [role="button"] { min-height: 44px; }
+  .question-option { min-height: 44px; padding: 10px 12px; }
+  .question-card__foot .link-btn { min-height: 38px; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; }
 
   /* Menus stay on-screen with comfortable >=44px touch targets. */
   .menu { max-width: calc(100vw - 24px); min-width: min(240px, calc(100vw - 32px)); }
@@ -361,11 +403,15 @@ button { touch-action: manipulation; }
   .menu__hint { display: none; }
 
   /* Details panel rows & member action targets */
-  .panel-row--action { min-height: 44px; font-size: 14px; }
+  .panel-row--action { min-height: 44px; font-size: 14px; padding: 8px 10px; }
   .panel-row--setting { min-height: 42px; font-size: 13.5px; }
-  .panel-row--link { min-height: 40px; }
+  .panel-row--link { min-height: 44px; padding: 8px 10px; }
+  .panel-row--routine { min-height: 48px; }
+  .panel-row--computer { min-height: 54px; }
+  .section-label--row { min-height: 32px; height: auto; }
+  .section-label--row .link-btn { min-height: 32px; padding: 6px 10px; font-size: 12.5px; display: inline-flex; align-items: center; }
   .members__row { min-height: 44px; }
-  .members__remove { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; }
+  .members__remove { width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
   .lib-row { min-height: 44px; }
   .lib-row__main { min-height: 44px; padding: 8px 10px; }
   .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }

@@ -294,7 +294,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           {hasText && !slashQuery && (
             <button
               type="button"
-              className="composer__btn"
+              className="composer__btn composer__btn--enhance"
               onClick={enhance}
               disabled={enhancing}
               title="Enhance prompt with AI for clearer tool & deliverable instructions"
