@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Bot, ComputerState, Routine } from '@shared/types';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { api, openPopup } from '../lib/api';
@@ -130,8 +130,27 @@ export function DetailsPanel() {
     try { const { redirectUrl } = await api.connect('slack'); if (popup) popup.location.href = redirectUrl; } catch { popup?.close(); }
   };
 
+  const touchStartX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    if (deltaX > 45 && window.innerWidth <= 900) {
+      set({ detailsOpen: false });
+    }
+    touchStartX.current = null;
+  };
+
   return (
-    <aside className="details" style={botVars(bot.avatarColor)} aria-label="Conversation details">
+    <aside
+      className="details"
+      style={botVars(bot.avatarColor)}
+      aria-label="Conversation details"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="details__top">
         <button
           type="button"

@@ -256,6 +256,7 @@ button { touch-action: manipulation; }
   .bubble .md { min-width: 0; overflow-wrap: anywhere; }
   .md-table { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; }
   .md pre { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; }
+  .md-copy-btn { min-height: 32px; padding: 6px 12px; font-size: 12px; }
   .md table { font-size: 13px; }
   .md th, .md td { padding: 4px 8px 4px 0; }
 

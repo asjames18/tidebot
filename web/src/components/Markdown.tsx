@@ -10,6 +10,9 @@ function PreBlock({ node: _n, children, ...props }: any) {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(12); } catch { /* ignore haptics unsupported */ }
+      }
       setTimeout(() => setCopied(false), 1600);
     }).catch(() => {});
   };
@@ -20,23 +23,9 @@ function PreBlock({ node: _n, children, ...props }: any) {
         type="button"
         onClick={copy}
         aria-label="Copy code"
-        style={{
-          position: 'absolute',
-          top: 6,
-          right: 6,
-          padding: '3px 8px',
-          fontSize: 11,
-          fontFamily: 'var(--font-mono-stack)',
-          borderRadius: 6,
-          border: '1px solid var(--color-border-secondary)',
-          background: 'var(--color-bg-elevated)',
-          color: 'var(--color-text-secondary)',
-          boxShadow: 'var(--shadow-card)',
-          cursor: 'pointer',
-          opacity: copied ? 1 : 0.92,
-        }}
+        className={`md-copy-btn${copied ? ' is-copied' : ''}`}
       >
-        {copied ? 'Copied' : 'Copy'}
+        {copied ? '✓ Copied' : 'Copy'}
       </button>
     </div>
   );

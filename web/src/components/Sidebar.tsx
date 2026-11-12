@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import { useConfigUI } from '../configStore';
 import { TasksIsland } from './config/TasksView';
 import type { Bot } from '@shared/types';
@@ -70,8 +70,25 @@ export function Sidebar() {
   const primary = bots.find((b) => b.isPrimary);
   const others = bots.filter((b) => !b.isPrimary).sort((a, b) => b.lastActivityAt - a.lastActivityAt);
 
+  const touchStartX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    if (deltaX < -45 && mobileOpen) {
+      set({ mobileSidebarOpen: false });
+    }
+    touchStartX.current = null;
+  };
+
   return (
-    <aside className={`sidebar${collapsed ? ' is-collapsed' : ''}${mobileOpen ? ' is-mobile-open' : ''}`}>
+    <aside
+      className={`sidebar${collapsed ? ' is-collapsed' : ''}${mobileOpen ? ' is-mobile-open' : ''}`}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="sidebar__titlebar">
         <div className="sidebar__brand">
           <TrafficLights />
