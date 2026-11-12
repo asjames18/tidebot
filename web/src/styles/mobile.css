@@ -369,7 +369,8 @@
   .modal__footer .btn:active, .modal__footer .link-btn:active,
   .cfg-editor__actions .cfg-btn:active, .group-pick__opt:active,
   .account__btn:active, .sidebar__byom-btn:active, .signin__google:active,
-  .activity-line .bubble__copy-btn:active, .tasks-view__back-btn:active,
+  .bubble__copy-btn:active, .tasks-view__back-btn:active,
+  .bubble__reasoning-toggle:active, .steps__toggle:active, .cite-chip:active,
   .bot-tasks__submit:active, .task-row .cfg-icon-btn:active,
   .create-modal__template-pill:active, .mode-pick__opt:active,
   .md-copy-btn:active, .vcall__toggle:active,
@@ -402,6 +403,24 @@
     font-size: 12px;
     display: inline-flex;
     align-items: center;
+  }
+  .bubble__copy-btn {
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+  }
+  .bubble__meta-bar {
+    min-height: 32px;
+    margin-top: 8px;
+    gap: 6px;
+  }
+  .bubble__meta-tag {
+    font-size: 11px;
+    padding: 2px 6px;
   }
 
   /* Toasts span the width and respect notch safe-area. */

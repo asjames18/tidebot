@@ -70,7 +70,7 @@ export function ComputerViewer() {
 
   return (
     <div className="viewer" role="dialog" aria-modal="true" aria-label={`${bot.name}'s computer`} style={botVars(bot.avatarColor)}>
-      <div className="viewer__scrim" onClick={mode === 'watch' ? close : undefined} />
+      <div className="viewer__scrim" onClick={mode === 'watch' ? close : undefined} onTouchStart={mode === 'watch' ? close : undefined} />
       <div className="viewer__top">
         <div className="viewer__title">
           <BotAvatarFor bot={bot} size={24} />
