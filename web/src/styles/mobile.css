@@ -376,7 +376,9 @@
   .md-copy-btn:active, .vcall__toggle:active,
   .toast:active, .menu__item:active,
   .pill-chip:active, .apps-modal__connected:active, .apps-modal__close:active,
-  .cfg-row .cfg-btn:active {
+  .cfg-row .cfg-btn:active, .card__actions .btn:active,
+  .question-card__foot .link-btn:active, .voice-preview:active,
+  .panel-row--call:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -475,10 +477,10 @@ button { touch-action: manipulation; }
   .card__head, .draft-card__head { padding: 14px 14px 4px; }
   .draft-card__copy { width: 40px; height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center; }
   .card__body { padding: 8px 14px 0; }
-  .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; }
-  .card__actions .btn { min-height: 44px; }
-  .draft-card__actions { padding: 10px 14px 14px; flex-wrap: wrap; }
-  .draft-card__actions .btn { min-height: 44px; }
+  .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; gap: 8px; }
+  .card__actions .btn { min-height: 44px; flex: 1 1 auto; }
+  .draft-card__actions { padding: 10px 14px 14px; flex-wrap: wrap; gap: 8px; }
+  .draft-card__actions .btn { min-height: 44px; flex: 1 1 auto; }
   .question-card__options { padding: 6px; }
   .question-card__options button, .question-card__options [role="button"] { min-height: 44px; }
   .question-option { min-height: 44px; padding: 10px 12px; }
@@ -547,9 +549,10 @@ button { touch-action: manipulation; }
     justify-content: center;
   }
   .vcall__log { -webkit-overflow-scrolling: touch; }
-  .voice-preview { min-height: 32px; padding: 0 12px; font-size: 13px; }
-  .mini-select--native { min-height: 32px; }
-  .panel-row--call { min-height: 44px; font-size: 13.5px; }
+  .voice-preview { min-height: 36px; padding: 0 12px; font-size: 13px; }
+  .mini-select--native { min-height: 36px; padding: 0 10px; }
+  .mini-select--native select { font-size: 16px; }
+  .panel-row--call { min-height: 48px; font-size: 14px; }
 
   /* Settings: nav becomes a top bar with horizontal scrolling tabs. */
   .app-settings { flex-direction: column; }
