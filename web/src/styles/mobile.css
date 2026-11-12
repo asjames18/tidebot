@@ -810,6 +810,10 @@ button { touch-action: manipulation; }
   .app-settings__nav button { flex-shrink: 0; min-height: 40px; }
   .app-settings__page { padding: 20px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
   .app-settings__head { padding-right: 44px; }
+  .app-settings__head h1 { font-size: 20px; line-height: 26px; }
+  .app-settings__head p { font-size: 12.5px; line-height: 18px; }
+  .cfg-field__hint { font-size: 12px; line-height: 17px; overflow-wrap: anywhere; }
+  .cfg-code { overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
   .app-settings__close {
     top: calc(12px + env(safe-area-inset-top));
     right: 12px;
@@ -822,6 +826,8 @@ button { touch-action: manipulation; }
   .cfg-input { font-size: 16px; height: 44px; }
   .byom-provider-grid { grid-template-columns: 1fr; }
   .byom-provider-card { min-height: 48px; padding: 12px 14px; }
+  .byom-provider-card__title { font-size: 14px; overflow-wrap: anywhere; }
+  .byom-provider-card__sub { font-size: 12px; line-height: 16px; overflow-wrap: anywhere; }
   .sys-telemetry-grid {
     grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)) !important;
     gap: 6px !important;
