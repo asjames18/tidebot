@@ -151,7 +151,15 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
           <BotAvatar shape={draft.avatarShape} color={draft.avatarColor} size={72} />
           <div className="cfg-look__text">
             <div className="cfg-look__name">{draft.name || 'New Bot'}</div>
-            <button type="button" className="cfg-btn cfg-btn--secondary" onClick={() => setPicker(!picker)} aria-expanded={picker}>
+            <button
+              type="button"
+              className="cfg-btn cfg-btn--secondary"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setPicker(!picker);
+              }}
+              aria-expanded={picker}
+            >
               {picker ? 'Done' : 'Change look'}
             </button>
           </div>
@@ -636,7 +644,16 @@ function SkillEditor({ botId, skill, onDone }: { botId: string; skill?: Skill; o
       <textarea className="text-input cfg-textarea cfg-textarea--tall" rows={8} placeholder={'Write the steps to follow:\n1. …\n2. …'} value={body} onChange={(e) => setBody(e.target.value)} aria-label="Skill steps" />
       {error && <div className="cfg-error">{error}</div>}
       <div className="cfg-editor__actions">
-        <button type="button" className="cfg-btn cfg-btn--secondary" onClick={onDone}>Cancel</button>
+        <button
+          type="button"
+          className="cfg-btn cfg-btn--secondary"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            onDone();
+          }}
+        >
+          Cancel
+        </button>
         <button type="submit" className="cfg-btn cfg-btn--primary" disabled={!can}>{busy ? 'Saving…' : skill ? 'Save skill' : 'Add skill'}</button>
       </div>
     </form>
@@ -920,7 +937,16 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
       <textarea className="text-input cfg-textarea" rows={4} placeholder="What should this Bot do each time the routine runs?" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Routine instructions" />
       {error && <div className="cfg-error">{error}</div>}
       <div className="cfg-editor__actions">
-        <button type="button" className="cfg-btn cfg-btn--secondary" onClick={() => onDone()}>Cancel</button>
+        <button
+          type="button"
+          className="cfg-btn cfg-btn--secondary"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            onDone();
+          }}
+        >
+          Cancel
+        </button>
         <button type="submit" className="cfg-btn cfg-btn--primary" disabled={!can}>{busy ? 'Saving…' : routine ? 'Save routine' : 'Create routine'}</button>
       </div>
     </form>
