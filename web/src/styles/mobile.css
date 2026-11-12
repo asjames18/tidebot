@@ -87,6 +87,7 @@
   .details__scroll {
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   .details__tabs .segmented button {
     min-height: 40px;
@@ -265,6 +266,11 @@
   .cite-chip { min-height: 34px; padding: 6px 12px; font-size: 12.5px; display: inline-flex; align-items: center; }
   .earlier-btn { min-height: 40px; padding: 8px 16px; font-size: 13px; }
   .bubble__reasoning-toggle { min-height: 38px; padding: 8px 14px; font-size: 13px; }
+  .bubble__reasoning-content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    max-height: min(220px, 35vh);
+  }
   .steps__toggle { min-height: 38px; padding: 6px 14px; font-size: 13px; }
 
   /* Modals fit small screens with native bottom-sheet presentation. */
@@ -505,7 +511,10 @@ button { touch-action: manipulation; }
   .chat, .tasks-view { flex: 1 1 auto; width: 100%; min-width: 0; }
   .tasks-stats .cfg-card > div:first-child { font-size: 10px !important; letter-spacing: 0; }
 
-  .transcript { overscroll-behavior: contain; }
+  .transcript {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 
   /* Markdown content can never push the bubble wider than the screen. */
   .bubble .md { min-width: 0; overflow-wrap: anywhere; }
@@ -524,12 +533,14 @@ button { touch-action: manipulation; }
   .md th, .md td { padding: 4px 8px 4px 0; }
 
   /* Cards: full width, stacked comfortable actions, 44px options. */
-  .card, .panel-card { max-width: 100%; }
+  .card, .panel-card, .question-card { max-width: 100%; }
+  .question-card { width: 100%; }
   .card__head, .draft-card__head { padding: 14px 14px 4px; }
   .draft-card__copy { width: 40px; height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center; }
   .card__body { padding: 8px 14px 0; }
   .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; gap: 8px; }
   .card__actions .btn { min-height: 44px; flex: 1 1 auto; }
+  .card__outcome { padding: 10px 14px 14px; min-height: 36px; }
   .draft-card__actions { padding: 10px 14px 14px; flex-wrap: wrap; gap: 8px; }
   .draft-card__actions .btn { min-height: 44px; flex: 1 1 auto; }
   .question-card__options { padding: 6px; }
@@ -1020,7 +1031,11 @@ button { touch-action: manipulation; }
   .signin__foot-grid { flex-wrap: wrap; justify-content: center; row-gap: 4px; }
 
   /* Sidebar rows are finger-sized. */
-  .sidebar__scroll { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .sidebar__scroll {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
   .bot-list__empty { min-height: 52px; padding: 10px 12px; }
   .bot-list__empty-plus { width: 40px; height: 40px; min-width: 40px; }
 
