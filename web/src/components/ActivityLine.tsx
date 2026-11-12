@@ -26,7 +26,7 @@ export function ActivityLine({ bot, live, rows }: { bot: Bot; live: LiveState; r
       <span className="activity-line__mark"><BotAvatarFor bot={bot} size={20} /></span>
       <span className="activity-line__text shimmer" key={phrase}>{phrase}</span>
       {shortModel && !waiting && (
-        <span style={{ fontSize: 10.5, fontFamily: 'var(--font-mono-stack)', color: 'var(--color-text-tertiary)' }}>
+        <span className="activity-line__model">
           · {shortModel}
         </span>
       )}

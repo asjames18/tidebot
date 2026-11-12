@@ -325,6 +325,7 @@
 .activity-line { display: flex; align-items: center; gap: 8px; padding: 2px 4px; font-size: 14px; line-height: 20px; letter-spacing: 0.14px; }
 .activity-line__mark { display: inline-flex; animation: bob 2.4s ease-in-out infinite; }
 .activity-line__time { color: var(--color-text-tertiary); }
+.activity-line__model { font-size: 10.5px; font-family: var(--font-mono-stack); color: var(--color-text-tertiary); }
 .shimmer {
   color: transparent;
   background: linear-gradient(90deg, var(--color-text-tertiary) 0%, var(--color-text-tertiary) 35%, var(--color-text-primary) 50%, var(--color-text-tertiary) 65%, var(--color-text-tertiary) 100%);

@@ -521,6 +521,11 @@
     row-gap: 4px;
     font-size: 13px;
   }
+  .activity-line__model {
+    font-size: 11px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   .activity-line .bubble__copy-btn {
     min-height: 36px;
     padding: 6px 14px;
@@ -610,12 +615,13 @@ button { touch-action: manipulation; }
     overflow-wrap: anywhere;
     word-break: break-all;
   }
-  .md-table { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: thin; margin: 8px 0; }
+  .md-table { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; overscroll-behavior-x: contain; scrollbar-width: thin; margin: 8px 0; }
   .md pre {
     max-width: calc(100vw - 44px);
     padding-right: 76px;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    overscroll-behavior-x: contain;
   }
   .md-copy-btn {
     min-height: 36px;
