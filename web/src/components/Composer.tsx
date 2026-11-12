@@ -75,7 +75,10 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
     }
   };
 
-  const stop = () => api.interrupt(bot.id).catch((e) => setError(e.message));
+  const stop = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+    api.interrupt(bot.id).catch((e) => setError(e.message));
+  };
   const fresh = () => api.fresh(bot.id).catch((e) => setError(e.message));
 
   const enhance = async () => {
@@ -143,7 +146,21 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
 
   return (
     <div className="composer-area">
-      {error && <div className="composer__error">{error} <button type="button" className="link-btn" onClick={() => setError(null)}>Dismiss</button></div>}
+      {error && (
+        <div className="composer__error">
+          {error}{' '}
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              setError(null);
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       {matchingSlash.length > 0 && (
         <div className="slash-palette" role="listbox" aria-label="Slash commands">
           {matchingSlash.map((item) => (
@@ -301,11 +318,29 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             <Icon name="mic" opacity={0.56} />
           </button>
           {inCall && !hasText ? (
-            <button type="button" className="composer__cta is-in-call" onClick={endCall} aria-label="End voice call" title="End voice call">
+            <button
+              type="button"
+              className="composer__cta is-in-call"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(15); } catch {} }
+                endCall();
+              }}
+              aria-label="End voice call"
+              title="End voice call"
+            >
               <Icon name="voice_a" size={16} />
             </button>
           ) : running && !hasText ? (
-            <button type="button" className="composer__cta" onClick={stop} aria-label="Stop" title="Stop">
+            <button
+              type="button"
+              className="composer__cta"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                stop();
+              }}
+              aria-label="Stop"
+              title="Stop"
+            >
               <Icon name="stop" size={14} />
             </button>
           ) : (
@@ -330,7 +365,10 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           <button
             type="button"
             className="composer-telemetry__chip"
-            onClick={() => useConfigUI.getState().openAppSettings('models')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              useConfigUI.getState().openAppSettings('models');
+            }}
             title="Configure OpenRouter / Bring Your Own Model"
           >
             <span className={`composer-telemetry__dot${llmConfig?.isConfigured ? ' is-ok' : ''}`} />
@@ -356,7 +394,10 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           <button
             type="button"
             className="composer-telemetry__chip"
-            onClick={() => setModal('apps')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              setModal('apps');
+            }}
             title="Open Composio Connected Apps Marketplace"
           >
             <span className={`composer-telemetry__dot${llmConfig?.hasComposioKey ? ' is-ok' : ''}`} />
