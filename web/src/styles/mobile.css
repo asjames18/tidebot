@@ -324,8 +324,8 @@ button { touch-action: manipulation; }
 
   /* Composer extras. */
   .slash-palette { max-height: 42dvh; overflow-y: auto; box-sizing: border-box; }
-  .slash-palette__item { min-width: 0; }
-  .slash-palette__desc { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .slash-palette__item { min-width: 0; min-height: 44px; padding: 10px 12px; }
+  .slash-palette__desc { min-width: 0; white-space: normal; overflow-wrap: anywhere; font-size: 13px; }
 
   /* Tasks stats fit three-across without forcing width. */
   .tasks-stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }

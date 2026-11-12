@@ -101,7 +101,10 @@ export function ChatView() {
         <button
           type="button"
           className="icon-btn icon-btn--bordered mobile-nav-btn"
-          onClick={() => set({ mobileSidebarOpen: true, sidebarCollapsed: false })}
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            set({ mobileSidebarOpen: true, sidebarCollapsed: false });
+          }}
           aria-label="Open operators list"
         >
           <Icon name="sidebar" opacity={0.8} />

@@ -81,6 +81,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   const enhance = async () => {
     const raw = text.trim();
     if (!raw || enhancing) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     setEnhancing(true);
     setError(null);
     try {
@@ -121,6 +122,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   const matchingSlash = slashQuery ? SLASH_COMMANDS.filter((c) => c.cmd.startsWith(slashQuery)) : [];
 
   const runSlash = (item: (typeof SLASH_COMMANDS)[number]) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     if (item.template) {
       setText(item.template);
       requestAnimationFrame(() => ref.current?.focus());
@@ -223,7 +225,16 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
       <div className={`composer${multiline ? ' is-multiline' : ''}`}>
         <div className="composer__left">
           <span className="composer__plus-anchor">
-            <button type="button" className="composer__btn" onClick={() => setMenu(!menu)} aria-label="More actions" aria-expanded={menu}>
+            <button
+              type="button"
+              className="composer__btn"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setMenu(!menu);
+              }}
+              aria-label="More actions"
+              aria-expanded={menu}
+            >
               <Icon name="composer_plus" opacity={0.56} />
             </button>
             {menu && (
@@ -301,7 +312,10 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             <button
               type="button"
               className="composer__cta"
-              onClick={hasText ? send : () => startCall(bot.id)}
+              onClick={hasText ? send : () => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                startCall(bot.id);
+              }}
               disabled={hasText && sending}
               aria-label={hasText ? 'Send' : `Start voice chat with ${bot.name}`}
               title={hasText ? 'Send (Enter)' : 'Start voice chat'}
@@ -328,6 +342,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             type="button"
             className="composer-telemetry__chip"
             onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
               const cur = bot.effort ?? 'low';
               const next = EFFORT_CYCLE[(EFFORT_CYCLE.indexOf(cur) + 1) % EFFORT_CYCLE.length];
               configApi.updateBot(bot.id, { effort: next }).then(({ bot: updated }) => {
