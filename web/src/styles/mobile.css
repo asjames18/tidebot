@@ -659,8 +659,13 @@ button { touch-action: manipulation; }
     overflow-x: auto; overflow-y: hidden; padding: calc(10px + env(safe-area-inset-top)) 10px 10px;
     border-right: 0; border-bottom: 0.5px solid var(--color-border-tertiary);
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    overscroll-behavior-x: contain;
   }
   .app-settings__nav::-webkit-scrollbar { display: none; }
+  .app-settings__main {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
   .app-settings__back { margin-bottom: 0; flex-shrink: 0; min-height: 40px; }
   .app-settings__heading { display: none; }
   .app-settings__nav button { flex-shrink: 0; min-height: 40px; }
@@ -678,8 +683,17 @@ button { touch-action: manipulation; }
   .cfg-input { font-size: 16px; height: 44px; }
   .byom-provider-grid { grid-template-columns: 1fr; }
   .byom-provider-card { min-height: 48px; }
+  .byom-filter-tabs {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
   .byom-filter-tab { min-height: 40px; height: 40px; padding: 0 14px; font-size: 13px; }
-  .byom-model-grid { grid-template-columns: 1fr; max-height: 380px; -webkit-overflow-scrolling: touch; }
+  .byom-model-grid {
+    grid-template-columns: 1fr;
+    max-height: 380px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
   .byom-model-card { min-height: 52px; }
   .byom-actions { flex-wrap: wrap; gap: 8px; }
   .byom-actions .cfg-btn { flex: 1 1 auto; min-height: 44px; }
