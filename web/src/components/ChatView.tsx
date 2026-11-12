@@ -38,6 +38,7 @@ export function ChatView() {
   const shortModel = activeModel.includes('/') ? activeModel.split('/').pop()! : activeModel;
 
   const pickBotModel = async (modelId: string) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     try {
       await configApi.updateBot(bot.id, { model: modelId });
       flash(modelId ? `Switched ${bot.name} to ${modelId}` : `Using default model (${llmConfig?.defaultModel})`);
@@ -47,6 +48,7 @@ export function ChatView() {
   };
 
   const shareTranscript = async () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     const msgs = rows.filter((r) => r.body.type === 'message' && !r.body.streaming);
     if (!msgs.length) {
       flash('No messages to export yet');
@@ -61,6 +63,20 @@ export function ChatView() {
         return `### ${speaker}\n\n${r.body.text}\n`;
       }),
     ].join('\n');
+
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        await navigator.share({
+          title: `Conversation with ${displayName(bot)}`,
+          text: md,
+        });
+        flash('Shared conversation');
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
     try {
       await navigator.clipboard.writeText(md);
       flash('Copied conversation as Markdown');
@@ -92,7 +108,16 @@ export function ChatView() {
         </button>
         <div className="chat__header-center">
           <span className="chat__pill-anchor">
-            <button type="button" className="chat__pill" onClick={() => setMenu(!menu)} aria-haspopup="menu" aria-expanded={menu}>
+            <button
+              type="button"
+              className="chat__pill"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setMenu(!menu);
+              }}
+              aria-haspopup="menu"
+              aria-expanded={menu}
+            >
               <BotAvatarFor bot={bot} size={24} />
               <span className="chat__pill-name">{displayName(bot)}</span>
             </button>
@@ -125,7 +150,10 @@ export function ChatView() {
             <button
               type="button"
               className={`chat__model-pill${llmConfig?.isConfigured ? ' is-live' : ''}`}
-              onClick={() => setModelMenu(!modelMenu)}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setModelMenu(!modelMenu);
+              }}
               aria-haspopup="menu"
               aria-expanded={modelMenu}
               title={`Active Model: ${activeModel} (click to switch)`}
@@ -164,18 +192,39 @@ export function ChatView() {
           <button
             type="button"
             className="icon-btn icon-btn--bordered mobile-only-btn"
-            onClick={() => useStore.getState().setModal('search')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              useStore.getState().setModal('search');
+            }}
             aria-label="Command palette"
             title="Command palette (⌘K)"
           >
             <Icon name="search" opacity={0.75} />
           </button>
           {!detailsOpen && (
-            <button type="button" className="icon-btn icon-btn--bordered" onClick={() => set({ detailsOpen: true })} aria-label="Show details" title="Show details">
+            <button
+              type="button"
+              className="icon-btn icon-btn--bordered"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                set({ detailsOpen: true });
+              }}
+              aria-label="Show details"
+              title="Show details"
+            >
               <Icon name="sidebar" opacity={0.66} style={{ transform: 'scaleX(-1)' }} />
             </button>
           )}
-          <button type="button" className="share-btn" onClick={() => void shareTranscript()} title="Copy conversation as Markdown">Share</button>
+          <button
+            type="button"
+            className="share-btn"
+            onClick={() => void shareTranscript()}
+            title="Export conversation as Markdown"
+            aria-label="Share conversation"
+          >
+            <Icon name="share" size={14} opacity={0.8} />
+            <span className="share-btn__label">Share</span>
+          </button>
         </div>
       </header>
       {toast && <div className="toast" role="status">{toast}</div>}
