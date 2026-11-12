@@ -346,6 +346,11 @@ button { touch-action: manipulation; }
   .app-settings__close { top: 14px; right: 12px; }
   .cfg-grid { grid-template-columns: 1fr; }
   .cfg-input { font-size: 16px; height: 44px; }
+  .byom-provider-grid { grid-template-columns: 1fr; }
+  .byom-model-grid { grid-template-columns: 1fr; max-height: 380px; }
+  .byom-actions { flex-wrap: wrap; gap: 8px; }
+  .byom-search { max-width: 100%; width: 100%; }
+  .theme-tiles { justify-content: center; }
 
   /* Bot settings modal, Connect Apps modal, Search modal, and Tasks view on mobile. */
   .bot-settings {

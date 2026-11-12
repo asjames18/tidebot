@@ -35,6 +35,21 @@ export function AppSettings() {
   const section = useConfigUI((s) => s.appSettings);
   const close = useConfigUI((s) => s.closeAppSettings);
   const open = useConfigUI((s) => s.openAppSettings);
+
+  const handleClose = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
+    close();
+  };
+
+  const handleNav = (id: AppSection) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
+    open(id);
+  };
+
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !document.querySelector('.modal-root')) {
@@ -49,7 +64,7 @@ export function AppSettings() {
   return createPortal(
     <div className="app-settings" role="dialog" aria-modal="true" aria-label="Settings">
       <aside className="app-settings__nav">
-        <button type="button" className="app-settings__back" onClick={close}>
+        <button type="button" className="app-settings__back" onClick={handleClose}>
           <Glyph name="arrow_left" size={14} /> Back to Studio
         </button>
         <div className="app-settings__heading">TideBot Settings</div>
@@ -58,7 +73,7 @@ export function AppSettings() {
             key={s.id}
             type="button"
             className={`cfg-nav__item${section === s.id ? ' is-active' : ''}`}
-            onClick={() => open(s.id)}
+            onClick={() => handleNav(s.id)}
             aria-current={section === s.id || undefined}
           >
             {s.label}
@@ -69,7 +84,7 @@ export function AppSettings() {
         <button
           type="button"
           className="app-settings__close icon-btn"
-          onClick={close}
+          onClick={handleClose}
           aria-label="Close settings"
           title="Close (Esc)"
         >
@@ -107,7 +122,12 @@ function ThemeTile({ value, label, current, onPick }: { value: Theme; label: str
       role="radio"
       aria-checked={current === value}
       className={`theme-tile${current === value ? ' is-active' : ''}`}
-      onClick={() => onPick(value)}
+      onClick={() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate(8); } catch {}
+        }
+        onPick(value);
+      }}
     >
       <span className={`theme-tile__art is-${value}`} aria-hidden>
         <span className="theme-tile__side" />
@@ -135,6 +155,9 @@ function GeneralSection() {
   const currentShader: ShaderStyle = llmConfig?.shaderStyle ?? 'aurora';
 
   const pickShader = async (s: ShaderStyle) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
     try {
       const updated = await configApi.saveLlmConfig({ shaderStyle: s });
       setLlmConfig(updated);
@@ -272,6 +295,9 @@ function ModelsSection() {
   }, [llmConfig]);
 
   const save = async (overrideModel?: string) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(12); } catch {}
+    }
     setSaving(true);
     setStatusMsg(null);
     try {
@@ -298,6 +324,9 @@ function ModelsSection() {
   };
 
   const testConn = async () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setTesting(true);
     setStatusMsg(null);
     try {
@@ -369,6 +398,9 @@ function ModelsSection() {
             type="button"
             className={`byom-provider-card${provider === 'openrouter' ? ' is-active' : ''}`}
             onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate(8); } catch {}
+              }
               setProvider('openrouter');
               if (defaultModel === 'grok-4.7') setDefaultModel('anthropic/claude-3.7-sonnet');
             }}
@@ -385,7 +417,12 @@ function ModelsSection() {
           <button
             type="button"
             className={`byom-provider-card${provider === 'custom' ? ' is-active' : ''}`}
-            onClick={() => setProvider('custom')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate(8); } catch {}
+              }
+              setProvider('custom');
+            }}
           >
             <div className="byom-provider-card__top">
               <span className="byom-provider-card__title">Custom Endpoint</span>
@@ -400,6 +437,9 @@ function ModelsSection() {
             type="button"
             className={`byom-provider-card${provider === 'xai' ? ' is-active' : ''}`}
             onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate(8); } catch {}
+              }
               setProvider('xai');
               if (defaultModel.includes('/')) setDefaultModel('grok-4.7');
             }}
@@ -536,7 +576,12 @@ function ModelsSection() {
             role="tab"
             aria-selected={filterTab === 'all'}
             className={`byom-filter-tab${filterTab === 'all' ? ' is-active' : ''}`}
-            onClick={() => setFilterTab('all')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate(8); } catch {}
+              }
+              setFilterTab('all');
+            }}
           >
             All Models ({totalCount})
           </button>
@@ -545,7 +590,12 @@ function ModelsSection() {
             role="tab"
             aria-selected={filterTab === 'free'}
             className={`byom-filter-tab byom-filter-tab--free${filterTab === 'free' ? ' is-active' : ''}`}
-            onClick={() => setFilterTab('free')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate(8); } catch {}
+              }
+              setFilterTab('free');
+            }}
           >
             🎁 100% Free (:free) ({freeCount})
           </button>
@@ -554,7 +604,12 @@ function ModelsSection() {
             role="tab"
             aria-selected={filterTab === 'vision'}
             className={`byom-filter-tab${filterTab === 'vision' ? ' is-active' : ''}`}
-            onClick={() => setFilterTab('vision')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate(8); } catch {}
+              }
+              setFilterTab('vision');
+            }}
           >
             👁️ Vision
           </button>
@@ -563,7 +618,12 @@ function ModelsSection() {
             role="tab"
             aria-selected={filterTab === 'fast'}
             className={`byom-filter-tab${filterTab === 'fast' ? ' is-active' : ''}`}
-            onClick={() => setFilterTab('fast')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate(8); } catch {}
+              }
+              setFilterTab('fast');
+            }}
           >
             ⚡ Fast
           </button>
@@ -579,6 +639,9 @@ function ModelsSection() {
                 type="button"
                 className={`byom-model-card${active ? ' is-active' : ''}${isFree ? ' is-free' : ''}`}
                 onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                    try { navigator.vibrate(10); } catch {}
+                  }
                   setDefaultModel(m.id);
                   void save(m.id);
                 }}
@@ -631,6 +694,9 @@ function ComputerSection() {
   const running = status === 'running';
   const transitioning = status === 'starting' || status === 'resuming' || status === 'creating' || status === 'suspending';
   const act = async (kind: 'wake' | 'sleep') => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setBusy(kind); setNote(null);
     try { kind === 'wake' ? await configApi.wake() : await configApi.sleep(); }
     catch (e) { setNote((e as Error).message); }
@@ -681,7 +747,12 @@ function ComputerSection() {
                   confirmLabel="Reset screen"
                   disabled={!running}
                   title={running ? 'Closes everything open on this screen' : 'Wake the computer first'}
-                  onConfirm={async () => { try { await configApi.resetScreen(s.botId); setNote(null); load(); } catch (e) { setNote((e as Error).message); } }}
+                  onConfirm={async () => {
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                      try { navigator.vibrate(12); } catch {}
+                    }
+                    try { await configApi.resetScreen(s.botId); setNote(null); load(); } catch (e) { setNote((e as Error).message); }
+                  }}
                 >
                   Reset
                 </ConfirmButton>
@@ -723,7 +794,18 @@ function PermissionsSection() {
                   <div className="cfg-row__title">{h.app}{h.action ? ` · ${h.action}` : ''}</div>
                   <div className="cfg-row__sub">{p.mode === 'always_allow' ? 'Always allowed' : p.mode === 'blocked' ? 'Never allowed' : 'Asks first'} · <code className="cfg-code">{p.tool}</code></div>
                 </div>
-                <button type="button" className="cfg-btn cfg-btn--secondary" onClick={() => configApi.deletePolicy(p.tool).then(load).catch(() => {})}>Ask again</button>
+                <button
+                  type="button"
+                  className="cfg-btn cfg-btn--secondary"
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                      try { navigator.vibrate(8); } catch {}
+                    }
+                    configApi.deletePolicy(p.tool).then(load).catch(() => {});
+                  }}
+                >
+                  Ask again
+                </button>
               </div>
             );
           })}
@@ -746,10 +828,19 @@ function AppsSection() {
   const [keyNote, setKeyNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => { configApi.connectedApps().then((r) => setApps(r.connectedApps ?? [])).catch(() => setApps([])); }, [version]);
-  const openApps = () => { useConfigUI.getState().closeAppSettings(); useStore.getState().setModal('apps'); };
+  const openApps = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
+    useConfigUI.getState().closeAppSettings();
+    useStore.getState().setModal('apps');
+  };
 
   const saveComposioKey = async () => {
     if (!composioKey.trim()) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(12); } catch {}
+    }
     setSavingKey(true);
     setKeyNote(null);
     try {
@@ -767,6 +858,9 @@ function AppsSection() {
   };
 
   const testComposio = async () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setTestingKey(true);
     setKeyNote(null);
     try {
