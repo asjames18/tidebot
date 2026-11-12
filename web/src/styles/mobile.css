@@ -623,6 +623,16 @@ button { touch-action: manipulation; }
   .draft-card__subject { padding-top: 8px; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; word-break: break-word; }
   .draft-card__text { padding-top: 8px; font-size: 13.5px; line-height: 20px; max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .card__body { padding: 8px 14px 0; overflow-wrap: anywhere; word-break: break-word; }
+  .card__title { font-size: 13.5px; line-height: 19px; overflow-wrap: anywhere; word-break: break-word; }
+  .card__sub { font-size: 12.5px; line-height: 17px; overflow-wrap: anywhere; word-break: break-word; }
+  .card__error {
+    font-size: 12.5px;
+    line-height: 17px;
+    padding: 0 14px 12px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+  }
   .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; gap: 8px; }
   .card__actions .btn { min-height: 44px; flex: 1 1 auto; }
   .card__outcome { padding: 10px 14px 14px; min-height: 36px; }
@@ -757,7 +767,21 @@ button { touch-action: manipulation; }
     flex: 1 1 auto;
     justify-content: center;
   }
-  .composer__error { font-size: 13px; }
+  .composer__error {
+    font-size: 13px;
+    line-height: 18px;
+    max-width: 100%;
+    margin-left: 10px;
+    margin-right: 10px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .composer__error span {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 
   /* Voice call bar compacts & enlarges touch controls. */
   .vcall { margin: 0 10px; width: calc(100% - 20px); }
