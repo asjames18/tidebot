@@ -934,5 +934,10 @@ button { touch-action: manipulation; }
     .chat__model-name { max-width: 40px; }
     .bubble { font-size: 14px; }
     .composer { margin: 0 6px 4px; }
+    .signin__card { padding: 22px 16px 18px; }
+    .signin__sub { font-size: 13px; line-height: 18px; margin: 6px 0 16px; }
+    .signin__title { font-size: 24px; line-height: 30px; }
+    .empty-chat__stage-inner { padding: 20px 10px 16px; }
+    .empty-chat__title { font-size: 22px; }
   }
 }
