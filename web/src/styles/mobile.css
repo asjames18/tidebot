@@ -144,7 +144,14 @@
   }
   .composer-telemetry::-webkit-scrollbar { display: none; }
   .composer-telemetry__left { flex-wrap: nowrap; gap: 6px; }
-  .composer-telemetry__chip { flex-shrink: 0; padding: 3px 8px; }
+  .composer-telemetry__chip {
+    flex-shrink: 0;
+    min-height: 28px;
+    padding: 4px 10px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+  }
   .composer-telemetry__right { display: none; }
 
   /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */
@@ -379,7 +386,7 @@
   .pill-chip:active, .apps-modal__connected:active, .apps-modal__close:active,
   .cfg-row .cfg-btn:active, .card__actions .btn:active,
   .question-card__foot .link-btn:active, .voice-preview:active,
-  .panel-row--call:active {
+  .panel-row--call:active, .composer-telemetry__chip:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -797,10 +804,14 @@ button { touch-action: manipulation; }
     font-size: 17px;
   }
   .search-modal__clear {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .search-modal__results {
     -webkit-overflow-scrolling: touch;
