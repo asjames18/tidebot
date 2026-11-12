@@ -20,7 +20,27 @@
     box-shadow: none;
   }
   .sidebar.is-mobile-open { transform: none; box-shadow: var(--shadow-composer); }
+  .sidebar__titlebar {
+    padding-top: max(12px, env(safe-area-inset-top));
+    height: auto;
+    min-height: calc(56px + env(safe-area-inset-top));
+  }
   .sidebar.is-collapsed .sidebar__titlebar { justify-content: space-between; padding: 12px 16px 12px 14px; height: 60px; }
+  .sidebar__footer {
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+  .sidebar__byom-btn {
+    min-height: 44px;
+  }
+  .sidebar__controls .icon-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+  }
+  .account__btn {
+    min-height: 40px;
+  }
   .mobile-scrim {
     display: block; position: fixed; inset: 0; z-index: 110;
     background: rgba(0, 0, 0, 0.5);

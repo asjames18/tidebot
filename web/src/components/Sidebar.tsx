@@ -59,6 +59,9 @@ export function Sidebar() {
   const set = useStore((s) => s.set);
   const storeSelectBot = useStore((s) => s.selectBot);
   const selectBot = useCallback((id: string) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
     useConfigUI.getState().setView('chat');
     storeSelectBot(id);
     set({ mobileSidebarOpen: false });
@@ -78,6 +81,9 @@ export function Sidebar() {
     if (touchStartX.current === null) return;
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     if (deltaX < -45 && mobileOpen) {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(10); } catch {}
+      }
       set({ mobileSidebarOpen: false });
     }
     touchStartX.current = null;
@@ -100,13 +106,41 @@ export function Sidebar() {
           </button>
           {!collapsed && (
             <>
-              <button type="button" className="icon-btn" onClick={() => { set({ mobileSidebarOpen: false }); setModal('search'); }} aria-label="Search" title="Search (⌘K)">
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  set({ mobileSidebarOpen: false });
+                  setModal('search');
+                }}
+                aria-label="Search"
+                title="Search (⌘K)"
+              >
                 <Icon name="search" opacity={0.66} />
               </button>
-              <button type="button" className="icon-btn" onClick={() => { set({ mobileSidebarOpen: false }); setModal('create'); }} aria-label="New Bot" title="New Bot">
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  set({ mobileSidebarOpen: false });
+                  setModal('create');
+                }}
+                aria-label="New Bot"
+                title="New Bot"
+              >
                 <Icon name="plus" opacity={0.66} />
               </button>
-              <button type="button" className="icon-btn icon-btn--plain mobile-only-btn" onClick={() => set({ mobileSidebarOpen: false })} aria-label="Close drawer">
+              <button
+                type="button"
+                className="icon-btn icon-btn--plain mobile-only-btn"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  set({ mobileSidebarOpen: false });
+                }}
+                aria-label="Close drawer"
+              >
                 <Icon name="close" size={14} opacity={0.75} />
               </button>
             </>
@@ -138,7 +172,14 @@ export function Sidebar() {
             ),
           )}
           {!collapsed && others.length === 0 && (
-            <button type="button" className="bot-list__empty" onClick={() => setModal('create')}>
+            <button
+              type="button"
+              className="bot-list__empty"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setModal('create');
+              }}
+            >
               <span className="bot-list__empty-plus"><Icon name="plus" size={14} opacity={0.66} /></span>
               <span>
                 <span className="bot-row__name">Create a Bot</span>
@@ -156,7 +197,11 @@ export function Sidebar() {
             <button
               type="button"
               className="sidebar__byom-btn"
-              onClick={() => { set({ mobileSidebarOpen: false }); useConfigUI.getState().openAppSettings('models'); }}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                set({ mobileSidebarOpen: false });
+                useConfigUI.getState().openAppSettings('models');
+              }}
               title="Configure OpenRouter / Bring Your Own Model"
             >
               <span className={`sidebar__byom-dot ${llmConfig?.isConfigured ? 'is-ok' : 'is-warn'}`} />
@@ -175,7 +220,17 @@ export function Sidebar() {
         <div className="sidebar__footer-row">
           {!collapsed && (
             <div className="account">
-              <button type="button" className="account__btn" onClick={() => setAccountMenu(!accountMenu)} aria-haspopup="menu" aria-expanded={accountMenu} title={user?.email}>
+              <button
+                type="button"
+                className="account__btn"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  setAccountMenu(!accountMenu);
+                }}
+                aria-haspopup="menu"
+                aria-expanded={accountMenu}
+                title={user?.email}
+              >
                 <span className="account__initials">{initials(user?.name ?? user?.email ?? '')}</span>
                 <span className="account__name">{user?.name ?? user?.email}</span>
               </button>
@@ -195,7 +250,17 @@ export function Sidebar() {
               )}
             </div>
           )}
-          <button type="button" className="icon-btn icon-btn--bordered" onClick={() => { set({ mobileSidebarOpen: false }); setModal('apps'); }} aria-label="Connect apps" title="Connect apps">
+          <button
+            type="button"
+            className="icon-btn icon-btn--bordered"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              set({ mobileSidebarOpen: false });
+              setModal('apps');
+            }}
+            aria-label="Connect apps"
+            title="Connect apps"
+          >
             <Icon name="apps" />
           </button>
         </div>
