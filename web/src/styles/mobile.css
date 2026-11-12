@@ -371,21 +371,27 @@
     border-top: 0.5px solid var(--color-border-secondary);
   }
   .modal__footer .btn {
-    min-height: 42px;
+    min-height: 44px;
     height: auto;
     padding: 0 16px;
     font-size: 14px;
     font-weight: 500;
   }
   .modal__footer .link-btn {
-    min-height: 42px;
+    min-height: 44px;
     padding: 0 10px;
     font-size: 13px;
     display: inline-flex;
     align-items: center;
   }
-  .create-modal__name {
+  .create-modal__name,
+  .create-modal .text-input,
+  .create-modal select.text-input {
     width: 100%;
+    font-size: 16px;
+    height: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
   }
   .shape-cell {
     width: 44px;
@@ -423,7 +429,7 @@
   .shader-Option:active, .byom-provider-card:active, .theme-tile:active, .byom-filter-tab:active,
   .toggle:active, .lib-row:active, .signin__shader-pill:active, .viewer__close:active,
   .viewer__bar .btn:active, .viewer__overlay .btn:active, .cfg-nav__item:active, .modal__close:active,
-  .cfg-seg button:active, .app-row__connect:active, .app-row:active,
+  .cfg-seg button:active, .app-row__connect:active, .app-row__connected:active, .app-row:active,
   .task-row__check:active, .task-row__run-btn:active, .task-chip:active,
   .composer__btn:active, .composer__cta:active, .composer__btn--enhance:active,
   .panel-row--action:active, .members__remove:active, .question-option:active,
