@@ -604,7 +604,10 @@ button { touch-action: manipulation; }
   .question-card { width: 100%; }
   .card__head, .draft-card__head { padding: 14px 14px 4px; }
   .draft-card__copy { width: 40px; height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center; }
-  .card__body { padding: 8px 14px 0; }
+  .draft-card__content { padding: 10px 14px 12px; }
+  .draft-card__subject { padding-top: 8px; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; word-break: break-word; }
+  .draft-card__text { padding-top: 8px; font-size: 13.5px; line-height: 20px; max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .card__body { padding: 8px 14px 0; overflow-wrap: anywhere; word-break: break-word; }
   .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; gap: 8px; }
   .card__actions .btn { min-height: 44px; flex: 1 1 auto; }
   .card__outcome { padding: 10px 14px 14px; min-height: 36px; }
@@ -613,6 +616,7 @@ button { touch-action: manipulation; }
   .question-card__options { padding: 6px; }
   .question-card__options button, .question-card__options [role="button"] { min-height: 44px; }
   .question-option { min-height: 44px; padding: 10px 12px; }
+  .question-option__label { overflow-wrap: anywhere; word-break: break-word; }
   .question-card__foot .link-btn { min-height: 38px; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; }
 
   /* Menus stay on-screen with comfortable >=44px touch targets. */
@@ -1179,8 +1183,8 @@ button { touch-action: manipulation; }
     .signin__title { font-size: 24px; line-height: 30px; }
     .empty-chat__stage-inner { padding: 20px 10px 16px; }
     .empty-chat__title { font-size: 22px; }
-    .card__actions { flex-direction: column; gap: 6px; }
-    .card__actions .btn { width: 100%; }
+    .card__actions, .draft-card__actions { flex-direction: column; gap: 6px; }
+    .card__actions .btn, .draft-card__actions .btn { width: 100%; }
     .vcall__status { max-width: 36vw; }
     .search-modal__field input { font-size: 16px; }
     .tasks-view__header { padding: calc(8px + env(safe-area-inset-top)) 8px 8px; }
