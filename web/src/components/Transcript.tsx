@@ -68,6 +68,9 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
     if (!b.text) return;
     navigator.clipboard.writeText(b.text).then(() => {
       setCopied(true);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(12); } catch {}
+      }
       setTimeout(() => setCopied(false), 1600);
     }).catch(() => {});
   };
@@ -97,7 +100,19 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
           </div>
         )}
         {side === 'right' ? (
-          <div className="bubble__plain">{b.text}</div>
+          <>
+            <div className="bubble__plain">{b.text}</div>
+            <div className="bubble__meta-bar bubble__meta-bar--user">
+              <button
+                type="button"
+                className={`bubble__copy-btn${copied ? ' is-copied' : ''}`}
+                onClick={copyMsg}
+                title="Copy prompt"
+              >
+                {copied ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+          </>
         ) : b.text && b.streaming ? (
           <div className="bubble__plain">{b.text}</div>
         ) : b.text ? (
@@ -129,8 +144,13 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
               >
                 Retry
               </button>
-              <button type="button" className="bubble__copy-btn" onClick={copyMsg} title="Copy message">
-                {copied ? 'Copied' : 'Copy'}
+              <button
+                type="button"
+                className={`bubble__copy-btn${copied ? ' is-copied' : ''}`}
+                onClick={copyMsg}
+                title="Copy message"
+              >
+                {copied ? '✓ Copied' : 'Copy'}
               </button>
             </span>
           </div>
@@ -230,6 +250,9 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
 
   const jump = () => {
     const el = scrollRef.current!;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   };
 

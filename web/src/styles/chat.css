@@ -206,6 +206,16 @@
   color: #38BDF8;
   border-color: #38BDF8;
 }
+.bubble__copy-btn.is-copied {
+  color: #10B981;
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.1);
+}
+.bubble__meta-bar--user {
+  margin-top: 6px;
+  justify-content: flex-end;
+  opacity: 0.85;
+}
 
 .sender-label { display: flex; align-items: center; gap: 6px; padding: 0 0 2px 4px; font-size: 12px; line-height: 16px; letter-spacing: 0.12px; color: var(--color-text-secondary); }
 

@@ -59,6 +59,9 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   const send = async () => {
     const t = text.trim();
     if (!t || sending) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setSending(true); setError(null);
     try {
       await api.send(bot.id, t);
@@ -160,6 +163,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             type="button"
             className={`composer-quick-chip${bot.effort === 'low' ? ' is-active' : ''}`}
             onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
               configApi.updateBot(bot.id, { effort: 'low' }).then(({ bot: updated }) => {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
               }).catch(() => {});
@@ -172,6 +176,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             type="button"
             className={`composer-quick-chip${bot.effort === 'high' ? ' is-active' : ''}`}
             onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
               configApi.updateBot(bot.id, { effort: 'high' }).then(({ bot: updated }) => {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
               }).catch(() => {});
@@ -183,7 +188,10 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           <button
             type="button"
             className="composer-quick-chip composer-quick-chip--free"
-            onClick={() => useConfigUI.getState().openAppSettings('models')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              useConfigUI.getState().openAppSettings('models');
+            }}
             title="OpenRouter Free Models Catalog"
           >
             <span>🎁 Free Models</span>
@@ -191,7 +199,10 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           <button
             type="button"
             className="composer-quick-chip"
-            onClick={() => useConfigUI.getState().setView('tasks')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              useConfigUI.getState().setView('tasks');
+            }}
             title="Switch to Tasks View"
           >
             <span>📋 Tasks</span>
@@ -199,7 +210,10 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           <button
             type="button"
             className="composer-quick-chip"
-            onClick={() => setModal('apps')}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              setModal('apps');
+            }}
             title="Open Apps Marketplace"
           >
             <span>🔌 Apps</span>
