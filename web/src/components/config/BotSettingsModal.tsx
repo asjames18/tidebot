@@ -27,13 +27,23 @@ const EFFORT_HINT: Record<Bot['effort'], string> = {
 export function BotSettingsModal() {
   const target = useConfigUI((s) => s.botSettings);
   const close = useConfigUI((s) => s.closeBotSettings);
-  const setTab = (tab: BotSettingsTab) => target && useConfigUI.setState({ botSettings: { ...target, tab } });
+  const setTab = (tab: BotSettingsTab) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
+    if (target) useConfigUI.setState({ botSettings: { ...target, tab } });
+  };
   const bot = useStore((s) => s.bots.find((b) => b.id === target?.botId));
   const routines = useStore((s) => (target ? s.routines[target.botId] : undefined));
   const memVersion = useVersion(`memories:${target?.botId ?? ''}`);
   const [data, setData] = useState<BotSettingsBundle | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const onClose = useCallback(() => close(), [close]);
+  const onClose = useCallback(() => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
+    close();
+  }, [close]);
 
   const reload = useCallback(() => {
     if (!target) return;
@@ -117,6 +127,9 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
 
   const save = async () => {
     if (!dirty || !nameOk) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(12); } catch {}
+    }
     setSaving(true);
     try {
       const patch: Partial<Draft> = {};
@@ -196,7 +209,19 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
 
       <div className={`cfg-savebar${dirty ? ' is-dirty' : ''}`}>
         <span className={`cfg-savebar__note${note?.tone === 'error' ? ' is-error' : ''}`} role="status">{note?.text ?? (dirty ? 'Unsaved changes' : '')}</span>
-        <button type="button" className="cfg-btn cfg-btn--secondary" disabled={!dirty || saving} onClick={() => setDraft(draftOf(bot))}>Discard</button>
+        <button
+          type="button"
+          className="cfg-btn cfg-btn--secondary"
+          disabled={!dirty || saving}
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              try { navigator.vibrate(8); } catch {}
+            }
+            setDraft(draftOf(bot));
+          }}
+        >
+          Discard
+        </button>
         <button type="button" className="cfg-btn cfg-btn--primary" disabled={!dirty || saving || !nameOk} onClick={save}>{saving ? 'Saving…' : 'Save changes'}</button>
       </div>
 
@@ -210,7 +235,17 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
               <div className="cfg-row__title">New conversation</div>
               <div className="cfg-row__sub">Clears the chat. Memories, skills and routines stay.</div>
             </div>
-            <ConfirmButton className="cfg-btn cfg-btn--secondary" confirmLabel="Start fresh" onConfirm={async () => { await configApi.fresh(bot.id); flash('Started a new conversation'); }}>
+            <ConfirmButton
+              className="cfg-btn cfg-btn--secondary"
+              confirmLabel="Start fresh"
+              onConfirm={async () => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(10); } catch {}
+                }
+                await configApi.fresh(bot.id);
+                flash('Started a new conversation');
+              }}
+            >
               Start new
             </ConfirmButton>
           </div>
@@ -220,7 +255,18 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
                 <div className="cfg-row__title">Make primary</div>
                 <div className="cfg-row__sub">Your go-to Bot. It reaches out first and keeps the others on track.</div>
               </div>
-              <button type="button" className="cfg-btn cfg-btn--secondary" onClick={() => configApi.makePrimary(bot.id).then(() => flash(`${bot.name} is now your primary Bot`)).catch((e) => flash(e.message, 'error'))}>Make primary</button>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--secondary"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                    try { navigator.vibrate(10); } catch {}
+                  }
+                  configApi.makePrimary(bot.id).then(() => flash(`${bot.name} is now your primary Bot`)).catch((e) => flash(e.message, 'error'));
+                }}
+              >
+                Make primary
+              </button>
             </div>
           )}
         </div>
@@ -238,6 +284,9 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
               disabled={bot.isPrimary}
               confirmLabel={`Delete ${bot.name}`}
               onConfirm={async () => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(15); } catch {}
+                }
                 try {
                   await configApi.deleteBot(bot.id);
                   onClose();
@@ -294,6 +343,9 @@ function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: s
   };
 
   const triggerNow = async () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setRunning(true);
     try {
       await configApi.checkinNow();
@@ -320,7 +372,17 @@ function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: s
             <button type="button" className="cfg-btn cfg-btn--secondary" disabled={running} onClick={triggerNow}>
               {running ? 'Checking…' : 'Check in now'}
             </button>
-            <Switch on={enabled} onChange={(v) => { setEnabled(v); void saveCheckins(v, timesStr, timezone); }} label="Proactive check-ins" />
+            <Switch
+              on={enabled}
+              onChange={(v) => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(10); } catch {}
+                }
+                setEnabled(v);
+                void saveCheckins(v, timesStr, timezone);
+              }}
+              label="Proactive check-ins"
+            />
           </div>
         </div>
         {enabled && (
@@ -359,7 +421,20 @@ function LookPicker({ shape, color, onShape, onColor }: { shape: AvatarShape; co
         {SHAPE_ROWS.map((row, i) => (
           <div key={i} className="shape-grid__row">
             {row.map((s) => (
-              <button key={s} type="button" role="radio" aria-checked={shape === s} aria-label={s} className="shape-cell" onClick={() => onShape(s)}>
+              <button
+                key={s}
+                type="button"
+                role="radio"
+                aria-checked={shape === s}
+                aria-label={s}
+                className="shape-cell"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                    try { navigator.vibrate(8); } catch {}
+                  }
+                  onShape(s);
+                }}
+              >
                 <BotAvatar shape={s} color={color} size={34} ring={shape === s} />
               </button>
             ))}
@@ -369,7 +444,20 @@ function LookPicker({ shape, color, onShape, onColor }: { shape: AvatarShape; co
       <div className="swatches" role="radiogroup" aria-label="Character color">
         <div className="swatches__row">
           {COLOR_ORDER.map((c) => (
-            <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={c} className="swatch-cell" onClick={() => onColor(c)}>
+            <button
+              key={c}
+              type="button"
+              role="radio"
+              aria-checked={color === c}
+              aria-label={c}
+              className="swatch-cell"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(8); } catch {}
+                }
+                onColor(c);
+              }}
+            >
               <span className={`swatch${color === c ? ' is-selected' : ''}`} style={{ background: palette(c).fill }} />
             </button>
           ))}
@@ -410,6 +498,9 @@ function SkillsTab({ bot, skills, onChange }: { bot: Bot; skills: Skill[] | unde
   const existingNames = new Set((skills ?? []).map((s) => s.name.toLowerCase()));
 
   const installTemplate = async (tpl: (typeof SKILL_TEMPLATES)[number]) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setInstalling(tpl.name);
     try {
       await configApi.createSkill(bot.id, tpl);
@@ -426,7 +517,20 @@ function SkillsTab({ bot, skills, onChange }: { bot: Bot; skills: Skill[] | unde
           <div className="cfg-page__title">Operator Skills</div>
           <div className="cfg-page__sub">Step-by-step playbooks {bot.name} follows for specific workflows.</div>
         </div>
-        {editing !== 'new' && <button type="button" className="cfg-btn cfg-btn--primary" onClick={() => setEditing('new')}><Icon name="plus" size={12} /> New skill</button>}
+        {editing !== 'new' && (
+          <button
+            type="button"
+            className="cfg-btn cfg-btn--primary"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate(8); } catch {}
+              }
+              setEditing('new');
+            }}
+          >
+            <Icon name="plus" size={12} /> New skill
+          </button>
+        )}
       </div>
       {editing === 'new' && <SkillEditor botId={bot.id} onDone={() => { setEditing(null); onChange(); }} />}
       {!skills ? <div className="cfg-empty">Loading…</div> : skills.length === 0 && editing !== 'new' ? (
@@ -445,8 +549,33 @@ function SkillsTab({ bot, skills, onChange }: { bot: Bot; skills: Skill[] | unde
                 <div className="cfg-item__sub">{s.description || s.body.split('\n')[0]}</div>
               </div>
               <div className="cfg-item__actions">
-                <button type="button" className="cfg-icon-btn" onClick={() => setEditing(s.id)} aria-label={`Edit ${s.name}`} title="Edit"><Icon name="edit" size={14} /></button>
-                <ConfirmButton className="cfg-icon-btn" title="Delete" onConfirm={async () => { await configApi.deleteSkill(s.id); onChange(); }}><Glyph name="trash" size={14} /></ConfirmButton>
+                <button
+                  type="button"
+                  className="cfg-icon-btn"
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                      try { navigator.vibrate(8); } catch {}
+                    }
+                    setEditing(s.id);
+                  }}
+                  aria-label={`Edit ${s.name}`}
+                  title="Edit"
+                >
+                  <Icon name="edit" size={14} />
+                </button>
+                <ConfirmButton
+                  className="cfg-icon-btn"
+                  title="Delete"
+                  onConfirm={async () => {
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                      try { navigator.vibrate(12); } catch {}
+                    }
+                    await configApi.deleteSkill(s.id);
+                    onChange();
+                  }}
+                >
+                  <Glyph name="trash" size={14} />
+                </ConfirmButton>
               </div>
             </div>
           ))}
@@ -490,6 +619,9 @@ function SkillEditor({ botId, skill, onDone }: { botId: string; skill?: Skill; o
   const can = name.trim() && body.trim() && !busy;
   const save = async () => {
     if (!can) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(12); } catch {}
+    }
     setBusy(true); setError(null);
     try {
       if (skill) await configApi.updateSkill(skill.id, { name, description, body });
@@ -523,6 +655,9 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
   const say = (t: string) => { setFlash(t); setTimeout(() => setFlash(null), 2600); };
   const memories = useMemo(() => (data?.memories ?? []).filter((m) => !hidden.has(m.id) && (!q || m.text.toLowerCase().includes(q.toLowerCase()))), [data, hidden, q]);
   const remove = async (m: Memory) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
     setHidden((h) => new Set(h).add(m.id));
     try { await configApi.deleteMemory(m.id); onChange(); } catch { setHidden((h) => { const n = new Set(h); n.delete(m.id); return n; }); }
   };
@@ -530,6 +665,9 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
     e.preventDefault();
     const clean = newText.trim();
     if (!clean || adding) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setAdding(true);
     try {
       await configApi.addMemory(bot.id, clean);
@@ -543,6 +681,9 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
     }
   };
   const runConsolidate = async () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setMaintBusy('consolidate');
     try {
       const r = await configApi.consolidateMemories(bot.id);
@@ -555,6 +696,9 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
     }
   };
   const runCompact = async () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setMaintBusy('compact');
     try {
       const r = await configApi.compactHistory(bot.id, true);
@@ -662,7 +806,16 @@ function RoutinesTab({ bot, routines, onChange }: { bot: Bot; routines: Routine[
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {flash && <span className="cfg-savebar__note" role="status">{flash}</span>}
           {editing !== 'new' && (
-            <button type="button" className="cfg-btn cfg-btn--primary" onClick={() => setEditing('new')}>
+            <button
+              type="button"
+              className="cfg-btn cfg-btn--primary"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(8); } catch {}
+                }
+                setEditing('new');
+              }}
+            >
               <Icon name="plus" size={12} /> New routine
             </button>
           )}
@@ -718,6 +871,9 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!can) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(12); } catch {}
+    }
     setBusy(true);
     setError(null);
     try {
@@ -745,7 +901,12 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
               type="button"
               className={`cfg-chip${schedule === p.cron ? '' : ' cfg-chip--muted'}`}
               style={{ cursor: 'pointer', border: 'none' }}
-              onClick={() => setSchedule(p.cron)}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(8); } catch {}
+                }
+                setSchedule(p.cron);
+              }}
             >
               {p.label}
             </button>
@@ -770,6 +931,9 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
   const [enabled, setEnabled] = useState(r.enabled);
   useEffect(() => setEnabled(r.enabled), [r.enabled]);
   const toggle = async (v: boolean) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     setEnabled(v);
     try { await configApi.setRoutine(r.id, v); onFlash(v ? 'Resumed' : 'Paused'); onRefresh(); } catch { setEnabled(!v); }
   };
@@ -782,13 +946,46 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
         <div className="cfg-item__prompt">{r.prompt}</div>
       </div>
       <div className="cfg-item__actions">
-        <button type="button" className="cfg-icon-btn" title="Run now" aria-label={`Run ${r.name} now`} onClick={() => configApi.runRoutine(r.id).then(() => onFlash('Running now')).catch((e) => onFlash(e.message))}>
+        <button
+          type="button"
+          className="cfg-icon-btn"
+          title="Run now"
+          aria-label={`Run ${r.name} now`}
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              try { navigator.vibrate(10); } catch {}
+            }
+            configApi.runRoutine(r.id).then(() => onFlash('Running now')).catch((e) => onFlash(e.message));
+          }}
+        >
           <Glyph name="play" size={13} />
         </button>
-        <button type="button" className="cfg-icon-btn" title="Edit" aria-label={`Edit ${r.name}`} onClick={onEdit}>
+        <button
+          type="button"
+          className="cfg-icon-btn"
+          title="Edit"
+          aria-label={`Edit ${r.name}`}
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              try { navigator.vibrate(8); } catch {}
+            }
+            onEdit();
+          }}
+        >
           <Icon name="edit" size={14} />
         </button>
-        <ConfirmButton className="cfg-icon-btn" title="Delete" onConfirm={() => configApi.deleteRoutine(r.id).then(() => { onFlash('Deleted'); onRefresh(); })}><Glyph name="trash" size={14} /></ConfirmButton>
+        <ConfirmButton
+          className="cfg-icon-btn"
+          title="Delete"
+          onConfirm={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              try { navigator.vibrate(12); } catch {}
+            }
+            configApi.deleteRoutine(r.id).then(() => { onFlash('Deleted'); onRefresh(); });
+          }}
+        >
+          <Glyph name="trash" size={14} />
+        </ConfirmButton>
         <Switch on={enabled} onChange={toggle} label={`${r.name} ${enabled ? 'on' : 'paused'}`} />
       </div>
     </div>
