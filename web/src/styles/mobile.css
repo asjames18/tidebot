@@ -279,7 +279,8 @@
   .pinned__tile:active, .composer-quick-chip:active, .sidebar-island:active, .segmented button:active,
   .cat-pill:active, .empty-chat__prompt-chip:active, .chat__pill:active, .chat__model-pill:active,
   .share-btn:active, .jump-btn:active, .vcall__btn:active, .vcall__captions:active, .draft-card__copy:active,
-  .search-row:active, .search-modal__clear:active, .swatch-cell:active, .shape-cell:active {
+  .search-row:active, .search-modal__clear:active, .swatch-cell:active, .shape-cell:active,
+  .shader-Option:active, .byom-provider-card:active, .theme-tile:active, .byom-filter-tab:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -406,10 +407,16 @@ button { touch-action: manipulation; }
   .cfg-grid { grid-template-columns: 1fr; }
   .cfg-input { font-size: 16px; height: 44px; }
   .byom-provider-grid { grid-template-columns: 1fr; }
-  .byom-model-grid { grid-template-columns: 1fr; max-height: 380px; }
+  .byom-provider-card { min-height: 48px; }
+  .byom-filter-tab { min-height: 38px; height: 38px; padding: 0 14px; font-size: 13px; }
+  .byom-model-grid { grid-template-columns: 1fr; max-height: 380px; -webkit-overflow-scrolling: touch; }
+  .byom-model-card { min-height: 52px; }
   .byom-actions { flex-wrap: wrap; gap: 8px; }
+  .byom-actions .cfg-btn { flex: 1 1 auto; min-height: 44px; }
   .byom-search { max-width: 100%; width: 100%; }
   .theme-tiles { justify-content: center; }
+  .shader-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 8px; }
+  .shader-Option { min-height: 48px; padding: 10px 12px; }
 
   /* Bot settings modal, Connect Apps modal, Search modal, and Tasks view on mobile. */
   .bot-settings {
