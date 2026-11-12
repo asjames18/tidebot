@@ -369,6 +369,7 @@
   .modal__footer .btn:active, .modal__footer .link-btn:active,
   .cfg-editor__actions .cfg-btn:active, .group-pick__opt:active,
   .account__btn:active, .sidebar__byom-btn:active, .signin__google:active,
+  .signin__dev .btn:active,
   .bubble__copy-btn:active, .tasks-view__back-btn:active,
   .bubble__reasoning-toggle:active, .steps__toggle:active, .cite-chip:active,
   .bot-tasks__submit:active, .task-row .cfg-icon-btn:active,
@@ -890,7 +891,7 @@ button { touch-action: manipulation; }
   }
   .signin__shader-bar::-webkit-scrollbar { display: none; }
   .signin__shader-label { display: none; }
-  .signin__shader-pill { white-space: nowrap; flex-shrink: 0; min-height: 32px; padding: 6px 12px; font-size: 12.5px; }
+  .signin__shader-pill { white-space: nowrap; flex-shrink: 0; min-height: 36px; padding: 6px 14px; font-size: 13px; }
   .signin__card {
     padding: 28px 22px 22px;
   }
@@ -899,7 +900,8 @@ button { touch-action: manipulation; }
     font-size: 14px;
   }
   .signin__dev .text-input {
-    min-height: 42px;
+    min-height: 44px;
+    font-size: 16px;
   }
   .signin__foot-grid { flex-wrap: wrap; justify-content: center; row-gap: 4px; }
 

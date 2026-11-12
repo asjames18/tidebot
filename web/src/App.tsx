@@ -82,6 +82,10 @@ function Shell() {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
             set({ mobileSidebarOpen: false, detailsOpen: false });
           }}
+          onTouchStart={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            set({ mobileSidebarOpen: false, detailsOpen: false });
+          }}
           aria-hidden="true"
         />
       )}
