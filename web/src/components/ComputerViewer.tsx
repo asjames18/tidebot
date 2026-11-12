@@ -89,7 +89,16 @@ export function ComputerViewer() {
                 {conn === 'connecting' ? 'Connecting to the screen…' : (
                   <>
                     <span>{conn === 'error' ? 'Couldn’t reach the screen.' : 'Disconnected.'}</span>
-                    <button type="button" className="btn btn--light" onClick={() => setAttempt((n) => n + 1)}>Reconnect</button>
+                    <button
+                      type="button"
+                      className="btn btn--light"
+                      onClick={() => {
+                        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                        setAttempt((n) => n + 1);
+                      }}
+                    >
+                      Reconnect
+                    </button>
                   </>
                 )}
               </div>
@@ -99,7 +108,18 @@ export function ComputerViewer() {
           <div className="viewer__overlay viewer__overlay--asleep">
             <span className="viewer__sleep-face"><i /><i /></span>
             <span>{busy ? computerStatusText(computer) : 'The computer is asleep.'}</span>
-            {!busy && <button type="button" className="btn btn--light" onClick={() => api.ensureComputer().catch(() => {})}>Wake computer</button>}
+            {!busy && (
+              <button
+                type="button"
+                className="btn btn--light"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
+                  api.ensureComputer().catch(() => {});
+                }}
+              >
+                Wake computer
+              </button>
+            )}
             {computer?.error && <span className="viewer__err">{computer.error}</span>}
           </div>
         )}

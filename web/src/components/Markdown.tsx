@@ -36,7 +36,20 @@ const components: Components = {
     let loopback = false;
     try { const h = new URL(href ?? '').hostname; loopback = h === 'localhost' || h === '127.0.0.1' || h === '::1'; } catch { /* relative links stay links */ }
     if (loopback) return <span className="md-localhost" title="Localhost link from the agent — only reachable on the host machine">{children}</span>;
-    return <a href={href} target="_blank" rel="noreferrer noopener">{children}</a>;
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer noopener"
+        onClick={() => {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            try { navigator.vibrate(8); } catch {}
+          }
+        }}
+      >
+        {children}
+      </a>
+    );
   },
   table: ({ node: _n, ...props }) => (
     <div className="md-table"><table {...props} /></div>
