@@ -213,6 +213,11 @@
   border-color: rgba(16, 185, 129, 0.4);
   background: rgba(16, 185, 129, 0.1);
 }
+.bubble__copy-btn.is-speaking {
+  color: #38BDF8;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.12);
+}
 .bubble__meta-bar--user {
   margin-top: 6px;
   justify-content: flex-end;

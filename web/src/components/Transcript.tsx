@@ -172,6 +172,9 @@ function SpeakButton({ text }: { text: string }) {
   const [speaking, setSpeaking] = useState(false);
   if (!('speechSynthesis' in window)) return null;
   const toggle = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(8); } catch {}
+    }
     if (speaking) { speechSynthesis.cancel(); setSpeaking(false); return; }
     const clean = text.replace(/```[\s\S]*?```/g, ' code block ').replace(/[#*_`>[\]()]/g, '').slice(0, 1200);
     const u = new SpeechSynthesisUtterance(clean);
@@ -182,8 +185,14 @@ function SpeakButton({ text }: { text: string }) {
     setSpeaking(true);
   };
   return (
-    <button type="button" className="bubble__copy-btn" onClick={toggle} title={speaking ? 'Stop reading' : 'Read aloud'}>
-      {speaking ? 'Stop' : 'Listen'}
+    <button
+      type="button"
+      className={`bubble__copy-btn${speaking ? ' is-speaking' : ''}`}
+      onClick={toggle}
+      title={speaking ? 'Stop reading' : 'Read aloud'}
+      aria-label={speaking ? 'Stop reading aloud' : 'Read message aloud'}
+    >
+      {speaking ? '■ Stop' : '▶ Listen'}
     </button>
   );
 }
