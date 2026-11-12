@@ -1055,6 +1055,28 @@ button { touch-action: manipulation; }
     min-height: 42px;
     justify-content: center;
   }
+  .cfg-inline-form {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cfg-inline-form .text-input {
+    flex: 1 1 100%;
+    min-height: 42px;
+    height: 42px;
+    font-size: 16px;
+  }
+  .cfg-inline-form .cfg-btn {
+    flex: 1 1 auto;
+    min-height: 42px;
+  }
+  .cfg-meter__actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cfg-meter__actions .cfg-btn {
+    flex: 1 1 auto;
+    min-height: 42px;
+  }
   .cfg-editor > div:has(input) {
     flex-wrap: wrap;
     gap: 8px;

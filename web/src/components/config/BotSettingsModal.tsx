@@ -764,7 +764,7 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
         </div>
         {flash && <span className="cfg-savebar__note" role="status">{flash}</span>}
       </div>
-      <form style={{ display: 'flex', gap: 8 }} onSubmit={addMemory}>
+      <form className="cfg-inline-form" onSubmit={addMemory}>
         <input
           className="text-input"
           placeholder={`Add a fact or preference for ${bot.name} to remember…`}
@@ -808,7 +808,7 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
             When it fills up, older messages get summarized so {bot.name} can keep going.
             {data.memory.lastCompaction ? ` Last summarized ${shortDate(data.memory.lastCompaction.created_at)}.` : ''}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <div className="cfg-meter__actions">
             <button type="button" className="cfg-btn cfg-btn--secondary" disabled={maintBusy !== null} onClick={runConsolidate}>
               {maintBusy === 'consolidate' ? 'Extracting…' : 'Extract memories now'}
             </button>

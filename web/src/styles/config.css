@@ -109,6 +109,8 @@
 .cfg-meter__label { display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; color: var(--color-text-secondary); }
 .cfg-meter__track { height: 6px; border-radius: var(--radius-full); background: var(--color-bg-tertiary); overflow: hidden; }
 .cfg-meter__track span { display: block; height: 100%; border-radius: inherit; background: var(--bot-action, var(--color-primary)); }
+.cfg-meter__actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.cfg-inline-form { display: flex; gap: 8px; }
 
 /* ---------- details panel: header gear, library, tasks ---------- */
 .details__gear { margin-right: auto; }
