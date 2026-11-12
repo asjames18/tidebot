@@ -574,7 +574,20 @@ button { touch-action: manipulation; }
   .section-label--row .link-btn { min-height: 32px; padding: 6px 10px; font-size: 12.5px; display: inline-flex; align-items: center; }
   .members__row { min-height: 44px; }
   .members__remove { width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
-  .members__add { max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .members__add {
+    max-height: 260px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  .members__add .link-btn {
+    min-height: 36px;
+    padding: 6px 12px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .members__hint { font-size: 12.5px; line-height: 17px; padding: 8px 10px 4px; }
   .lib-row { min-height: 44px; }
   .lib-row__main { min-height: 44px; padding: 8px 10px; }
   .lib-row .cfg-icon-btn { min-width: 40px; min-height: 40px; }
@@ -651,6 +664,7 @@ button { touch-action: manipulation; }
   .mini-select--native { min-height: 40px; padding: 0 10px; }
   .mini-select--native select { font-size: 16px; }
   .panel-row--call { min-height: 48px; font-size: 14px; }
+  .voice-error { font-size: 13px; line-height: 18px; padding: 6px 12px 8px; }
 
   /* Settings: nav becomes a top bar with horizontal scrolling tabs. */
   .app-settings { flex-direction: column; }
