@@ -131,7 +131,7 @@
   /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */
   .bubble__time { opacity: 0.65; transform: none; font-size: 11px; }
   .bubble__meta-bar { flex-wrap: wrap; row-gap: 4px; }
-  .bubble__copy-btn { padding: 4px 10px; font-size: 11.5px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center; }
+  .bubble__copy-btn { padding: 6px 12px; font-size: 12px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; }
   .steps__toggle { min-height: 32px; padding: 6px 12px; font-size: 12.5px; }
 
   /* Chat column: tighter padding, wider bubbles. */
@@ -274,7 +274,7 @@
   button:active, .icon-btn:active, .cfg-btn:active, .byom-model-card:active, .bot-row:active,
   .pinned__tile:active, .composer-quick-chip:active, .sidebar-island:active, .segmented button:active,
   .cat-pill:active, .empty-chat__prompt-chip:active, .chat__pill:active, .chat__model-pill:active,
-  .share-btn:active, .jump-btn:active {
+  .share-btn:active, .jump-btn:active, .vcall__btn:active, .vcall__captions:active, .draft-card__copy:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -338,6 +338,7 @@ button { touch-action: manipulation; }
   /* Cards: full width, stacked comfortable actions, 44px options. */
   .card, .panel-card { max-width: 100%; }
   .card__head, .draft-card__head { padding: 14px 14px 4px; }
+  .draft-card__copy { width: 40px; height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center; }
   .card__body { padding: 8px 14px 0; }
   .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; }
   .card__actions .btn { min-height: 44px; }
@@ -371,11 +372,12 @@ button { touch-action: manipulation; }
   .composer__error { font-size: 13px; }
 
   /* Voice call bar compacts & enlarges touch controls. */
-  .vcall { margin: 0 10px; }
+  .vcall { margin: 0 10px; width: calc(100% - 20px); }
   .vcall__status { max-width: 44vw; }
-  .vcall__btn { width: 40px; height: 40px; min-width: 40px; }
-  .vcall__btn--end { width: 48px; }
-  .vcall__captions { padding: 10px 12px; font-size: 13.5px; }
+  .vcall__btn { width: 44px; height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .vcall__btn--end { width: 52px; height: 44px; }
+  .vcall__captions { padding: 10px 12px; font-size: 13.5px; min-height: 44px; }
+  .vcall__toggle { min-height: 36px; padding: 6px 0; }
   .vcall__log { -webkit-overflow-scrolling: touch; }
   .voice-preview { min-height: 32px; padding: 0 12px; font-size: 13px; }
   .mini-select--native { min-height: 32px; }

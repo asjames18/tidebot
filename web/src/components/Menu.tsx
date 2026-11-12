@@ -6,11 +6,19 @@ export interface MenuItem { label: string; onSelect: () => void; danger?: boolea
 export function Menu({ items, onClose, align = 'left', placement = 'below', children }: { items: MenuItem[]; onClose: () => void; align?: 'left' | 'right' | 'center'; placement?: 'below' | 'above'; children?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const down = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    const down = (e: Event) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
-    const t = setTimeout(() => document.addEventListener('mousedown', down));
+    const t = setTimeout(() => {
+      document.addEventListener('mousedown', down);
+      document.addEventListener('touchstart', down, { passive: true });
+    });
     document.addEventListener('keydown', key, true);
-    return () => { clearTimeout(t); document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key, true); };
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('mousedown', down);
+      document.removeEventListener('touchstart', down);
+      document.removeEventListener('keydown', key, true);
+    };
   }, [onClose]);
   return (
     <div ref={ref} className={`menu is-${align} is-${placement}`} role="menu">
