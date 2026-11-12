@@ -372,7 +372,8 @@
   .activity-line .bubble__copy-btn:active, .tasks-view__back-btn:active,
   .bot-tasks__submit:active, .task-row .cfg-icon-btn:active,
   .create-modal__template-pill:active, .mode-pick__opt:active,
-  .md-copy-btn:active, .vcall__toggle:active {
+  .md-copy-btn:active, .vcall__toggle:active,
+  .toast:active, .menu__item:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -434,7 +435,7 @@ button { touch-action: manipulation; }
 
   /* Markdown content can never push the bubble wider than the screen. */
   .bubble .md { min-width: 0; overflow-wrap: anywhere; }
-  .md-table { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; }
+  .md-table { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; margin: 8px 0; }
   .md pre { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; }
   .md-copy-btn {
     min-height: 34px;
@@ -445,7 +446,7 @@ button { touch-action: manipulation; }
     align-items: center;
     justify-content: center;
   }
-  .md table { font-size: 13px; }
+  .md table { font-size: 13px; min-width: 280px; }
   .md th, .md td { padding: 4px 8px 4px 0; }
 
   /* Cards: full width, stacked comfortable actions, 44px options. */
@@ -464,6 +465,7 @@ button { touch-action: manipulation; }
 
   /* Menus stay on-screen with comfortable >=44px touch targets. */
   .menu { max-width: calc(100vw - 24px); min-width: min(240px, calc(100vw - 32px)); }
+  .menu__header { padding: 8px 14px; font-size: 12px; }
   .menu__item { min-height: 44px; height: auto; padding: 10px 14px; font-size: 14.5px; }
   .menu__hint { display: none; }
 

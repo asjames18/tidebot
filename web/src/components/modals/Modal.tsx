@@ -53,7 +53,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
   }, [onClose]);
   return createPortal(
     <div className="modal-root">
-      <div className="modal-scrim" onMouseDown={handleScrim} />
+      <div className="modal-scrim" onMouseDown={handleScrim} onTouchStart={handleScrim} />
       <div ref={ref} className={`modal ${className ?? ''}`} role="dialog" aria-modal="true" aria-label={label} style={top !== undefined ? { marginTop: top } : undefined}>
         <div
           className="sheet-handle-wrap"

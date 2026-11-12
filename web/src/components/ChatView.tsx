@@ -230,7 +230,20 @@ export function ChatView() {
           </button>
         </div>
       </header>
-      {toast && <div className="toast" role="status">{toast}</div>}
+      {toast && (
+        <div
+          className="toast"
+          role="status"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+            setToast(null);
+          }}
+          title="Tap to dismiss"
+          style={{ cursor: 'pointer' }}
+        >
+          {toast}
+        </div>
+      )}
     </main>
   );
 }
