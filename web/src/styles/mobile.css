@@ -946,6 +946,9 @@ button { touch-action: manipulation; }
     padding: calc(12px + env(safe-area-inset-top)) 8px 12px;
     align-items: flex-start;
   }
+  .modal-root:has(.search-modal) .sheet-handle-wrap {
+    display: none;
+  }
   .search-modal {
     width: 100%;
     height: min(520px, 82dvh);
@@ -967,6 +970,16 @@ button { touch-action: manipulation; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+  .search-modal__section {
+    padding: 8px 10px 4px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .search-modal__empty {
+    padding: 32px 14px;
+    font-size: 14.5px;
+    text-align: center;
   }
   .search-modal__results {
     -webkit-overflow-scrolling: touch;
