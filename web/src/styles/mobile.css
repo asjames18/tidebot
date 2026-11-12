@@ -157,8 +157,8 @@
   /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */
   .bubble__time { opacity: 0.65; transform: none; font-size: 11px; }
   .bubble__meta-bar { flex-wrap: wrap; row-gap: 4px; }
-  .bubble__copy-btn { padding: 6px 12px; font-size: 12px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; }
-  .steps__toggle { min-height: 32px; padding: 6px 12px; font-size: 12.5px; }
+  .bubble__copy-btn { padding: 6px 14px; font-size: 12px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+  .steps__toggle { min-height: 38px; padding: 6px 14px; font-size: 13px; }
 
   /* Chat column: tighter padding, wider bubbles. */
   .transcript { padding: 64px 10px 8px; }
@@ -226,21 +226,21 @@
 
   /* Mobile composer buttons & CTA */
   .composer__cta {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    min-height: 38px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
   .composer__btn {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    min-height: 38px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
   .composer__btn--enhance {
     width: auto !important;
     min-width: auto;
-    min-height: 38px;
+    min-height: 40px;
     padding: 0 10px;
   }
   .composer__plus-anchor {
@@ -254,17 +254,18 @@
   /* Touch targets. */
   .icon-btn { min-width: 40px; min-height: 40px; }
   .jump-btn {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     bottom: calc(74px + env(safe-area-inset-bottom));
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
   }
-  .cite-chip { min-height: 32px; padding: 6px 12px; font-size: 12.5px; display: inline-flex; align-items: center; }
-  .earlier-btn { min-height: 38px; padding: 8px 16px; font-size: 13px; }
-  .bubble__reasoning-toggle { min-height: 36px; padding: 8px 12px; font-size: 13px; }
-  .steps__toggle { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+  .cite-chip { min-height: 34px; padding: 6px 12px; font-size: 12.5px; display: inline-flex; align-items: center; }
+  .earlier-btn { min-height: 40px; padding: 8px 16px; font-size: 13px; }
+  .bubble__reasoning-toggle { min-height: 38px; padding: 8px 14px; font-size: 13px; }
+  .steps__toggle { min-height: 38px; padding: 6px 14px; font-size: 13px; }
 
   /* Modals fit small screens with native bottom-sheet presentation. */
   .sheet-handle-wrap {
@@ -418,15 +419,15 @@
     font-size: 13px;
   }
   .activity-line .bubble__copy-btn {
-    min-height: 34px;
-    padding: 6px 12px;
+    min-height: 36px;
+    padding: 6px 14px;
     font-size: 12px;
     display: inline-flex;
     align-items: center;
   }
   .bubble__copy-btn {
-    min-height: 32px;
-    padding: 6px 12px;
+    min-height: 36px;
+    padding: 6px 14px;
     font-size: 12px;
     display: inline-flex;
     align-items: center;
