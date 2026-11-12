@@ -269,6 +269,7 @@
   .cite-chip { min-height: 34px; padding: 6px 12px; font-size: 12.5px; display: inline-flex; align-items: center; }
   .earlier-btn { min-height: 40px; padding: 8px 16px; font-size: 13px; }
   .bubble__reasoning-toggle { min-height: 38px; padding: 8px 14px; font-size: 13px; }
+  .bubble__reasoning-body,
   .bubble__reasoning-content {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
