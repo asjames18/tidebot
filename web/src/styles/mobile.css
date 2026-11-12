@@ -341,6 +341,16 @@
     min-height: 44px;
     padding: 8px 12px;
   }
+  .create-modal__template-pill {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .mode-pick__opt {
+    min-height: 52px;
+    padding: 10px 12px;
+  }
 
   /* Tactile touch feedback on tap */
   button:active, .icon-btn:active, .cfg-btn:active, .byom-model-card:active, .bot-row:active,
@@ -360,7 +370,9 @@
   .cfg-editor__actions .cfg-btn:active, .group-pick__opt:active,
   .account__btn:active, .sidebar__byom-btn:active, .signin__google:active,
   .activity-line .bubble__copy-btn:active, .tasks-view__back-btn:active,
-  .bot-tasks__submit:active, .task-row .cfg-icon-btn:active {
+  .bot-tasks__submit:active, .task-row .cfg-icon-btn:active,
+  .create-modal__template-pill:active, .mode-pick__opt:active,
+  .md-copy-btn:active, .vcall__toggle:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
@@ -424,7 +436,15 @@ button { touch-action: manipulation; }
   .bubble .md { min-width: 0; overflow-wrap: anywhere; }
   .md-table { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; }
   .md pre { max-width: calc(100vw - 44px); -webkit-overflow-scrolling: touch; }
-  .md-copy-btn { min-height: 32px; padding: 6px 12px; font-size: 12px; }
+  .md-copy-btn {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 12px;
+    opacity: 0.92;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .md table { font-size: 13px; }
   .md th, .md td { padding: 4px 8px 4px 0; }
 
@@ -495,7 +515,14 @@ button { touch-action: manipulation; }
   .vcall__btn { width: 44px; height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .vcall__btn--end { width: 52px; height: 44px; }
   .vcall__captions { padding: 10px 12px; font-size: 13.5px; min-height: 44px; }
-  .vcall__toggle { min-height: 36px; padding: 6px 0; }
+  .vcall__toggle {
+    min-height: 40px;
+    padding: 8px 0;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .vcall__log { -webkit-overflow-scrolling: touch; }
   .voice-preview { min-height: 32px; padding: 0 12px; font-size: 13px; }
   .mini-select--native { min-height: 32px; }

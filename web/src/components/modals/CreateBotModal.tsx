@@ -137,8 +137,7 @@ export function CreateBotModal() {
               <button
                 key={t.id}
                 type="button"
-                className="cat-pill"
-                style={{ fontSize: 12, padding: '4px 10px' }}
+                className="cat-pill create-modal__template-pill"
                 onClick={() => applyTemplate(t)}
                 title={t.description}
               >
