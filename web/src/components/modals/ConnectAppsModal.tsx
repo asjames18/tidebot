@@ -27,6 +27,7 @@ function AppRow({ app, onChanged }: { app: Toolkit; onChanged: () => void }) {
   useEffect(() => { setState('idle'); }, [app.connected]);
 
   const connect = async () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     setState('busy'); setError(null);
     const popup = openPopup('about:blank');
     try {
@@ -40,7 +41,12 @@ function AppRow({ app, onChanged }: { app: Toolkit; onChanged: () => void }) {
     }
   };
   const disconnect = async () => {
-    if (state !== 'confirm') { setState('confirm'); return; }
+    if (state !== 'confirm') {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+      setState('confirm');
+      return;
+    }
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     setState('busy');
     try { await api.disconnect(app.slug); onChanged(); } catch (e) { setError((e as Error).message); setState('idle'); }
   };
@@ -166,11 +172,28 @@ export function ConnectAppsModal() {
 
   return (
     <Modal onClose={close} className="apps-modal" label="Connect Apps">
-      <button type="button" className="modal__close apps-modal__close" onClick={close} aria-label="Close"><Icon name="close" size={16} opacity={0.68} /></button>
+      <button
+        type="button"
+        className="modal__close apps-modal__close"
+        onClick={() => {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+          close();
+        }}
+        aria-label="Close"
+      >
+        <Icon name="close" size={16} opacity={0.68} />
+      </button>
       <div className="apps-modal__head">
         <div className="apps-modal__titlerow">
           <span className="apps-modal__title">Connect Apps</span>
-          <button type="button" className={`apps-modal__connected${view.kind === 'connected' ? ' is-active' : ''}`} onClick={() => setView(view.kind === 'connected' ? { kind: 'all' } : { kind: 'connected' })}>
+          <button
+            type="button"
+            className={`apps-modal__connected${view.kind === 'connected' ? ' is-active' : ''}`}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              setView(view.kind === 'connected' ? { kind: 'all' } : { kind: 'connected' });
+            }}
+          >
             {connectedApps.length > 0 && (
               <span className="apps-modal__connected-logos">
                 {connectedApps.slice(0, 4).map((a) => a.logo ? <img key={a.slug} src={a.logo} alt="" /> : null)}
@@ -186,24 +209,68 @@ export function ConnectAppsModal() {
               <Icon name="search" size={14} opacity={0.56} />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search apps and skills" aria-label="Search apps" />
             </label>
-            <button type="button" className="pill-chip" title="Create a Bot from a role template" onClick={() => setModal('create')}>
+            <button
+              type="button"
+              className="pill-chip"
+              title="Create a Bot from a role template"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setModal('create');
+              }}
+            >
               {primary && <BotAvatarFor bot={primary} size={22} />}
               <span>Bot templates</span>
               <Icon name="share" size={12} opacity={0.56} />
             </button>
           </div>
           <div className="cat-pills">
-            <button type="button" className={`cat-pill${view.kind === 'all' ? ' is-active' : ''}`} onClick={() => setView({ kind: 'all' })}>All</button>
+            <button
+              type="button"
+              className={`cat-pill${view.kind === 'all' ? ' is-active' : ''}`}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setView({ kind: 'all' });
+              }}
+            >
+              All
+            </button>
             {PILLS.map((p) => (
-              <button key={p.category} type="button" className={`cat-pill${activeCategory === p.category ? ' is-active' : ''}`} onClick={() => setView({ kind: 'category', category: p.category })}>{p.label}</button>
+              <button
+                key={p.category}
+                type="button"
+                className={`cat-pill${activeCategory === p.category ? ' is-active' : ''}`}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  setView({ kind: 'category', category: p.category });
+                }}
+              >
+                {p.label}
+              </button>
             ))}
             <span className="cat-pill-anchor">
-              <button type="button" className={`cat-pill${moreActive ? ' is-active' : ''}`} onClick={() => setMore(!more)} aria-expanded={more}>
+              <button
+                type="button"
+                className={`cat-pill${moreActive ? ' is-active' : ''}`}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  setMore(!more);
+                }}
+                aria-expanded={more}
+              >
                 {moreActive ? pillLabel(activeCategory!) : 'More'}
                 <Icon name="chev_down" size={10} opacity={0.66} />
               </button>
               {more && (
-                <Menu onClose={() => setMore(false)} items={moreCategories.map((c) => ({ label: titleCase(c), onSelect: () => setView({ kind: 'category', category: c }) }))} />
+                <Menu
+                  onClose={() => setMore(false)}
+                  items={moreCategories.map((c) => ({
+                    label: titleCase(c),
+                    onSelect: () => {
+                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                      setView({ kind: 'category', category: c });
+                    },
+                  }))}
+                />
               )}
             </span>
           </div>

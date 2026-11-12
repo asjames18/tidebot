@@ -450,8 +450,14 @@ button { touch-action: manipulation; }
     overflow-x: auto;
     padding-bottom: 4px;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
   .cat-pills::-webkit-scrollbar { display: none; }
+  .cat-pill {
+    min-height: 32px;
+    padding: 0 14px;
+    font-size: 12.5px;
+  }
 
   /* Search / Command Palette on mobile */
   .modal-root:has(.search-modal) {
