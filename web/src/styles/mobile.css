@@ -700,6 +700,20 @@ button { touch-action: manipulation; }
   .lib-crumbs::-webkit-scrollbar { display: none; }
   .lib-crumbs .link-btn { min-height: 38px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; }
   .lib-preview__content { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .details .cfg-input {
+    font-size: 16px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 12px;
+  }
+  .details .cfg-textarea {
+    font-size: 16px !important;
+  }
+  .details .panel-card .cfg-btn {
+    min-height: 42px;
+    padding: 0 14px;
+    font-size: 13.5px;
+  }
 
   /* Switch toggles have expanded >=44px touch target on mobile */
   .toggle { position: relative; }
@@ -1152,7 +1166,14 @@ button { touch-action: manipulation; }
     height: 42px;
     font-size: 16px;
   }
-  .tasks-view__inner form select { flex: 1 1 120px; }
+  .tasks-view__inner form .text-input {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+  .tasks-view__inner form select.text-input {
+    flex: 1 1 140px !important;
+    min-width: 0 !important;
+  }
   .tasks-view__inner form .cfg-btn { flex: 1 1 auto; min-height: 42px; }
   .task-row { flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; }
   .task-row__text { flex: 1 1 calc(100% - 46px); }
