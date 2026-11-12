@@ -105,16 +105,45 @@ export function VoiceCallBar() {
         </div>
         <div className="vcall__actions">
           {active && (
-            <button type="button" className={`vcall__btn${v.muted ? ' is-on' : ''}`} onClick={toggleMute} aria-pressed={v.muted} aria-label={v.muted ? 'Unmute' : 'Mute'} title={v.muted ? 'Unmute' : 'Mute'}>
+            <button
+              type="button"
+              className={`vcall__btn${v.muted ? ' is-on' : ''}`}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                toggleMute();
+              }}
+              aria-pressed={v.muted}
+              aria-label={v.muted ? 'Unmute' : 'Mute'}
+              title={v.muted ? 'Unmute' : 'Mute'}
+            >
               <MicGlyph off={v.muted} />
             </button>
           )}
           {active ? (
-            <button type="button" className="vcall__btn vcall__btn--end" onClick={endCall} aria-label="End call" title="End call">
+            <button
+              type="button"
+              className="vcall__btn vcall__btn--end"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(15); } catch {} }
+                endCall();
+              }}
+              aria-label="End call"
+              title="End call"
+            >
               <HangUpGlyph />
             </button>
           ) : (
-            <button type="button" className="vcall__btn" onClick={() => useVoice.setState({ status: 'idle', botId: null, error: null })} aria-label="Dismiss">✕</button>
+            <button
+              type="button"
+              className="vcall__btn"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                useVoice.setState({ status: 'idle', botId: null, error: null });
+              }}
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
           )}
         </div>
       </div>
@@ -124,10 +153,27 @@ export function VoiceCallBar() {
             {lines.length ? lines.map((c) => (
               <div key={c.id} className={`vcall__line is-${c.role}`}><b>{c.role === 'user' ? 'You' : bot.name}</b> {c.text}</div>
             )) : <div className="vcall__line is-empty">Nothing said yet.</div>}
-            <button type="button" className="vcall__toggle" onClick={() => setExpanded(false)}>Hide transcript</button>
+            <button
+              type="button"
+              className="vcall__toggle"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setExpanded(false);
+              }}
+            >
+              Hide transcript
+            </button>
           </div>
         ) : (
-          <button type="button" className="vcall__captions" onClick={() => setExpanded(true)} title="Show full transcript">
+          <button
+            type="button"
+            className="vcall__captions"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              setExpanded(true);
+            }}
+            title="Show full transcript"
+          >
             {last.length ? last.map((c) => (
               <span key={c.id} className={`vcall__caption is-${c.role}${c.final ? '' : ' is-partial'}`}>{c.text}</span>
             )) : <span className="vcall__caption is-empty">{v.muted ? 'You’re muted.' : `Say hi to ${bot.name}.`}</span>}

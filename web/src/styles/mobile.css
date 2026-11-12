@@ -317,6 +317,9 @@ button { touch-action: manipulation; }
   .vcall__btn--end { width: 48px; }
   .vcall__captions { padding: 10px 12px; font-size: 13.5px; }
   .vcall__log { -webkit-overflow-scrolling: touch; }
+  .voice-preview { min-height: 32px; padding: 0 12px; font-size: 13px; }
+  .mini-select--native { min-height: 32px; }
+  .panel-row--call { min-height: 44px; font-size: 13.5px; }
 
   /* Settings: nav becomes a top bar with horizontal scrolling tabs. */
   .app-settings { flex-direction: column; }

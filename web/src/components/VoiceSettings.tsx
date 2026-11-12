@@ -59,6 +59,7 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
 
   const preview = async () => {
     if (previewing) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     setPreviewing(true); setError(null);
     try { await previewVoice({ botId: bot.id, voice: bot.voice, speed: bot.voiceSpeed, language: bot.voiceLanguage }); }
     catch (e) { setError((e as Error).message || 'Preview unavailable'); }
@@ -85,7 +86,14 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
         <span>Language</span>
         <NativeSelect label="Language" value={bot.voiceLanguage} options={opts.languages.map((l) => ({ value: l.code, label: l.name }))} onChange={(voiceLanguage) => save({ voiceLanguage })} />
       </div>
-      <button type="button" className={`panel-row panel-row--action panel-row--call${inCall ? ' is-active' : ''}`} onClick={() => (inCall ? endCall() : startCall(bot.id))}>
+      <button
+        type="button"
+        className={`panel-row panel-row--action panel-row--call${inCall ? ' is-active' : ''}`}
+        onClick={() => {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
+          inCall ? endCall() : startCall(bot.id);
+        }}
+      >
         <Icon name="voice_a" size={14} opacity={inCall ? 1 : 0.56} /> {inCall ? 'End voice chat' : 'Start voice chat'}
       </button>
       {error && <div className="voice-error">{error}</div>}
