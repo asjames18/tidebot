@@ -1674,10 +1674,13 @@ button { touch-action: manipulation; }
     overflow-wrap: anywhere;
   }
   .app-row .app-row__desc {
-    max-height: 16px;
+    max-height: none;
     opacity: 1;
     font-size: 12px;
     line-height: 16px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .app-row .app-row__error {
     max-height: none;
@@ -1693,6 +1696,7 @@ button { touch-action: manipulation; }
     padding: 0 18px;
     width: auto;
     min-width: 92px;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
