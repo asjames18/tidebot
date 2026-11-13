@@ -934,7 +934,6 @@ button { touch-action: manipulation; }
   .members__hint { font-size: 12.5px; line-height: 17px; padding: 8px 10px 4px; }
   .lib-row { min-height: 44px; }
   .lib-row__main { min-height: 44px; padding: 8px 10px; }
-  .lib-row .cfg-icon-btn { min-width: 44px; min-height: 44px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .panel-card .link-btn { min-height: 44px; padding: 6px 14px; display: inline-flex; align-items: center; font-size: 13px; }
   .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
   .lib-crumbs::-webkit-scrollbar { display: none; }
@@ -1485,6 +1484,10 @@ button { touch-action: manipulation; }
     min-height: 44px;
     width: 44px;
     height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
   .cfg-row {
     min-height: 52px;
@@ -1528,15 +1531,6 @@ button { touch-action: manipulation; }
   .cfg-item__meta {
     flex-wrap: wrap;
     gap: 6px;
-  }
-  .cfg-item__actions .cfg-icon-btn {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
   .cfg-item--routine {
     flex-wrap: wrap;
