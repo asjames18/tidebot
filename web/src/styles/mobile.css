@@ -73,7 +73,7 @@
   }
   .mobile-nav-btn {
     display: flex; position: static; flex-shrink: 0;
-    width: 42px; height: 42px; min-width: 42px; min-height: 42px; align-items: center; justify-content: center;
+    width: 44px; height: 44px; min-width: 44px; min-height: 44px; align-items: center; justify-content: center;
   }
   .mobile-nav-btn--inline { position: static; flex-shrink: 0; }
   .mobile-only-btn { display: inline-flex; }
@@ -121,10 +121,10 @@
   /* Header: flexbox row so left nav, center pills, and right buttons never overlap. */
   .share-btn {
     display: inline-flex;
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
     align-items: center;
     justify-content: center;
@@ -134,10 +134,10 @@
   }
   .share-btn__label { display: none; }
   .chat__briefing-btn {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -164,10 +164,10 @@
     flex-shrink: 0;
     gap: 6px;
   }
-  .chat__header-right .icon-btn { width: 42px; height: 42px; min-width: 42px; min-height: 42px; }
-  .chat__pill { height: 42px; min-height: 42px; padding: 4px 12px 4px 6px; gap: 6px; min-width: 0; }
+  .chat__header-right .icon-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+  .chat__pill { height: 44px; min-height: 44px; padding: 4px 12px 4px 6px; gap: 6px; min-width: 0; }
   .chat__pill-name { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-  .chat__model-pill { height: 42px; min-height: 42px; padding: 0 12px; gap: 5px; font-size: 12px; min-width: 0; }
+  .chat__model-pill { height: 44px; min-height: 44px; padding: 0 12px; gap: 5px; font-size: 12px; min-width: 0; }
   .chat__model-name { max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Composer telemetry: horizontal swipeable strip on mobile; hide desktop kbd hints. */
@@ -703,9 +703,10 @@ button { touch-action: manipulation; }
     overscroll-behavior-x: contain;
   }
   .md-copy-btn {
-    min-height: 42px;
-    padding: 6px 16px;
-    font-size: 13px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
+    font-size: 13.5px;
     opacity: 0.95;
     display: inline-flex;
     align-items: center;
@@ -884,9 +885,13 @@ button { touch-action: manipulation; }
     font-size: 16px !important;
   }
   .details .panel-card .cfg-btn {
-    min-height: 42px;
-    padding: 0 14px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
     font-size: 13.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Switch toggles have expanded >=44px touch target on mobile */
@@ -1452,11 +1457,12 @@ button { touch-action: manipulation; }
     gap: 8px;
   }
   .apps-modal__connected {
-    min-height: 42px;
+    min-height: 44px;
     padding: 6px 14px;
-    font-size: 13px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
   }
   .apps-modal__searchrow {
     flex-wrap: wrap;
@@ -1464,8 +1470,8 @@ button { touch-action: manipulation; }
   }
   .apps-modal__searchrow .pill-input {
     flex: 1 1 180px;
-    height: 42px;
-    min-height: 42px;
+    height: 44px;
+    min-height: 44px;
     padding: 0 12px;
   }
   .apps-modal__searchrow .pill-input input {
@@ -1475,8 +1481,8 @@ button { touch-action: manipulation; }
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    height: 42px;
-    min-height: 42px;
+    height: 44px;
+    min-height: 44px;
     padding: 0 14px;
     font-size: 13.5px;
     display: inline-flex;
@@ -1746,9 +1752,9 @@ button { touch-action: manipulation; }
   .signin__shader-pill {
     white-space: nowrap;
     flex-shrink: 0;
-    min-height: 42px;
+    min-height: 44px;
     padding: 8px 16px;
-    font-size: 13px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1802,10 +1808,10 @@ button { touch-action: manipulation; }
     padding: 10px 14px;
   }
   .bot-list__empty-plus {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   /* Very narrow phones (≤380px): squeeze pills further and adjust composer padding while preserving 40px touch targets. */
