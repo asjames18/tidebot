@@ -438,14 +438,24 @@
   .shape-cell {
     width: 44px;
     height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .swatch-cell {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .swatch {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
   }
   .shape-grid, .swatches {
     max-width: 100%;
@@ -467,9 +477,9 @@
     padding: 8px 12px;
   }
   .create-modal__template-pill {
-    min-height: 42px;
+    min-height: 44px;
     padding: 0 16px;
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 500;
     display: inline-flex;
     align-items: center;
@@ -725,10 +735,10 @@ button { touch-action: manipulation; }
   .question-card { width: 100%; }
   .card__head, .draft-card__head { padding: 14px 14px 4px; }
   .draft-card__copy {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 8px;
     display: inline-flex;
     align-items: center;
@@ -752,7 +762,7 @@ button { touch-action: manipulation; }
   .card__actions .btn { min-height: 44px; flex: 1 1 auto; }
   .card__outcome {
     padding: 10px 14px 14px;
-    min-height: 40px;
+    min-height: 44px;
     display: flex;
     align-items: center;
   }
@@ -818,9 +828,9 @@ button { touch-action: manipulation; }
   .panel-row--routine { min-height: 48px; }
   .panel-row--computer { min-height: 54px; }
   .section-label--row { min-height: 36px; height: auto; }
-  .section-label--row .link-btn { min-height: 40px; padding: 6px 16px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+  .section-label--row .link-btn { min-height: 42px; padding: 6px 16px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
   .members__row { min-height: 44px; }
-  .members__remove { width: 42px; height: 42px; min-width: 42px; min-height: 42px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+  .members__remove { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
   .members__add {
     max-height: 260px;
     overflow-y: auto;
@@ -828,7 +838,7 @@ button { touch-action: manipulation; }
     overscroll-behavior: contain;
   }
   .members__add .link-btn {
-    min-height: 40px;
+    min-height: 42px;
     padding: 6px 16px;
     font-size: 13px;
     display: inline-flex;
@@ -839,10 +849,10 @@ button { touch-action: manipulation; }
   .lib-row { min-height: 44px; }
   .lib-row__main { min-height: 44px; padding: 8px 10px; }
   .lib-row .cfg-icon-btn { min-width: 44px; min-height: 44px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-  .panel-card .link-btn { min-height: 42px; padding: 6px 14px; display: inline-flex; align-items: center; font-size: 13px; }
+  .panel-card .link-btn { min-height: 44px; padding: 6px 14px; display: inline-flex; align-items: center; font-size: 13px; }
   .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
   .lib-crumbs::-webkit-scrollbar { display: none; }
-  .lib-crumbs .link-btn { min-height: 42px; padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; }
+  .lib-crumbs .link-btn { min-height: 44px; padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; }
   .lib-preview__content { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .details .cfg-input {
     font-size: 16px !important;
