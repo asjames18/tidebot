@@ -1564,18 +1564,18 @@ button { touch-action: manipulation; }
   .tasks-view__back-btn {
     min-height: 44px;
     height: 44px;
-    padding: 0 14px;
-    font-size: 13px;
+    padding: 0 16px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 6px;
   }
   .tasks-view__header .segmented button {
     min-height: 44px;
     height: 44px;
     padding: 0 16px;
-    font-size: 13px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1617,11 +1617,11 @@ button { touch-action: manipulation; }
   .task-row__text { flex: 1 1 calc(100% - 46px); min-width: 0; }
   .task-row__note { overflow-wrap: anywhere; word-break: break-word; }
   .task-row__meta { flex-wrap: wrap; font-size: 11.5px; }
-  .task-chip { height: 26px; line-height: 26px; padding: 0 10px; font-size: 12px; display: inline-flex; align-items: center; }
-  .task-row .cfg-btn { min-height: 36px; padding: 0 12px; }
+  .task-chip { height: 28px; line-height: 28px; padding: 0 10px; font-size: 12px; display: inline-flex; align-items: center; }
+  .task-row .cfg-btn { min-height: 40px; height: 40px; padding: 0 14px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
   .task-row .cfg-icon-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .task-row__check { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-  .task-row__run-btn { height: 40px !important; min-height: 40px; padding: 0 16px !important; font-size: 13px !important; display: inline-flex; align-items: center; }
+  .task-row__run-btn { height: 44px !important; min-height: 44px; padding: 0 18px !important; font-size: 13.5px !important; display: inline-flex; align-items: center; justify-content: center; }
   .bot-tasks__form { gap: 8px; margin-bottom: 10px; }
   .bot-tasks__input { min-height: 44px; height: 44px; font-size: 16px; padding: 0 12px; }
   .bot-tasks__submit { min-height: 44px; height: 44px; min-width: 44px; padding: 0 14px; }
@@ -1695,7 +1695,7 @@ button { touch-action: manipulation; }
   .signin__shader-pill {
     white-space: nowrap;
     flex-shrink: 0;
-    min-height: 40px;
+    min-height: 42px;
     padding: 8px 16px;
     font-size: 13px;
     display: inline-flex;
