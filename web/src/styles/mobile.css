@@ -73,7 +73,7 @@
   }
   .mobile-nav-btn {
     display: flex; position: static; flex-shrink: 0;
-    width: 40px; height: 40px; min-width: 40px; min-height: 40px; align-items: center; justify-content: center;
+    width: 42px; height: 42px; min-width: 42px; min-height: 42px; align-items: center; justify-content: center;
   }
   .mobile-nav-btn--inline { position: static; flex-shrink: 0; }
   .mobile-only-btn { display: inline-flex; }
@@ -121,10 +121,10 @@
   /* Header: flexbox row so left nav, center pills, and right buttons never overlap. */
   .share-btn {
     display: inline-flex;
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
     padding: 0;
     align-items: center;
     justify-content: center;
@@ -134,10 +134,10 @@
   }
   .share-btn__label { display: none; }
   .chat__briefing-btn {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -164,10 +164,10 @@
     flex-shrink: 0;
     gap: 6px;
   }
-  .chat__header-right .icon-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
-  .chat__pill { height: 40px; min-height: 40px; padding: 4px 10px 4px 5px; gap: 6px; min-width: 0; }
+  .chat__header-right .icon-btn { width: 42px; height: 42px; min-width: 42px; min-height: 42px; }
+  .chat__pill { height: 42px; min-height: 42px; padding: 4px 12px 4px 6px; gap: 6px; min-width: 0; }
   .chat__pill-name { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-  .chat__model-pill { height: 40px; min-height: 40px; padding: 0 10px; gap: 5px; font-size: 12px; min-width: 0; }
+  .chat__model-pill { height: 42px; min-height: 42px; padding: 0 12px; gap: 5px; font-size: 12px; min-width: 0; }
   .chat__model-name { max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Composer telemetry: horizontal swipeable strip on mobile; hide desktop kbd hints. */
