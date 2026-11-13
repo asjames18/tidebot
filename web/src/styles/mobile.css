@@ -197,7 +197,6 @@
   .composer-telemetry__right { display: none; }
 
   /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */
-  .bubble__meta-bar { flex-wrap: wrap; row-gap: 4px; }
 
   /* Chat column: tighter padding, wider bubbles. */
   .transcript { padding: 64px 10px 8px; }
@@ -321,6 +320,10 @@
     min-height: 44px;
     padding: 6px 16px;
     font-size: 13.5px;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -640,6 +643,8 @@
     border-radius: 6px;
   }
   .bubble__meta-bar {
+    flex-wrap: wrap;
+    row-gap: 4px;
     min-height: 44px;
     margin-top: 8px;
     gap: 6px;
