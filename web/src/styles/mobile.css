@@ -1497,6 +1497,7 @@ button { touch-action: manipulation; }
     min-height: 44px;
     padding: 0 14px;
     flex-shrink: 0;
+    justify-content: center;
   }
   .cfg-item {
     padding: 12px 10px 12px 12px;
@@ -1521,6 +1522,9 @@ button { touch-action: manipulation; }
     height: 44px;
     min-width: 44px;
     min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .cfg-item--routine {
     flex-wrap: wrap;
@@ -1581,6 +1585,7 @@ button { touch-action: manipulation; }
     flex: 1 1 140px;
     min-height: 44px;
     padding: 0 12px;
+    justify-content: center;
   }
 
   /* Connect Apps Marketplace on mobile */
