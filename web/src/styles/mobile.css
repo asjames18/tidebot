@@ -1540,18 +1540,19 @@ button { touch-action: manipulation; }
     gap: 8px;
   }
   .tasks-view__back-btn {
-    min-height: 40px;
-    height: 40px;
-    padding: 0 12px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 14px;
     font-size: 13px;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 5px;
   }
   .tasks-view__header .segmented button {
-    min-height: 42px;
-    height: 42px;
-    padding: 0 14px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
     font-size: 13px;
     display: inline-flex;
     align-items: center;
@@ -1561,8 +1562,8 @@ button { touch-action: manipulation; }
   .tasks-view__inner form { flex-wrap: wrap; gap: 8px; }
   .tasks-view__inner form .text-input,
   .tasks-view__inner form select {
-    min-height: 42px;
-    height: 42px;
+    min-height: 44px;
+    height: 44px;
     font-size: 16px;
   }
   .tasks-view__inner form .text-input {
@@ -1573,7 +1574,7 @@ button { touch-action: manipulation; }
     flex: 1 1 140px !important;
     min-width: 0 !important;
   }
-  .tasks-view__inner form .cfg-btn { flex: 1 1 auto; min-height: 42px; }
+  .tasks-view__inner form .cfg-btn { flex: 1 1 auto; min-height: 44px; height: 44px; font-size: 13.5px; }
   .tasks-empty {
     padding: 36px 16px;
     gap: 6px;
@@ -1594,11 +1595,11 @@ button { touch-action: manipulation; }
   .task-row__text { flex: 1 1 calc(100% - 46px); min-width: 0; }
   .task-row__note { overflow-wrap: anywhere; word-break: break-word; }
   .task-row__meta { flex-wrap: wrap; font-size: 11.5px; }
-  .task-chip { height: 24px; line-height: 24px; padding: 0 10px; font-size: 11.5px; }
-  .task-row .cfg-btn { min-height: 32px; }
-  .task-row .cfg-icon-btn { width: 42px; height: 42px; min-width: 42px; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; }
-  .task-row__check { width: 42px; height: 42px; min-width: 42px; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; }
-  .task-row__run-btn { height: 38px !important; min-height: 38px; padding: 0 14px !important; font-size: 13px !important; display: inline-flex; align-items: center; }
+  .task-chip { height: 26px; line-height: 26px; padding: 0 10px; font-size: 12px; display: inline-flex; align-items: center; }
+  .task-row .cfg-btn { min-height: 36px; padding: 0 12px; }
+  .task-row .cfg-icon-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .task-row__check { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .task-row__run-btn { height: 40px !important; min-height: 40px; padding: 0 16px !important; font-size: 13px !important; display: inline-flex; align-items: center; }
   .bot-tasks__form { gap: 8px; margin-bottom: 10px; }
   .bot-tasks__input { min-height: 44px; height: 44px; font-size: 16px; padding: 0 12px; }
   .bot-tasks__submit { min-height: 44px; height: 44px; min-width: 44px; padding: 0 14px; }
