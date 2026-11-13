@@ -1199,10 +1199,16 @@ button { touch-action: manipulation; }
   .theme-tile {
     width: 100%;
     max-width: 160px;
+    min-height: 44px;
+    padding: 8px 6px;
   }
   .theme-tile__art {
     width: 100%;
     max-width: 148px;
+  }
+  .theme-tile__label {
+    font-size: 13.5px;
+    line-height: 19px;
   }
   .shader-preview-card {
     height: 128px;
@@ -1212,7 +1218,21 @@ button { touch-action: manipulation; }
     padding: 12px 14px;
   }
   .shader-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 8px; }
-  .shader-Option { min-height: 48px; padding: 10px 12px; }
+  .shader-Option {
+    min-height: 52px;
+    padding: 10px 12px;
+    gap: 4px;
+    border-radius: 12px;
+  }
+  .shader-Option__name {
+    font-size: 13.5px;
+    line-height: 19px;
+  }
+  .shader-Option__desc {
+    font-size: 12px;
+    line-height: 16px;
+    overflow-wrap: anywhere;
+  }
 
   /* Bot settings modal, Connect Apps modal, Search modal, and Tasks view on mobile. */
   .bot-settings {
