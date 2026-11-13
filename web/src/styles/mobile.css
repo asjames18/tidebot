@@ -443,6 +443,10 @@
     font-size: 13px;
     font-weight: 500;
   }
+  .create-modal__templates {
+    gap: 8px;
+    padding: 2px 0 6px;
+  }
   .mode-pick {
     width: 100%;
     flex-wrap: wrap;
@@ -1233,6 +1237,10 @@ button { touch-action: manipulation; }
   }
   .apps-modal__head {
     padding: 44px 16px 0;
+  }
+  .apps-modal__titlerow {
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .apps-modal__connected {
     min-height: 40px;

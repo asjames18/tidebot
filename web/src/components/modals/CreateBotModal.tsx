@@ -132,7 +132,7 @@ export function CreateBotModal() {
         </div>
         <div className="create-modal__body">
           <BotAvatar shape={shape} color={color} size={96} className="create-modal__preview" />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', width: '100%' }} aria-label="Role templates">
+          <div className="create-modal__templates" aria-label="Role templates">
             {TEMPLATES.map((t) => (
               <button
                 key={t.id}

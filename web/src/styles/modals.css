@@ -19,6 +19,7 @@
 .create-modal form { display: flex; flex-direction: column; min-height: 0; }
 .create-modal__body { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; overflow-y: auto; }
 .create-modal__name { width: 407px; max-width: 100%; text-align: center; }
+.create-modal__templates { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: 100%; }
 .shape-grid { display: flex; flex-direction: column; gap: 8px; padding: 6px 0; width: 407px; max-width: 100%; }
 .shape-grid__row { display: flex; justify-content: center; gap: 8px; }
 .shape-cell { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 12px; }
