@@ -1602,9 +1602,11 @@ button { touch-action: manipulation; }
     justify-content: center;
   }
   .search-modal__section {
-    padding: 8px 10px 4px;
+    padding: 10px 12px 6px;
     font-size: 12px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   .search-modal__empty {
     padding: 32px 14px;
@@ -1617,9 +1619,10 @@ button { touch-action: manipulation; }
     padding: 6px 8px;
   }
   .search-row {
-    min-height: 48px;
+    min-height: 52px;
     height: auto;
-    padding: 10px 12px;
+    padding: 11px 14px;
+    border-radius: 8px;
   }
 
   /* Tasks view responsive layout */
