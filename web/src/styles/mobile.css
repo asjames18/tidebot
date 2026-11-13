@@ -449,6 +449,7 @@
     padding: 10px 18px;
     font-size: 14px;
     font-weight: 500;
+    justify-content: center;
   }
   .modal__footer .link-btn {
     min-height: 44px;
@@ -467,15 +468,7 @@
     min-height: 44px;
     padding: 10px 14px;
   }
-  .shape-cell {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
+  .shape-cell,
   .swatch-cell {
     width: 44px;
     height: 44px;
