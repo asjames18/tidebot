@@ -796,7 +796,7 @@ button { touch-action: manipulation; }
   }
   .draft-card__content { padding: 10px 14px 12px; }
   .draft-card__subject { padding-top: 8px; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; word-break: break-word; }
-  .draft-card__text { padding-top: 8px; font-size: 13.5px; line-height: 20px; max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .draft-card__text { padding-top: 8px; font-size: 13.5px; line-height: 20px; max-height: 260px; overflow-y: auto; overflow-wrap: anywhere; word-break: break-word; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .card__body { padding: 8px 14px 0; overflow-wrap: anywhere; word-break: break-word; }
   .card__title { font-size: 13.5px; line-height: 19px; overflow-wrap: anywhere; word-break: break-word; }
   .card__sub { font-size: 12.5px; line-height: 17px; overflow-wrap: anywhere; word-break: break-word; }
@@ -809,7 +809,8 @@ button { touch-action: manipulation; }
     max-width: 100%;
   }
   .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; gap: 8px; }
-  .card__actions .btn { min-height: 44px; flex: 1 1 auto; }
+  .card__actions .btn,
+  .draft-card__actions .btn { min-height: 44px; flex: 1 1 auto; justify-content: center; }
   .card__outcome {
     padding: 10px 14px 14px;
     min-height: 44px;
@@ -820,7 +821,6 @@ button { touch-action: manipulation; }
     align-items: center;
   }
   .draft-card__actions { padding: 10px 14px 14px; flex-wrap: wrap; gap: 8px; }
-  .draft-card__actions .btn { min-height: 44px; flex: 1 1 auto; }
   .question-card__head { padding: 12px 14px 4px; }
   .question-card__options { padding: 6px; }
   .question-card__q { font-size: 14.5px; line-height: 21px; overflow-wrap: anywhere; word-break: break-word; }
