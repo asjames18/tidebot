@@ -33,10 +33,10 @@
     min-height: 44px;
   }
   .sidebar__controls .icon-btn {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -94,10 +94,10 @@
     justify-content: space-between;
   }
   .details__top .icon-btn {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -108,10 +108,10 @@
     overscroll-behavior: contain;
   }
   .details__tabs .segmented button {
-    min-height: 42px;
-    height: 42px;
+    min-height: 44px;
+    height: 44px;
     padding: 0 16px;
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 500;
     display: inline-flex;
     align-items: center;
@@ -134,9 +134,10 @@
   }
   .share-btn__label { display: none; }
   .chat__briefing-btn {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -230,9 +231,9 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    height: 38px;
-    min-height: 38px;
-    padding: 0 14px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 15px;
     border-radius: 99px;
     background: var(--color-bg-pane);
     border: 1px solid var(--color-border-secondary);
@@ -268,23 +269,24 @@
 
   /* Mobile composer buttons & CTA */
   .composer__cta {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
   .composer__btn {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
   .composer__btn--enhance {
     width: auto !important;
     min-width: auto;
-    min-height: 42px;
-    height: 42px;
-    padding: 0 12px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 14px;
+    font-size: 13.5px;
   }
   .composer__plus-anchor {
     padding: 5px 0;
