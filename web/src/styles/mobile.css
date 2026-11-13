@@ -1105,6 +1105,7 @@ button { touch-action: manipulation; }
   .app-settings__head { padding-right: 44px; }
   .app-settings__head h1 { font-size: 20px; line-height: 26px; }
   .app-settings__head p { font-size: 12.5px; line-height: 18px; }
+  .cfg-field__label { font-size: 13.5px; line-height: 19px; }
   .cfg-field__hint { font-size: 12px; line-height: 17px; overflow-wrap: anywhere; }
   .cfg-code { overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
   .app-settings__close {
@@ -1299,6 +1300,15 @@ button { touch-action: manipulation; }
     line-height: 22px;
     overflow-wrap: anywhere;
     word-break: break-word;
+  }
+  .cfg-look .cfg-btn {
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
+    font-size: 13.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .cfg-savebar {
     margin: -4px -14px 0;
