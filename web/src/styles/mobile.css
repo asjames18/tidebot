@@ -1388,9 +1388,11 @@ button { touch-action: manipulation; }
     gap: 8px;
   }
   .apps-modal__connected {
-    min-height: 40px;
-    padding: 6px 12px;
+    min-height: 42px;
+    padding: 6px 14px;
     font-size: 13px;
+    display: inline-flex;
+    align-items: center;
   }
   .apps-modal__searchrow {
     flex-wrap: wrap;
@@ -1398,8 +1400,8 @@ button { touch-action: manipulation; }
   }
   .apps-modal__searchrow .pill-input {
     flex: 1 1 180px;
-    height: 40px;
-    min-height: 40px;
+    height: 42px;
+    min-height: 42px;
     padding: 0 12px;
   }
   .apps-modal__searchrow .pill-input input {
@@ -1446,12 +1448,15 @@ button { touch-action: manipulation; }
     opacity: 1;
   }
   .app-row__connect, .app-row__connected {
-    height: 42px;
-    min-height: 42px;
+    height: 44px;
+    min-height: 44px;
     font-size: 13.5px;
-    padding: 0 16px;
+    padding: 0 18px;
     width: auto;
-    min-width: 90px;
+    min-width: 92px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .cat-pills {
     flex-wrap: nowrap;
@@ -1463,16 +1468,20 @@ button { touch-action: manipulation; }
   }
   .cat-pills::-webkit-scrollbar { display: none; }
   .cat-pill {
-    min-height: 40px;
+    min-height: 42px;
     padding: 0 16px;
-    font-size: 13px;
-  }
-  .apps-section__head .link-btn {
-    min-height: 38px;
-    padding: 6px 12px;
     font-size: 13px;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+  }
+  .apps-section__head .link-btn {
+    min-height: 40px;
+    padding: 6px 14px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Search / Command Palette on mobile */
