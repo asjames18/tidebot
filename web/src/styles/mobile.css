@@ -1874,7 +1874,7 @@ button { touch-action: manipulation; }
   .task-row__run-btn { height: 44px !important; min-height: 44px; padding: 0 18px !important; font-size: 13.5px !important; display: inline-flex; align-items: center; justify-content: center; }
   .bot-tasks__form { gap: 8px; margin-bottom: 10px; }
   .bot-tasks__input { min-height: 44px; height: 44px; font-size: 16px; padding: 0 12px; }
-  .bot-tasks__submit { min-height: 44px; height: 44px; min-width: 44px; padding: 0 14px; }
+  .bot-tasks__submit { min-height: 44px; height: 44px; min-width: 44px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Computer viewer. */
   .viewer__top { padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: 56px; }
@@ -1902,7 +1902,7 @@ button { touch-action: manipulation; }
     overflow-wrap: anywhere;
     max-width: 100%;
   }
-  .viewer__close { width: 44px; height: 44px; }
+  .viewer__close { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .viewer__status { display: none; }
   .viewer__bar {
     max-width: calc(100vw - 20px);
@@ -1918,8 +1918,8 @@ button { touch-action: manipulation; }
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-  .viewer__bar .btn { min-height: 44px; padding: 0 16px; font-size: 13.5px; font-weight: 500; }
-  .viewer__overlay .btn { min-height: 44px; padding: 0 18px; font-size: 14px; font-weight: 600; }
+  .viewer__bar .btn { min-height: 44px; padding: 0 16px; font-size: 13.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; }
+  .viewer__overlay .btn { min-height: 44px; padding: 0 18px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Sign-in fits small screens. */
   .signin {
