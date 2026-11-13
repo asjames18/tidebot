@@ -998,7 +998,15 @@ button { touch-action: manipulation; }
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
   }
-  .byom-filter-tab { min-height: 40px; height: 40px; padding: 0 14px; font-size: 13px; }
+  .byom-filter-tab {
+    min-height: 42px;
+    height: 42px;
+    padding: 0 16px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .byom-model-grid {
     grid-template-columns: 1fr;
     max-height: 380px;
@@ -1080,10 +1088,13 @@ button { touch-action: manipulation; }
   .cfg-nav__item {
     width: auto;
     flex-shrink: 0;
-    height: 40px;
-    min-height: 40px;
-    padding: 0 14px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 16px;
     font-size: 13.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .cfg-page {
     padding: 16px 14px 24px;
@@ -1095,6 +1106,13 @@ button { touch-action: manipulation; }
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
+  }
+  .cfg-page__head .cfg-btn {
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
+    font-size: 13.5px;
+    justify-content: center;
   }
   .cfg-look {
     gap: 12px;
@@ -1125,16 +1143,23 @@ button { touch-action: manipulation; }
     margin-bottom: 2px;
   }
   .cfg-savebar .cfg-btn {
-    min-height: 42px;
+    min-height: 44px;
+    height: 44px;
     padding: 0 16px;
+    font-size: 13.5px;
     flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .cfg-editor__actions {
     gap: 10px;
   }
   .cfg-editor__actions .cfg-btn {
     flex: 1 1 0;
-    min-height: 42px;
+    min-height: 44px;
+    height: 44px;
+    font-size: 13.5px;
     justify-content: center;
   }
   .cfg-inline-form {
