@@ -1963,10 +1963,23 @@ button { touch-action: manipulation; }
     min-height: 56px;
     height: auto;
     padding: 10px 12px;
+    gap: 10px;
+  }
+  .bot-row__name {
+    font-size: 14px;
+    line-height: 19px;
+  }
+  .bot-row__preview {
+    font-size: 12.5px;
+    line-height: 17px;
   }
   .pinned__tile {
-    min-height: 64px;
-    padding: 8px 10px 6px;
+    min-height: 68px;
+    padding: 10px 10px 8px;
+  }
+  .pinned__label {
+    font-size: 12px;
+    line-height: 16px;
   }
   .bot-list__empty {
     min-height: 54px;
