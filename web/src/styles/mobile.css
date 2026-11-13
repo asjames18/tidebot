@@ -996,6 +996,7 @@ button { touch-action: manipulation; }
   .slash-palette__cmd {
     min-width: 84px;
     height: 30px;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1094,19 +1095,9 @@ button { touch-action: manipulation; }
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
-  .app-settings__back {
-    margin-bottom: 0;
-    flex-shrink: 0;
-    scroll-snap-align: start;
-    min-height: 44px;
-    height: 44px;
-    padding: 0 16px;
-    font-size: 13.5px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
   .app-settings__heading { display: none; }
+  .app-settings__back { margin-bottom: 0; }
+  .app-settings__back,
   .app-settings__nav button {
     flex-shrink: 0;
     scroll-snap-align: start;
