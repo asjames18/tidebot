@@ -267,17 +267,15 @@
   input, select, textarea { font-size: 16px; }
 
   /* Mobile composer buttons & CTA */
-  .composer__cta {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-  }
+  .composer__cta,
   .composer__btn {
     width: 44px;
     height: 44px;
     min-width: 44px;
     min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .composer__btn--enhance {
     width: auto !important;
@@ -340,6 +338,7 @@
     align-items: center;
     max-width: 100%;
     white-space: normal;
+    overflow-wrap: anywhere;
     text-align: left;
   }
   .bubble__reasoning-body,
