@@ -1275,6 +1275,18 @@ button { touch-action: manipulation; }
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
+  .cfg-page__title {
+    font-size: 18px;
+    line-height: 24px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .cfg-page__sub {
+    font-size: 12.5px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   .cfg-page__head {
     flex-direction: column;
     align-items: stretch;
@@ -1286,6 +1298,17 @@ button { touch-action: manipulation; }
     padding: 0 16px;
     font-size: 13.5px;
     justify-content: center;
+  }
+  .cfg-section {
+    gap: 12px;
+  }
+  .cfg-section__label {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 0 2px;
   }
   .cfg-look {
     gap: 12px;
