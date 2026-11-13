@@ -199,7 +199,6 @@
   /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */
   .bubble__time { opacity: 0.65; transform: none; font-size: 11px; }
   .bubble__meta-bar { flex-wrap: wrap; row-gap: 4px; }
-  .bubble__copy-btn { padding: 8px 16px; font-size: 13.5px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Chat column: tighter padding, wider bubbles. */
   .transcript { padding: 64px 10px 8px; }
@@ -636,14 +635,6 @@
     font-size: 11px;
     overflow-wrap: anywhere;
     word-break: break-word;
-  }
-  .activity-line .bubble__copy-btn {
-    min-height: 44px;
-    padding: 8px 16px;
-    font-size: 13.5px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
   .bubble__copy-btn {
     min-height: 44px;
