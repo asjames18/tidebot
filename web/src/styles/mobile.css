@@ -974,9 +974,28 @@ button { touch-action: manipulation; }
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
-  .app-settings__back { margin-bottom: 0; flex-shrink: 0; min-height: 42px; }
+  .app-settings__back {
+    margin-bottom: 0;
+    flex-shrink: 0;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
+    font-size: 13.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .app-settings__heading { display: none; }
-  .app-settings__nav button { flex-shrink: 0; min-height: 42px; }
+  .app-settings__nav button {
+    flex-shrink: 0;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
+    font-size: 13.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .app-settings__page { padding: 20px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
   .app-settings__head { padding-right: 44px; }
   .app-settings__head h1 { font-size: 20px; line-height: 26px; }
@@ -986,10 +1005,13 @@ button { touch-action: manipulation; }
   .app-settings__close {
     top: 12px;
     right: 12px;
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .cfg-grid { grid-template-columns: 1fr; }
   .cfg-input { font-size: 16px; height: 44px; }
@@ -1041,8 +1063,8 @@ button { touch-action: manipulation; }
   .byom-search {
     max-width: 100%;
     width: 100%;
-    min-height: 42px;
-    height: 42px;
+    min-height: 44px;
+    height: 44px;
     font-size: 16px;
   }
   .theme-tiles {
