@@ -1319,6 +1319,10 @@ button { touch-action: manipulation; }
   }
   .cfg-editor > div:has(input) input {
     min-width: 120px;
+    height: 44px;
+    min-height: 44px;
+    font-size: 16px;
+    padding: 0 12px;
   }
   .cfg-chips-wrap {
     gap: 8px;
@@ -1415,6 +1419,8 @@ button { touch-action: manipulation; }
   }
   .cfg-textarea {
     font-size: 16px;
+    min-height: 80px;
+    padding: 10px 12px;
   }
   .cfg-page .text-input,
   .cfg-page select.text-input {
