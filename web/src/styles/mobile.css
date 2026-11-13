@@ -182,9 +182,9 @@
   .composer-telemetry__left { flex-wrap: nowrap; gap: 6px; }
   .composer-telemetry__chip {
     flex-shrink: 0;
-    min-height: 38px;
-    padding: 6px 14px;
-    font-size: 12.5px;
+    min-height: 40px;
+    padding: 6px 16px;
+    font-size: 13px;
     line-height: 16px;
     display: inline-flex;
     align-items: center;
@@ -308,7 +308,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    bottom: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
@@ -346,14 +346,14 @@
     justify-content: center;
     align-items: center;
     width: 100%;
-    min-height: 40px;
-    padding: 12px 0 12px;
+    min-height: 44px;
+    padding: 14px 0 12px;
     touch-action: pan-y;
     cursor: grab;
   }
   .sheet-handle {
     display: block;
-    width: 48px;
+    width: 52px;
     height: 5px;
     border-radius: 99px;
     background: var(--color-border-primary);
