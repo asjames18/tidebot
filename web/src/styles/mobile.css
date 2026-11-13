@@ -17,6 +17,8 @@
     width: min(320px, 86vw); height: 100dvh;
     transform: translateX(-105%);
     transition: transform 220ms var(--ease-out);
+    overscroll-behavior: contain;
+    touch-action: pan-y;
     box-shadow: none;
   }
   .sidebar.is-mobile-open { transform: none; box-shadow: var(--shadow-composer); }
@@ -70,6 +72,8 @@
   .mobile-scrim {
     display: block; position: fixed; inset: 0; z-index: 110;
     background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    touch-action: none;
   }
   .mobile-nav-btn {
     display: flex; position: static; flex-shrink: 0;
@@ -87,6 +91,7 @@
   .details {
     position: fixed; top: 0; bottom: 0; right: 0; z-index: 115;
     width: min(340px, 94vw); height: 100dvh;
+    overscroll-behavior: contain;
     box-shadow: var(--shadow-composer);
   }
   .details__top {
