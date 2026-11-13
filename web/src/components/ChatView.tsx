@@ -233,7 +233,10 @@ export function ChatView() {
           <button
             type="button"
             className="share-btn"
-            onClick={() => void shareTranscript()}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              void shareTranscript();
+            }}
             title="Export conversation as Markdown"
             aria-label="Share conversation"
           >

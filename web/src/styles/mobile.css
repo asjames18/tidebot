@@ -1304,8 +1304,8 @@ button { touch-action: manipulation; }
     opacity: 1;
   }
   .app-row__connect, .app-row__connected {
-    height: 40px;
-    min-height: 40px;
+    height: 42px;
+    min-height: 42px;
     font-size: 13.5px;
     padding: 0 16px;
     width: auto;
