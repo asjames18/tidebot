@@ -167,7 +167,7 @@
   .chat__header-right .icon-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
   .chat__pill { height: 44px; min-height: 44px; padding: 4px 12px 4px 6px; gap: 6px; min-width: 0; }
   .chat__pill-name { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-  .chat__model-pill { height: 44px; min-height: 44px; padding: 0 12px; gap: 5px; font-size: 12px; min-width: 0; }
+  .chat__model-pill { height: 44px; min-height: 44px; padding: 0 12px; gap: 5px; font-size: 12.5px; min-width: 0; }
   .chat__model-name { max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Composer telemetry: horizontal swipeable strip on mobile; hide desktop kbd hints. */
@@ -182,9 +182,9 @@
   .composer-telemetry__left { flex-wrap: nowrap; gap: 6px; }
   .composer-telemetry__chip {
     flex-shrink: 0;
-    min-height: 36px;
+    min-height: 38px;
     padding: 6px 14px;
-    font-size: 12px;
+    font-size: 12.5px;
     line-height: 16px;
     display: inline-flex;
     align-items: center;
@@ -314,7 +314,7 @@
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
   }
   .cite-chip {
-    min-height: 42px;
+    min-height: 44px;
     padding: 6px 16px;
     font-size: 13.5px;
     display: inline-flex;
@@ -346,14 +346,14 @@
     justify-content: center;
     align-items: center;
     width: 100%;
-    min-height: 36px;
-    padding: 12px 0 10px;
+    min-height: 40px;
+    padding: 12px 0 12px;
     touch-action: pan-y;
     cursor: grab;
   }
   .sheet-handle {
     display: block;
-    width: 44px;
+    width: 48px;
     height: 5px;
     border-radius: 99px;
     background: var(--color-border-primary);
@@ -568,7 +568,7 @@
   .empty-chat__badges { gap: 6px; margin-bottom: 4px; }
   .tideos-pill { min-height: 28px; padding: 4px 10px; font-size: 11px; line-height: 16px; }
   .tideos-pill--interactive {
-    min-height: 42px;
+    min-height: 44px;
     padding: 6px 18px;
     font-size: 13.5px;
     display: inline-flex;
@@ -615,7 +615,7 @@
     border-radius: 6px;
   }
   .bubble__meta-bar {
-    min-height: 40px;
+    min-height: 44px;
     margin-top: 8px;
     gap: 6px;
   }
@@ -848,7 +848,7 @@ button { touch-action: manipulation; }
   .panel-row--link { min-height: 44px; padding: 8px 10px; }
   .panel-row--routine { min-height: 48px; }
   .panel-row--computer { min-height: 54px; }
-  .section-label--row { min-height: 40px; height: auto; }
+  .section-label--row { min-height: 44px; height: auto; }
   .section-label--row .link-btn { min-height: 44px; padding: 8px 16px; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; }
   .members__row { min-height: 44px; }
   .members__remove { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
@@ -1315,8 +1315,8 @@ button { touch-action: manipulation; }
     gap: 8px;
   }
   button.cfg-chip {
-    min-height: 42px;
-    height: 42px;
+    min-height: 44px;
+    height: 44px;
     padding: 0 16px;
     font-size: 13.5px;
     display: inline-flex;
