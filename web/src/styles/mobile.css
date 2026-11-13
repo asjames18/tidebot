@@ -70,7 +70,7 @@
   }
   .mobile-nav-btn {
     display: flex; position: static; flex-shrink: 0;
-    width: 38px; height: 38px; align-items: center; justify-content: center;
+    width: 40px; height: 40px; min-width: 40px; min-height: 40px; align-items: center; justify-content: center;
   }
   .mobile-nav-btn--inline { position: static; flex-shrink: 0; }
   .mobile-only-btn { display: inline-flex; }
@@ -111,10 +111,10 @@
   /* Header: flexbox row so left nav, center pills, and right buttons never overlap. */
   .share-btn {
     display: inline-flex;
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    min-height: 38px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     padding: 0;
     align-items: center;
     justify-content: center;
@@ -153,10 +153,10 @@
     flex-shrink: 0;
     gap: 6px;
   }
-  .chat__header-right .icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
-  .chat__pill { height: 38px; min-height: 38px; padding: 4px 10px 4px 5px; gap: 6px; min-width: 0; }
+  .chat__header-right .icon-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+  .chat__pill { height: 40px; min-height: 40px; padding: 4px 10px 4px 5px; gap: 6px; min-width: 0; }
   .chat__pill-name { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-  .chat__model-pill { height: 38px; min-height: 38px; padding: 0 10px; gap: 5px; font-size: 12px; min-width: 0; }
+  .chat__model-pill { height: 40px; min-height: 40px; padding: 0 10px; gap: 5px; font-size: 12px; min-width: 0; }
   .chat__model-name { max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Composer telemetry: horizontal swipeable strip on mobile; hide desktop kbd hints. */
@@ -1421,10 +1421,11 @@ button { touch-action: manipulation; }
     font-size: 17px;
   }
   .search-modal__clear {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    border-radius: 8px;
     font-size: 14px;
     display: inline-flex;
     align-items: center;
@@ -1631,7 +1632,12 @@ button { touch-action: manipulation; }
   /* Very narrow phones (≤380px): squeeze pills further and adjust composer padding. */
   @media (max-width: 380px) {
     .chat__header { padding-left: 6px; padding-right: 6px; gap: 4px; }
+    .mobile-nav-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
+    .chat__header-right .icon-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
+    .share-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
+    .chat__pill { height: 36px; min-height: 36px; }
     .chat__pill-name { max-width: 60px; }
+    .chat__model-pill { height: 36px; min-height: 36px; }
     .chat__model-name { max-width: 40px; }
     .chat__briefing-btn {
       width: 36px;
