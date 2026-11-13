@@ -918,7 +918,7 @@ button { touch-action: manipulation; }
   }
   .section-label--row { min-height: 44px; height: auto; }
   .section-label--row .link-btn { min-height: 44px; padding: 8px 16px; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; }
-  .members__row { min-height: 44px; }
+  .members__row { min-height: 44px; height: auto; padding: 4px 0; }
   .members__remove { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
   .members__add {
     max-height: 260px;
@@ -942,7 +942,12 @@ button { touch-action: manipulation; }
   .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
   .lib-crumbs::-webkit-scrollbar { display: none; }
   .lib-crumbs .link-btn { min-height: 44px; padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; }
-  .lib-preview__content { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .lib-preview__content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
   .details .cfg-input {
     font-size: 16px !important;
     height: 44px !important;
