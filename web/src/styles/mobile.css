@@ -1950,12 +1950,15 @@ button { touch-action: manipulation; }
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding: 2px 4px;
   }
   .signin__shader-bar::-webkit-scrollbar { display: none; }
   .signin__shader-label { display: none; }
   .signin__shader-pill {
     white-space: nowrap;
     flex-shrink: 0;
+    scroll-snap-align: center;
     min-height: 44px;
     padding: 8px 16px;
     font-size: 13.5px;
@@ -1976,7 +1979,10 @@ button { touch-action: manipulation; }
     word-break: break-word;
     max-width: 100%;
   }
+  .signin__dev { gap: 10px; }
   .signin__google, .signin__dev .btn {
+    width: 100%;
+    justify-content: center;
     min-height: 44px;
     font-size: 14px;
   }
