@@ -894,8 +894,20 @@ button { touch-action: manipulation; }
     line-height: 18px;
     padding: 2px 0;
   }
-  .voice-preview { min-height: 40px; padding: 0 12px; font-size: 13px; }
-  .mini-select--native { min-height: 40px; padding: 0 10px; }
+  .voice-preview {
+    min-height: 42px;
+    padding: 0 14px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mini-select--native {
+    min-height: 42px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+  }
   .mini-select--native select { font-size: 16px; }
   .panel-row--call { min-height: 48px; font-size: 14px; }
   .voice-error { font-size: 13px; line-height: 18px; padding: 6px 12px 8px; }
