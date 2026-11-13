@@ -675,7 +675,10 @@
 }
 
 @media (max-width: 900px) and (prefers-reduced-motion: reduce) {
-  .sidebar, .sidebar.is-collapsed { transition: none; }
+  .sidebar, .sidebar.is-collapsed, .details, .modal-card, .modal-backdrop {
+    transition: none;
+    animation: none;
+  }
 }
 
 /* ---------- full-overhaul pass: content, surfaces, global behavior ---------- */
@@ -835,7 +838,16 @@ button { touch-action: manipulation; }
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
-  .menu__item { min-height: 44px; height: auto; padding: 10px 14px; font-size: 14.5px; }
+  .menu__item {
+    min-height: 44px;
+    height: auto;
+    padding: 10px 14px;
+    font-size: 14.5px;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
   .menu__hint { display: none; }
   .chat__header-center .menu {
     position: fixed;
