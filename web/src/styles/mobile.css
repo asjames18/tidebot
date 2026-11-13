@@ -1101,6 +1101,19 @@ button { touch-action: manipulation; }
     height: 42px;
     font-size: 16px;
   }
+  .cfg-model-picker {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  .cfg-model-picker input,
+  .cfg-model-picker select {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
   .cfg-meter__actions {
     flex-wrap: wrap;
     gap: 8px;

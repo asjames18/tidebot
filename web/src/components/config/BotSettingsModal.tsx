@@ -184,18 +184,16 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
           <textarea id="cfg-instructions" className="text-input cfg-textarea cfg-textarea--tall" rows={7} value={draft.instructions} maxLength={8000} placeholder="e.g. Keep updates to three bullets. Never email anyone outside the team without asking." onChange={(e) => put('instructions', e.target.value)} />
         </Field>
         <Field label="Model (OpenRouter / BYOM)" htmlFor="cfg-model" hint={`Leave empty to use the studio default (${llmConfig?.defaultModel ?? 'anthropic/claude-3.7-sonnet'}), or pick a specific model for this operator.`}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="cfg-model-picker">
             <input
               id="cfg-model"
               className="text-input"
-              style={{ flex: 1, minWidth: 220 }}
               value={draft.model}
               placeholder={`Default (${llmConfig?.defaultModel ?? 'anthropic/claude-3.7-sonnet'})`}
               onChange={(e) => put('model', e.target.value)}
             />
             <select
               className="text-input"
-              style={{ width: 'auto', minWidth: 190 }}
               value={curatedModels.some((m) => m.id === draft.model) ? draft.model : ''}
               onChange={(e) => put('model', e.target.value)}
               aria-label="Quick model preset"

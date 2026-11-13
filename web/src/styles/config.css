@@ -112,6 +112,9 @@
 .cfg-meter__actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .cfg-inline-form { display: flex; gap: 8px; }
 .cfg-chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.cfg-model-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.cfg-model-picker input { flex: 1 1 220px; min-width: 0; }
+.cfg-model-picker select { width: auto; min-width: 190px; }
 .cfg-routine-fields { display: flex; gap: 8px; }
 .cfg-routine-fields .text-input { flex: 1; }
 
