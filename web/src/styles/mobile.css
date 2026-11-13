@@ -769,9 +769,9 @@ button { touch-action: manipulation; }
   .panel-row--routine { min-height: 48px; }
   .panel-row--computer { min-height: 54px; }
   .section-label--row { min-height: 36px; height: auto; }
-  .section-label--row .link-btn { min-height: 36px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; }
+  .section-label--row .link-btn { min-height: 38px; padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
   .members__row { min-height: 44px; }
-  .members__remove { width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+  .members__remove { width: 42px; height: 42px; min-width: 42px; min-height: 42px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
   .members__add {
     max-height: 260px;
     overflow-y: auto;
@@ -779,11 +779,12 @@ button { touch-action: manipulation; }
     overscroll-behavior: contain;
   }
   .members__add .link-btn {
-    min-height: 36px;
-    padding: 6px 12px;
+    min-height: 38px;
+    padding: 6px 14px;
     font-size: 13px;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
   }
   .members__hint { font-size: 12.5px; line-height: 17px; padding: 8px 10px 4px; }
   .lib-row { min-height: 44px; }
