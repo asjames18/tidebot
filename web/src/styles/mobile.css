@@ -561,9 +561,9 @@
   .empty-chat__badges { gap: 6px; margin-bottom: 4px; }
   .tideos-pill { min-height: 28px; padding: 4px 10px; font-size: 11px; line-height: 16px; }
   .tideos-pill--interactive {
-    min-height: 38px;
+    min-height: 40px;
     padding: 6px 16px;
-    font-size: 12.5px;
+    font-size: 13px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1302,10 +1302,10 @@ button { touch-action: manipulation; }
     gap: 8px;
   }
   button.cfg-chip {
-    min-height: 38px;
-    height: 38px;
-    padding: 0 14px;
-    font-size: 13px;
+    min-height: 40px;
+    height: 40px;
+    padding: 0 16px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1800,20 +1800,20 @@ button { touch-action: manipulation; }
     min-height: 42px;
   }
 
-  /* Very narrow phones (≤380px): squeeze pills further and adjust composer padding. */
+  /* Very narrow phones (≤380px): squeeze pills further and adjust composer padding while preserving 40px touch targets. */
   @media (max-width: 380px) {
     .chat__header { padding-left: 6px; padding-right: 6px; gap: 4px; }
-    .mobile-nav-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
-    .chat__header-right .icon-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
-    .share-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
-    .chat__pill { height: 36px; min-height: 36px; }
-    .chat__pill-name { max-width: 60px; }
-    .chat__model-pill { height: 36px; min-height: 36px; }
-    .chat__model-name { max-width: 40px; }
+    .mobile-nav-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+    .chat__header-right .icon-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+    .share-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+    .chat__pill { height: 40px; min-height: 40px; padding: 4px 8px; }
+    .chat__pill-name { max-width: 52px; }
+    .chat__model-pill { height: 40px; min-height: 40px; padding: 4px 8px; }
+    .chat__model-name { max-width: 36px; }
     .chat__briefing-btn {
-      width: 36px;
-      height: 36px;
-      min-width: 36px;
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
       padding: 0;
       display: inline-flex;
       align-items: center;
@@ -1822,10 +1822,10 @@ button { touch-action: manipulation; }
     }
     .chat__briefing-btn span { display: none; }
     .composer__btn--enhance {
-      width: 36px !important;
-      min-width: 36px;
-      height: 36px;
-      min-height: 36px;
+      width: 40px !important;
+      min-width: 40px;
+      height: 40px;
+      min-height: 40px;
       padding: 0 !important;
       border-radius: var(--radius-full);
       justify-content: center;
@@ -1834,10 +1834,10 @@ button { touch-action: manipulation; }
       display: none;
     }
     .composer__cta {
-      width: 38px;
-      height: 38px;
-      min-width: 38px;
-      min-height: 38px;
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      min-height: 40px;
     }
     .bubble { font-size: 14px; }
     .composer { margin: 0 6px 4px; }
