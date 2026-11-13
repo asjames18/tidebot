@@ -450,10 +450,13 @@
     padding: 8px 12px;
   }
   .create-modal__template-pill {
-    min-height: 40px;
-    padding: 0 14px;
+    min-height: 42px;
+    padding: 0 16px;
     font-size: 13px;
     font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .create-modal__templates {
     gap: 8px;
@@ -703,7 +706,16 @@ button { touch-action: manipulation; }
   .card, .panel-card, .question-card { max-width: 100%; }
   .question-card { width: 100%; }
   .card__head, .draft-card__head { padding: 14px 14px 4px; }
-  .draft-card__copy { width: 40px; height: 40px; min-width: 40px; display: inline-flex; align-items: center; justify-content: center; }
+  .draft-card__copy {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .draft-card__content { padding: 10px 14px 12px; }
   .draft-card__subject { padding-top: 8px; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; word-break: break-word; }
   .draft-card__text { padding-top: 8px; font-size: 13.5px; line-height: 20px; max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
@@ -720,7 +732,12 @@ button { touch-action: manipulation; }
   }
   .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; gap: 8px; }
   .card__actions .btn { min-height: 44px; flex: 1 1 auto; }
-  .card__outcome { padding: 10px 14px 14px; min-height: 36px; }
+  .card__outcome {
+    padding: 10px 14px 14px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
   .draft-card__actions { padding: 10px 14px 14px; flex-wrap: wrap; gap: 8px; }
   .draft-card__actions .btn { min-height: 44px; flex: 1 1 auto; }
   .question-card__options { padding: 6px; }
@@ -889,7 +906,7 @@ button { touch-action: manipulation; }
   .vcall__btn--end { width: 52px; height: 44px; }
   .vcall__captions { padding: 10px 12px; font-size: 13.5px; min-height: 44px; }
   .vcall__toggle {
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 0;
     font-size: 13px;
     display: flex;
@@ -1317,10 +1334,12 @@ button { touch-action: manipulation; }
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    height: 40px;
-    min-height: 40px;
-    padding: 0 12px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 14px;
     font-size: 13.5px;
+    display: inline-flex;
+    align-items: center;
   }
   .group-pick {
     -webkit-overflow-scrolling: touch;
