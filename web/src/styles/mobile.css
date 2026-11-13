@@ -313,7 +313,14 @@
     border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
   }
-  .cite-chip { min-height: 38px; padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; }
+  .cite-chip {
+    min-height: 40px;
+    padding: 6px 14px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .earlier-btn {
     min-height: 44px;
     padding: 10px 18px;
@@ -591,23 +598,24 @@
     word-break: break-word;
   }
   .activity-line .bubble__copy-btn {
-    min-height: 42px;
-    padding: 6px 16px;
-    font-size: 13px;
+    min-height: 44px;
+    padding: 8px 16px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
   }
   .bubble__copy-btn {
-    min-height: 42px;
-    padding: 6px 16px;
-    font-size: 13px;
+    min-height: 44px;
+    padding: 8px 16px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 6px;
   }
   .bubble__meta-bar {
-    min-height: 38px;
+    min-height: 40px;
     margin-top: 8px;
     gap: 6px;
   }
@@ -1524,17 +1532,17 @@ button { touch-action: manipulation; }
   }
   .cat-pills::-webkit-scrollbar { display: none; }
   .cat-pill {
-    min-height: 42px;
+    min-height: 44px;
     padding: 0 16px;
-    font-size: 13px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
   .apps-section__head .link-btn {
-    min-height: 40px;
-    padding: 6px 14px;
-    font-size: 13px;
+    min-height: 44px;
+    padding: 8px 16px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
