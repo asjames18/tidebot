@@ -1739,8 +1739,25 @@ button { touch-action: manipulation; }
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
-  .bot-list__empty { min-height: 52px; padding: 10px 12px; }
-  .bot-list__empty-plus { width: 40px; height: 40px; min-width: 40px; }
+  .bot-row {
+    min-height: 56px;
+    height: auto;
+    padding: 10px 12px;
+  }
+  .pinned__tile {
+    min-height: 64px;
+    padding: 8px 10px 6px;
+  }
+  .bot-list__empty {
+    min-height: 54px;
+    padding: 10px 14px;
+  }
+  .bot-list__empty-plus {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+  }
 
   /* Very narrow phones (≤380px): squeeze pills further and adjust composer padding. */
   @media (max-width: 380px) {
