@@ -1603,6 +1603,8 @@ button { touch-action: manipulation; }
     padding: 44px 16px 0;
   }
   .apps-modal__titlerow {
+    height: auto;
+    min-height: 32px;
     flex-wrap: wrap;
     gap: 8px;
   }
@@ -1639,7 +1641,7 @@ button { touch-action: manipulation; }
     align-items: center;
   }
   .apps-modal__body {
-    padding: 12px 16px 24px;
+    padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
