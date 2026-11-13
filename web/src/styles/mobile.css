@@ -182,8 +182,8 @@
   .composer-telemetry__left { flex-wrap: nowrap; gap: 6px; }
   .composer-telemetry__chip {
     flex-shrink: 0;
-    min-height: 40px;
-    padding: 6px 16px;
+    min-height: 42px;
+    padding: 0 16px;
     font-size: 13px;
     line-height: 16px;
     display: inline-flex;
@@ -805,7 +805,13 @@ button { touch-action: manipulation; }
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
-  .menu__header { padding: 8px 14px; font-size: 12px; }
+  .menu__header {
+    padding: 10px 14px 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
   .menu__item { min-height: 44px; height: auto; padding: 10px 14px; font-size: 14.5px; }
   .menu__hint { display: none; }
   .chat__header-center .menu {
