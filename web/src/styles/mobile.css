@@ -477,8 +477,8 @@
     padding: 8px 6px;
   }
   .group-pick__opt {
-    min-height: 44px;
-    padding: 8px 12px;
+    min-height: 48px;
+    padding: 10px 14px;
   }
   .create-modal__template-pill {
     min-height: 44px;
@@ -1402,10 +1402,13 @@ button { touch-action: manipulation; }
     padding: 0 12px;
   }
   .cfg-seg button {
-    height: 40px;
-    min-height: 40px;
-    padding: 0 14px;
-    font-size: 13px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 16px;
+    font-size: 13.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .cfg-meter div[style*="display: flex"] {
     flex-wrap: wrap;
