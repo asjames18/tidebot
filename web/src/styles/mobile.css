@@ -174,12 +174,14 @@
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
     margin-top: 6px;
   }
   .composer-telemetry::-webkit-scrollbar { display: none; }
   .composer-telemetry__left { flex-wrap: nowrap; gap: 6px; }
   .composer-telemetry__chip {
     flex-shrink: 0;
+    scroll-snap-align: start;
     min-height: 44px;
     padding: 0 16px;
     font-size: 13px;
@@ -192,7 +194,7 @@
   /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */
 
   /* Chat column: tighter padding, wider bubbles. */
-  .transcript { padding: 64px 10px 8px; }
+  .transcript { padding: calc(64px + env(safe-area-inset-top)) 10px 8px; }
   .transcript__col { gap: 10px; }
   .bubble-wrap {
     flex-wrap: wrap;
