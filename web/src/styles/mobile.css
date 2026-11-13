@@ -1112,6 +1112,8 @@ button { touch-action: manipulation; }
     border-right: 0; border-bottom: 0.5px solid var(--color-border-tertiary);
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
     overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    gap: 4px;
   }
   .app-settings__nav::-webkit-scrollbar { display: none; }
   .app-settings__main {
@@ -1121,6 +1123,7 @@ button { touch-action: manipulation; }
   .app-settings__back {
     margin-bottom: 0;
     flex-shrink: 0;
+    scroll-snap-align: start;
     min-height: 44px;
     height: 44px;
     padding: 0 16px;
@@ -1132,6 +1135,7 @@ button { touch-action: manipulation; }
   .app-settings__heading { display: none; }
   .app-settings__nav button {
     flex-shrink: 0;
+    scroll-snap-align: start;
     min-height: 44px;
     height: 44px;
     padding: 0 16px;
@@ -1290,6 +1294,7 @@ button { touch-action: manipulation; }
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
     padding: 8px 10px;
     border-right: 0;
     border-bottom: 0.5px solid var(--color-border-tertiary);
@@ -1300,6 +1305,7 @@ button { touch-action: manipulation; }
   .cfg-nav__item {
     width: auto;
     flex-shrink: 0;
+    scroll-snap-align: start;
     height: 44px;
     min-height: 44px;
     padding: 0 16px;
@@ -1309,7 +1315,7 @@ button { touch-action: manipulation; }
     justify-content: center;
   }
   .cfg-page {
-    padding: 16px 14px 24px;
+    padding: 16px 14px calc(24px + env(safe-area-inset-bottom));
     gap: 16px;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
