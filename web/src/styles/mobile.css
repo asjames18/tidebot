@@ -795,8 +795,8 @@ button { touch-action: manipulation; }
   .question-card__options { padding: 6px; }
   .question-card__q { overflow-wrap: anywhere; word-break: break-word; }
   .question-card__hint { overflow-wrap: anywhere; word-break: break-word; }
-  .question-card__options button, .question-card__options [role="button"] { min-height: 44px; }
-  .question-option { min-height: 44px; padding: 10px 12px; }
+  .question-card__options button, .question-card__options [role="button"] { min-height: 48px; }
+  .question-option { min-height: 48px; padding: 12px 14px; font-size: 14px; }
   .question-option__label { overflow-wrap: anywhere; word-break: break-word; }
   .question-card__foot .link-btn { min-height: 44px; padding: 10px 18px; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; }
 
@@ -992,8 +992,8 @@ button { touch-action: manipulation; }
   /* Voice call bar compacts & enlarges touch controls. */
   .vcall { margin: 0 10px; width: calc(100% - 20px); }
   .vcall__status { max-width: 44vw; }
-  .vcall__btn { width: 44px; height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
-  .vcall__btn--end { width: 56px; height: 44px; min-height: 44px; }
+  .vcall__btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .vcall__btn--end { width: 56px; height: 44px; min-height: 44px; min-width: 56px; }
   .vcall__captions { padding: 10px 12px; font-size: 13.5px; min-height: 44px; }
   .vcall__toggle {
     min-height: 44px;
@@ -1013,7 +1013,7 @@ button { touch-action: manipulation; }
     overflow-wrap: anywhere;
     font-size: 13px;
     line-height: 18px;
-    padding: 2px 0;
+    padding: 4px 0;
   }
   .voice-preview {
     min-height: 44px;
