@@ -557,6 +557,9 @@
   .slash-palette__item:active, .app-settings__back:active,
   .cfg-icon-btn:active, .mini-select--native:active,
   .apps-section__head .link-btn:active, button.cfg-chip:active,
+  .mobile-nav-btn:active, .chat__briefing-btn:active,
+  .section-label--row .link-btn:active, .members__add .link-btn:active,
+  .details .panel-card .cfg-btn:active,
   .task-row__text[role="button"]:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
