@@ -677,6 +677,8 @@
     justify-content: center;
     font-size: 13.5px;
     line-height: 19px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     pointer-events: auto;
   }
   .toasts {
@@ -729,12 +731,11 @@ button { touch-action: manipulation; }
     overflow-wrap: anywhere;
     word-break: break-all;
   }
-  .md-table { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; overscroll-behavior-x: contain; scrollbar-width: thin; margin: 8px 0; }
+  .md-table { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scrollbar-width: thin; margin: 8px 0; }
   .md pre {
     max-width: calc(100vw - 44px);
     padding-right: 80px;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
     overscroll-behavior-x: contain;
   }
   .md-copy-btn {
