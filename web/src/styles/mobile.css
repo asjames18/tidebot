@@ -483,9 +483,17 @@
     overflow: hidden;
     padding: 8px 6px;
   }
+  .group-pick {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    max-height: 280px;
+    gap: 4px;
+  }
   .group-pick__opt {
     min-height: 48px;
     padding: 10px 14px;
+    gap: 10px;
+    border-radius: 10px;
   }
   .create-modal__template-pill {
     min-height: 44px;
@@ -1664,8 +1672,19 @@ button { touch-action: manipulation; }
   .search-row {
     min-height: 52px;
     height: auto;
-    padding: 11px 14px;
-    border-radius: 8px;
+    padding: 10px 12px;
+    gap: 12px;
+    border-radius: 10px;
+  }
+  .search-row__name {
+    font-size: 14px;
+    line-height: 20px;
+    overflow-wrap: anywhere;
+  }
+  .search-row__sub {
+    font-size: 12.5px;
+    line-height: 17px;
+    overflow-wrap: anywhere;
   }
 
   /* Tasks view responsive layout */
