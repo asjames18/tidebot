@@ -817,7 +817,7 @@ button { touch-action: manipulation; }
   .panel-row--routine { min-height: 48px; }
   .panel-row--computer { min-height: 54px; }
   .section-label--row { min-height: 36px; height: auto; }
-  .section-label--row .link-btn { min-height: 38px; padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+  .section-label--row .link-btn { min-height: 40px; padding: 6px 16px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
   .members__row { min-height: 44px; }
   .members__remove { width: 42px; height: 42px; min-width: 42px; min-height: 42px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
   .members__add {
@@ -827,8 +827,8 @@ button { touch-action: manipulation; }
     overscroll-behavior: contain;
   }
   .members__add .link-btn {
-    min-height: 38px;
-    padding: 6px 14px;
+    min-height: 40px;
+    padding: 6px 16px;
     font-size: 13px;
     display: inline-flex;
     align-items: center;
@@ -837,11 +837,11 @@ button { touch-action: manipulation; }
   .members__hint { font-size: 12.5px; line-height: 17px; padding: 8px 10px 4px; }
   .lib-row { min-height: 44px; }
   .lib-row__main { min-height: 44px; padding: 8px 10px; }
-  .lib-row .cfg-icon-btn { min-width: 42px; min-height: 42px; width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; }
-  .panel-card .link-btn { min-height: 40px; padding: 6px 12px; display: inline-flex; align-items: center; font-size: 13px; }
+  .lib-row .cfg-icon-btn { min-width: 44px; min-height: 44px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .panel-card .link-btn { min-height: 42px; padding: 6px 14px; display: inline-flex; align-items: center; font-size: 13px; }
   .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
   .lib-crumbs::-webkit-scrollbar { display: none; }
-  .lib-crumbs .link-btn { min-height: 40px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; }
+  .lib-crumbs .link-btn { min-height: 42px; padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; }
   .lib-preview__content { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .details .cfg-input {
     font-size: 16px !important;
@@ -1639,7 +1639,16 @@ button { touch-action: manipulation; }
   }
   .signin__shader-bar::-webkit-scrollbar { display: none; }
   .signin__shader-label { display: none; }
-  .signin__shader-pill { white-space: nowrap; flex-shrink: 0; min-height: 36px; padding: 6px 14px; font-size: 13px; }
+  .signin__shader-pill {
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-height: 40px;
+    padding: 8px 16px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .signin__card {
     padding: 28px 22px 22px;
   }
