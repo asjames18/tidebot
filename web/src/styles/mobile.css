@@ -933,7 +933,7 @@ button { touch-action: manipulation; }
   .vcall { margin: 0 10px; width: calc(100% - 20px); }
   .vcall__status { max-width: 44vw; }
   .vcall__btn { width: 44px; height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
-  .vcall__btn--end { width: 52px; height: 44px; }
+  .vcall__btn--end { width: 56px; height: 44px; min-height: 44px; }
   .vcall__captions { padding: 10px 12px; font-size: 13.5px; min-height: 44px; }
   .vcall__toggle {
     min-height: 44px;
@@ -956,16 +956,18 @@ button { touch-action: manipulation; }
     padding: 2px 0;
   }
   .voice-preview {
-    min-height: 42px;
-    padding: 0 14px;
-    font-size: 13px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
   .mini-select--native {
-    min-height: 42px;
-    padding: 0 12px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 14px;
     display: inline-flex;
     align-items: center;
   }
