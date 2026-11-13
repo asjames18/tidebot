@@ -424,10 +424,11 @@
   }
   .modal__footer .link-btn {
     min-height: 44px;
-    padding: 0 10px;
-    font-size: 13px;
+    padding: 0 14px;
+    font-size: 13.5px;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
   }
   .create-modal__name,
   .create-modal .text-input,
@@ -499,16 +500,20 @@
   }
   .mode-pick__opt {
     flex: 1 1 140px;
-    min-height: 52px;
-    padding: 10px 12px;
+    min-height: 56px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   .mode-pick__title {
-    font-size: 13px;
+    font-size: 13.5px;
+    font-weight: 500;
     overflow-wrap: anywhere;
   }
   .mode-pick__sub {
-    font-size: 11.5px;
-    line-height: 15px;
+    font-size: 12px;
+    line-height: 16px;
     overflow-wrap: anywhere;
   }
 
