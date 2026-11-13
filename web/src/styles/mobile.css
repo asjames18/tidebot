@@ -33,10 +33,13 @@
     min-height: 44px;
   }
   .sidebar__controls .icon-btn {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .account__btn {
     min-height: 44px;
@@ -91,10 +94,13 @@
     justify-content: space-between;
   }
   .details__top .icon-btn {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .details__scroll {
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
@@ -102,10 +108,14 @@
     overscroll-behavior: contain;
   }
   .details__tabs .segmented button {
-    min-height: 40px;
-    padding: 0 14px;
+    min-height: 42px;
+    height: 42px;
+    padding: 0 16px;
     font-size: 13px;
     font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Header: flexbox row so left nav, center pills, and right buttons never overlap. */
@@ -1474,9 +1484,13 @@ button { touch-action: manipulation; }
     gap: 5px;
   }
   .tasks-view__header .segmented button {
-    min-height: 40px;
-    padding: 0 12px;
+    min-height: 42px;
+    height: 42px;
+    padding: 0 14px;
     font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .tasks-view__inner { padding: 14px 12px calc(32px + env(safe-area-inset-bottom)); }
   .tasks-view__inner form { flex-wrap: wrap; gap: 8px; }
