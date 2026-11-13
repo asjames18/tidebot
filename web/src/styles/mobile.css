@@ -1555,11 +1555,6 @@ button { touch-action: manipulation; }
     display: inline-flex;
     align-items: center;
   }
-  .group-pick {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    max-height: 280px;
-  }
   .apps-modal__body {
     padding: 12px 16px 24px;
     -webkit-overflow-scrolling: touch;
@@ -1572,10 +1567,17 @@ button { touch-action: manipulation; }
     min-height: 60px;
     height: auto;
     padding: 10px 12px;
+    gap: 12px;
+  }
+  .app-row .app-row__name {
+    font-size: 14px;
+    line-height: 19px;
   }
   .app-row .app-row__desc {
     max-height: 16px;
     opacity: 1;
+    font-size: 12px;
+    line-height: 16px;
   }
   .app-row .app-row__error {
     max-height: none;
@@ -1594,6 +1596,12 @@ button { touch-action: manipulation; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+  .app-row__connected.is-static {
+    min-height: 36px;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 12.5px;
   }
   .cat-pills {
     flex-wrap: nowrap;
