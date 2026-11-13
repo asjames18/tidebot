@@ -636,10 +636,10 @@ button { touch-action: manipulation; }
     overscroll-behavior-x: contain;
   }
   .md-copy-btn {
-    min-height: 36px;
+    min-height: 38px;
     padding: 6px 14px;
     font-size: 12px;
-    opacity: 0.92;
+    opacity: 0.95;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1526,6 +1526,16 @@ button { touch-action: manipulation; }
   .signin__card {
     padding: 28px 22px 22px;
   }
+  .signin__title {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-align: center;
+  }
+  .signin__sub {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+  }
   .signin__google, .signin__dev .btn {
     min-height: 44px;
     font-size: 14px;
@@ -1534,7 +1544,13 @@ button { touch-action: manipulation; }
     min-height: 44px;
     font-size: 16px;
   }
-  .signin__foot-grid { flex-wrap: wrap; justify-content: center; row-gap: 4px; }
+  .signin__foot-grid {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 4px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 
   /* Sidebar rows are finger-sized. */
   .sidebar__scroll {
