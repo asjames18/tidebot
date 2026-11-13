@@ -27,14 +27,21 @@
     height: auto;
     min-height: calc(56px + env(safe-area-inset-top));
   }
-  .sidebar.is-collapsed .sidebar__titlebar { justify-content: space-between; padding: 12px 16px 12px 14px; height: 60px; }
+  .sidebar.is-collapsed .sidebar__titlebar {
+    justify-content: space-between;
+    padding-left: 14px;
+    padding-right: 16px;
+    padding-bottom: 12px;
+  }
   .sidebar__footer {
     padding-bottom: max(14px, env(safe-area-inset-bottom));
   }
   .sidebar__byom-btn {
     min-height: 44px;
   }
-  .sidebar__controls .icon-btn {
+  .sidebar__controls .icon-btn,
+  .sidebar__footer-row .icon-btn,
+  .details__top .icon-btn {
     width: 44px;
     height: 44px;
     min-width: 44px;
@@ -51,12 +58,6 @@
     height: auto;
     min-height: 44px;
     gap: 8px;
-  }
-  .sidebar__footer-row .icon-btn {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
   }
   .sidebar-island {
     min-height: 44px;
@@ -92,20 +93,12 @@
     position: fixed; top: 0; bottom: 0; right: 0; z-index: 115;
     width: min(340px, 94vw); height: 100dvh;
     overscroll-behavior: contain;
+    touch-action: pan-y;
     box-shadow: var(--shadow-composer);
   }
   .details__top {
     padding-top: max(12px, env(safe-area-inset-top));
     justify-content: space-between;
-  }
-  .details__top .icon-btn {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
   .details__scroll {
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
