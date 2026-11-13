@@ -928,23 +928,24 @@ button { touch-action: manipulation; }
   }
   .slash-palette__item {
     min-width: 0;
-    min-height: 44px;
-    padding: 10px 12px;
+    min-height: 48px;
+    padding: 10px 14px;
     gap: 10px;
+    border-radius: 8px;
   }
   .slash-palette__cmd {
-    min-width: 80px;
-    height: 28px;
+    min-width: 84px;
+    height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 12.5px;
   }
   .slash-palette__desc {
     min-width: 0;
     white-space: normal;
     overflow-wrap: anywhere;
-    font-size: 13px;
+    font-size: 13.5px;
     line-height: 18px;
   }
 
