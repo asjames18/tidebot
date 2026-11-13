@@ -2051,12 +2051,15 @@ button { touch-action: manipulation; }
     .composer__btn--enhance-text {
       display: none;
     }
-    .composer__cta {
+    .composer__cta,
+    .composer__btn {
       width: 40px;
       height: 40px;
       min-width: 40px;
       min-height: 40px;
     }
+    .composer__left { gap: 6px; }
+    .composer__right { gap: 4px; }
     .bubble { font-size: 14px; }
     .composer { margin: 0 6px 4px; }
     .signin__card { padding: 22px 16px 18px; }
