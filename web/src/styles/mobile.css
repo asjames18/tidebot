@@ -913,9 +913,9 @@ button { touch-action: manipulation; }
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
-  .app-settings__back { margin-bottom: 0; flex-shrink: 0; min-height: 40px; }
+  .app-settings__back { margin-bottom: 0; flex-shrink: 0; min-height: 42px; }
   .app-settings__heading { display: none; }
-  .app-settings__nav button { flex-shrink: 0; min-height: 40px; }
+  .app-settings__nav button { flex-shrink: 0; min-height: 42px; }
   .app-settings__page { padding: 20px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
   .app-settings__head { padding-right: 44px; }
   .app-settings__head h1 { font-size: 20px; line-height: 26px; }
@@ -969,7 +969,13 @@ button { touch-action: manipulation; }
     font-size: 12.5px;
     line-height: 18px;
   }
-  .byom-search { max-width: 100%; width: 100%; }
+  .byom-search {
+    max-width: 100%;
+    width: 100%;
+    min-height: 42px;
+    height: 42px;
+    font-size: 16px;
+  }
   .theme-tiles {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
