@@ -506,9 +506,14 @@
     padding: 10px 14px;
     gap: 10px;
     border-radius: 10px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .create-modal__template-pill {
     min-height: 44px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     padding: 0 16px;
     font-size: 13.5px;
     font-weight: 500;
