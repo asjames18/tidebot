@@ -555,6 +555,7 @@
   .lib-row__main:active, .lib-crumbs .link-btn:active,
   .tideos-pill--interactive:active, .bot-list__empty:active,
   .slash-palette__item:active, .app-settings__back:active,
+  .app-settings__nav button:active,
   .cfg-icon-btn:active, .mini-select--native:active,
   .apps-section__head .link-btn:active, button.cfg-chip:active,
   .mobile-nav-btn:active, .chat__briefing-btn:active,
@@ -1424,6 +1425,28 @@ button { touch-action: manipulation; }
     padding-top: 6px;
     border-top: 0.5px solid var(--color-border-tertiary);
     margin-top: 4px;
+  }
+  .cfg-item__body {
+    font-size: 13.5px;
+    line-height: 20px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .cfg-item__prompt {
+    font-size: 12.5px;
+    line-height: 17px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .cfg-card--padded {
+    padding: 14px 12px;
+    gap: 12px;
+  }
+  .cfg-empty {
+    padding: 36px 16px;
+    font-size: 13.5px;
+    line-height: 20px;
+    text-align: center;
   }
   .group-pick__name {
     overflow-wrap: anywhere;
