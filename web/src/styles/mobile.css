@@ -1714,12 +1714,14 @@ button { touch-action: manipulation; }
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
   }
   .cat-pills::-webkit-scrollbar { display: none; }
   .cat-pill {
     min-height: 44px;
     padding: 0 16px;
     font-size: 13.5px;
+    scroll-snap-align: start;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1744,6 +1746,7 @@ button { touch-action: manipulation; }
   .search-modal {
     width: 100%;
     height: min(520px, 82dvh);
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top));
   }
   .search-modal__field {
     height: 52px;
