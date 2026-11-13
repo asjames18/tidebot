@@ -560,6 +560,7 @@
   .mobile-nav-btn:active, .chat__briefing-btn:active,
   .section-label--row .link-btn:active, .members__add .link-btn:active,
   .details .panel-card .cfg-btn:active,
+  .panel-row--routine:active, .panel-row--computer:active, .panel-row--link:active,
   .task-row__text[role="button"]:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
@@ -855,8 +856,18 @@ button { touch-action: manipulation; }
     gap: 6px;
   }
   .panel-row--link { min-height: 44px; padding: 8px 10px; }
-  .panel-row--routine { min-height: 48px; }
-  .panel-row--computer { min-height: 54px; }
+  .panel-row--routine { min-height: 52px; padding: 8px 10px; gap: 10px; }
+  .panel-row--computer { min-height: 56px; padding: 8px 10px; gap: 10px; }
+  .panel-row--routine .panel-row__title,
+  .panel-row--computer .panel-row__title {
+    font-size: 13.5px;
+    line-height: 19px;
+  }
+  .panel-row--routine .panel-row__sub,
+  .panel-row--computer .panel-row__meta {
+    font-size: 12px;
+    line-height: 16px;
+  }
   .section-label--row { min-height: 44px; height: auto; }
   .section-label--row .link-btn { min-height: 44px; padding: 8px 16px; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; }
   .members__row { min-height: 44px; }
