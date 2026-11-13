@@ -1016,28 +1016,6 @@ button { touch-action: manipulation; }
   /* Tasks stats fit three-across without forcing width. */
   .tasks-stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .tasks-stats .cfg-card { min-width: 0; padding: 10px; }
-  .tasks-view__inner form {
-    min-width: 0;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .tasks-view__inner form .text-input {
-    min-width: 0;
-    flex: 1 1 auto;
-    font-size: 16px;
-    height: 44px;
-  }
-  .tasks-view__inner form select.text-input {
-    min-width: 140px;
-    height: 44px;
-    font-size: 16px;
-  }
-  .tasks-view__inner form .cfg-btn {
-    min-height: 44px;
-    height: 44px;
-    flex: 1 1 auto;
-    justify-content: center;
-  }
   .composer__error {
     font-size: 13px;
     line-height: 18px;
@@ -1840,7 +1818,7 @@ button { touch-action: manipulation; }
     justify-content: center;
   }
   .tasks-view__inner { padding: 14px 12px calc(32px + env(safe-area-inset-bottom)); }
-  .tasks-view__inner form { flex-wrap: wrap; gap: 8px; }
+  .tasks-view__inner form { min-width: 0; flex-wrap: wrap; gap: 8px; }
   .tasks-view__inner form .text-input,
   .tasks-view__inner form select {
     min-height: 44px;
@@ -1855,7 +1833,7 @@ button { touch-action: manipulation; }
     flex: 1 1 140px !important;
     min-width: 0 !important;
   }
-  .tasks-view__inner form .cfg-btn { flex: 1 1 auto; min-height: 44px; height: 44px; font-size: 13.5px; }
+  .tasks-view__inner form .cfg-btn { flex: 1 1 auto; min-height: 44px; height: 44px; font-size: 13.5px; justify-content: center; }
   .tasks-empty {
     padding: 36px 16px;
     gap: 6px;
