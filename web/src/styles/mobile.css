@@ -1999,7 +1999,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     flex: 1 1 140px !important;
     min-width: 0 !important;
   }
-  .tasks-view__inner form .cfg-btn { flex: 1 1 auto; min-height: 44px; height: 44px; font-size: 13.5px; justify-content: center; }
+  .tasks-view__inner form .cfg-btn { flex: 1 1 120px; min-height: 44px; height: 44px; font-size: 13.5px; justify-content: center; }
   .tasks-empty {
     padding: 36px 16px;
     gap: 6px;
