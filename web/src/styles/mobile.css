@@ -379,6 +379,7 @@
     align-items: center;
     width: 100%;
     min-height: 44px;
+    flex-shrink: 0;
     padding: 14px 0 12px;
     touch-action: pan-y;
     cursor: grab;
