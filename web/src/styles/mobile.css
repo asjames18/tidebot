@@ -1776,6 +1776,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .apps-modal__searchrow .pill-chip {
     max-width: 100%;
+    white-space: nowrap;
+    flex-shrink: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     height: 44px;
