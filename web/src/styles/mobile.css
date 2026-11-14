@@ -1379,6 +1379,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .cfg-nav {
     width: 100%;
+    flex-shrink: 0;
     flex-direction: row;
     overflow-x: auto;
     overflow-y: hidden;
