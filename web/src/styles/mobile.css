@@ -1969,12 +1969,12 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .task-row__note { overflow-wrap: anywhere; word-break: break-word; }
   .task-row__meta { flex-wrap: wrap; font-size: 12px; gap: 6px; }
-  .task-chip { height: 32px; line-height: 32px; padding: 0 12px; font-size: 12px; display: inline-flex; align-items: center; border-radius: 6px; }
+  .task-chip { height: 32px; line-height: 32px; padding: 0 12px; font-size: 12px; display: inline-flex; align-items: center; border-radius: 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .task-row .cfg-btn { min-height: 44px; height: 44px; padding: 0 16px; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; }
   .task-row__check { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .task-row__run-btn { height: 44px !important; min-height: 44px; padding: 0 18px !important; font-size: 13.5px !important; display: inline-flex; align-items: center; justify-content: center; }
   .bot-tasks__form { gap: 8px; margin-bottom: 10px; }
-  .bot-tasks__input { min-height: 44px; height: 44px; font-size: 16px; padding: 0 12px; }
+  .bot-tasks__input { flex: 1 1 0; min-width: 0; min-height: 44px; height: 44px; font-size: 16px; padding: 0 12px; }
   .bot-tasks__submit { min-height: 44px; height: 44px; min-width: 44px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Computer viewer. */
