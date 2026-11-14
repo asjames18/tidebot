@@ -1830,6 +1830,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     padding: 0 18px;
     width: auto;
     min-width: 92px;
+    white-space: nowrap;
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
