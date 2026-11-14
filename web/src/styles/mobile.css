@@ -1237,7 +1237,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .cfg-grid { grid-template-columns: 1fr; }
-  .cfg-input { font-size: 16px; height: 44px; }
+  .cfg-input { font-size: 16px; height: 44px; max-width: 100%; min-width: 0; }
   .byom-provider-grid { grid-template-columns: 1fr; }
   .byom-provider-card { min-height: 48px; padding: 12px 14px; text-align: left; }
   .byom-provider-card__title { font-size: 14px; overflow-wrap: anywhere; }
