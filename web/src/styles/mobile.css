@@ -1732,6 +1732,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .cfg-meter div[style*="display: flex"] .cfg-btn {
     flex: 1 1 140px;
     min-height: 44px;
+    height: 44px;
     padding: 0 12px;
     justify-content: center;
   }
