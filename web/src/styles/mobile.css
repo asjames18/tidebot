@@ -170,9 +170,9 @@
     gap: 6px;
   }
   .chat__header-right .icon-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
-  .chat__pill { height: 44px; min-height: 44px; padding: 0 12px 0 8px; gap: 6px; min-width: 0; display: inline-flex; align-items: center; }
+  .chat__pill { height: 44px; min-height: 44px; padding: 0 12px 0 8px; gap: 6px; min-width: 0; max-width: 100%; white-space: nowrap; display: inline-flex; align-items: center; }
   .chat__pill-name { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-  .chat__model-pill { height: 44px; min-height: 44px; padding: 0 12px; gap: 5px; font-size: 12.5px; min-width: 0; display: inline-flex; align-items: center; }
+  .chat__model-pill { height: 44px; min-height: 44px; padding: 0 12px; gap: 5px; font-size: 12.5px; min-width: 0; max-width: 100%; white-space: nowrap; display: inline-flex; align-items: center; }
   .chat__model-name { max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Composer telemetry: horizontal swipeable strip on mobile; hide desktop kbd hints. */
