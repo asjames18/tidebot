@@ -713,7 +713,7 @@
 
 html, body { overscroll-behavior: none; }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
-button { touch-action: manipulation; }
+button, a, [role="button"] { touch-action: manipulation; }
 
 @media (max-width: 900px) {
   /* Flex children must be allowed to shrink to the viewport, not their content. */
@@ -728,6 +728,7 @@ button { touch-action: manipulation; }
 
   /* Markdown content can never push the bubble wider than the screen. */
   .bubble .md { min-width: 0; overflow-wrap: anywhere; }
+  .bubble .md img, .bubble .md video { max-width: 100%; height: auto; }
   .bubble .md code:not(pre code) {
     word-break: break-word;
     overflow-wrap: anywhere;
