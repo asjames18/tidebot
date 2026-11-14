@@ -289,6 +289,7 @@
     height: 44px;
     min-width: 44px;
     min-height: 44px;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
