@@ -1493,6 +1493,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .cfg-inline-form .text-input {
     flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
     min-height: 44px;
     height: 44px;
     font-size: 16px;
@@ -1508,6 +1510,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .cfg-routine-fields .text-input {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     min-height: 44px;
     height: 44px;
     font-size: 16px;
