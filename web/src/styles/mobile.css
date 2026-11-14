@@ -712,8 +712,8 @@
 /* ---------- full-overhaul pass: content, surfaces, global behavior ---------- */
 
 html, body { overscroll-behavior: none; }
-button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
-button, a, [role="button"] { touch-action: manipulation; }
+button, a, input, select, textarea, label, summary, [role="button"] { -webkit-tap-highlight-color: transparent; }
+button, a, summary, [role="button"] { touch-action: manipulation; }
 
 @media (max-width: 900px) {
   /* Flex children must be allowed to shrink to the viewport, not their content. */
