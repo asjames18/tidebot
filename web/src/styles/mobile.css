@@ -1080,12 +1080,12 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
 
   /* Voice call bar compacts & enlarges touch controls. */
   .vcall { margin: 0 10px; width: calc(100% - 20px); }
-  .vcall__status { max-width: 44vw; }
+  .vcall__status { max-width: 44vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .vcall__actions { gap: 10px; }
   .vcall__btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .vcall__btn--end { width: 56px; height: 44px; min-height: 44px; min-width: 56px; }
   .vcall__captions { padding: 10px 12px; font-size: 13.5px; min-height: 44px; }
-  .vcall__caption { font-size: 13.5px; line-height: 19px; }
+  .vcall__caption { font-size: 13.5px; line-height: 19px; overflow-wrap: anywhere; word-break: break-word; }
   .vcall__toggle {
     min-height: 44px;
     padding: 8px 0;
