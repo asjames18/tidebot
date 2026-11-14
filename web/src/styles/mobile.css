@@ -132,6 +132,7 @@
   /* Header: flexbox row so left nav, center pills, and right buttons never overlap. */
   .share-btn {
     display: inline-flex;
+    flex-shrink: 0;
     width: 44px;
     height: 44px;
     min-width: 44px;
