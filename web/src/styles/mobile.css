@@ -2073,7 +2073,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-  .viewer__bar .btn { min-height: 44px; padding: 0 16px; font-size: 13.5px; font-weight: 500; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .viewer__bar .btn { min-height: 44px; padding: 0 16px; font-size: 13.5px; font-weight: 500; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
   .viewer__overlay .btn { min-height: 44px; padding: 0 18px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Sign-in fits small screens. */
