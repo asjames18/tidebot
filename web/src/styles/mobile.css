@@ -78,6 +78,7 @@
     height: 22px;
     line-height: 22px;
     font-size: 11.5px;
+    flex-shrink: 0;
   }
   .mobile-scrim {
     display: block; position: fixed; inset: 0; z-index: 110;
