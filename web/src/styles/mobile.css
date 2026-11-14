@@ -1879,6 +1879,11 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     padding: 10px 12px;
     gap: 12px;
     border-radius: 10px;
+    text-align: left;
+  }
+  .search-row__text {
+    min-width: 0;
+    flex: 1 1 0;
   }
   .search-row__name {
     font-size: 14px;
