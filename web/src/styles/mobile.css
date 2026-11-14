@@ -1124,7 +1124,13 @@ button { touch-action: manipulation; }
   }
   .mini-select--native select { font-size: 16px; }
   .panel-row--call { min-height: 48px; font-size: 14px; }
-  .voice-error { font-size: 13px; line-height: 18px; padding: 6px 12px 8px; }
+  .voice-error {
+    font-size: 13px;
+    line-height: 18px;
+    padding: 6px 12px 8px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 
   /* Settings: nav becomes a top bar with horizontal scrolling tabs. */
   .app-settings { flex-direction: column; }
@@ -1158,9 +1164,24 @@ button { touch-action: manipulation; }
   }
   .app-settings__page { padding: 20px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
   .app-settings__head { padding-right: 44px; }
-  .app-settings__head h1 { font-size: 20px; line-height: 26px; }
-  .app-settings__head p { font-size: 12.5px; line-height: 18px; }
-  .cfg-field__label { font-size: 13.5px; line-height: 19px; }
+  .app-settings__head h1 {
+    font-size: 20px;
+    line-height: 26px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .app-settings__head p {
+    font-size: 12.5px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .cfg-field__label {
+    font-size: 13.5px;
+    line-height: 19px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   .cfg-field__hint { font-size: 12px; line-height: 17px; overflow-wrap: anywhere; }
   .cfg-code { overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
   .app-settings__close {
