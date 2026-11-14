@@ -467,9 +467,11 @@
   .modal__footer .btn {
     min-height: 44px;
     height: auto;
+    max-width: 100%;
     padding: 10px 18px;
     font-size: 14px;
     font-weight: 500;
+    white-space: nowrap;
     justify-content: center;
   }
   .modal__footer .link-btn {
