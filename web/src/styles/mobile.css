@@ -1576,7 +1576,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     gap: 8px;
   }
   .cfg-meter > div:last-child .cfg-btn {
-    flex: 1 1 auto;
+    flex: 1 1 120px;
     min-height: 44px;
   }
   .cfg-btn {
