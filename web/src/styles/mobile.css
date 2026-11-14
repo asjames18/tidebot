@@ -1876,6 +1876,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .cat-pill {
     flex-shrink: 0;
     min-height: 44px;
+    height: 44px;
     padding: 0 16px;
     font-size: 13.5px;
     white-space: nowrap;
