@@ -1206,7 +1206,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .cfg-grid { grid-template-columns: 1fr; }
   .cfg-input { font-size: 16px; height: 44px; }
   .byom-provider-grid { grid-template-columns: 1fr; }
-  .byom-provider-card { min-height: 48px; padding: 12px 14px; }
+  .byom-provider-card { min-height: 48px; padding: 12px 14px; text-align: left; }
   .byom-provider-card__title { font-size: 14px; overflow-wrap: anywhere; }
   .byom-provider-card__sub { font-size: 12px; line-height: 16px; overflow-wrap: anywhere; }
   .sys-telemetry-grid {
@@ -1233,7 +1233,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .byom-model-grid {
     grid-template-columns: 1fr;
-    max-height: 380px;
+    max-height: min(380px, 50dvh);
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
@@ -1241,6 +1241,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     min-height: 58px;
     padding: 12px 14px;
     gap: 6px;
+    text-align: left;
   }
   .byom-model-card__name {
     font-size: 13.5px;
