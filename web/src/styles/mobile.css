@@ -624,6 +624,7 @@
     min-height: 44px;
     padding: 6px 18px;
     font-size: 13.5px;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     justify-content: center;
