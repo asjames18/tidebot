@@ -1124,7 +1124,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .vcall__log {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    max-height: 180px;
+    max-height: min(180px, 30dvh);
     padding: 10px 12px;
     border-radius: 12px;
   }
