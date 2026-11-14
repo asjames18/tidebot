@@ -498,7 +498,7 @@
   .group-pick {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    max-height: 280px;
+    max-height: min(280px, 40dvh);
     gap: 4px;
   }
   .group-pick__opt {
@@ -506,6 +506,8 @@
     padding: 10px 14px;
     gap: 10px;
     border-radius: 10px;
+    text-align: left;
+    white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
   }
