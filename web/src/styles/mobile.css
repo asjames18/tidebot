@@ -1434,6 +1434,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     height: 44px;
     padding: 0 16px;
     font-size: 13.5px;
+    white-space: nowrap;
     justify-content: center;
   }
   .cfg-section {
