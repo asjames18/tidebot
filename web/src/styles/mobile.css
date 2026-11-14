@@ -684,6 +684,7 @@
     padding: 4px 10px;
     min-height: 26px;
     max-width: 100%;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     display: inline-flex;
