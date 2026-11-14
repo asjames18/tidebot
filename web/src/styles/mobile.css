@@ -38,6 +38,10 @@
   }
   .sidebar__byom-btn {
     min-height: 44px;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .sidebar__controls .icon-btn,
   .sidebar__footer-row .icon-btn,
@@ -52,6 +56,8 @@
   }
   .account__btn {
     min-height: 44px;
+    min-width: 0;
+    max-width: 100%;
     padding: 6px 10px;
   }
   .sidebar__footer-row {
