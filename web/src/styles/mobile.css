@@ -1504,7 +1504,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 16px;
   }
   .cfg-inline-form .cfg-btn {
-    flex: 1 1 auto;
+    flex: 1 1 120px;
     min-height: 44px;
     height: 44px;
   }
