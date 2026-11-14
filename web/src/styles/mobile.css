@@ -1708,8 +1708,16 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     flex-wrap: wrap;
     gap: 8px;
   }
+  .apps-modal__titlerow > :first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
   .apps-modal__connected {
     min-height: 44px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     padding: 6px 14px;
     font-size: 13.5px;
     display: inline-flex;
