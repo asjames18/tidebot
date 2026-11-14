@@ -1640,6 +1640,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .cfg-row .cfg-btn {
     min-height: 44px;
+    height: 44px;
     padding: 0 14px;
     flex-shrink: 0;
     justify-content: center;
