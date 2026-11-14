@@ -2113,19 +2113,25 @@ button { touch-action: manipulation; }
   .bot-list__empty {
     min-height: 54px;
     padding: 10px 14px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .bot-list__empty-plus {
     width: 44px;
     height: 44px;
     min-width: 44px;
     min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 
   /* Very narrow phones (≤380px): squeeze pills further and adjust composer padding while preserving 40px touch targets. */
   @media (max-width: 380px) {
     .chat__header { padding-left: 6px; padding-right: 6px; gap: 4px; }
-    .mobile-nav-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
-    .chat__header-right .icon-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+    .mobile-nav-btn,
+    .chat__header-right .icon-btn,
     .share-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
     .chat__pill { height: 40px; min-height: 40px; padding: 4px 8px; }
     .chat__pill-name { max-width: 52px; }
