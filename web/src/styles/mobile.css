@@ -470,6 +470,8 @@
     min-height: 44px;
     padding: 0 14px;
     font-size: 13.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
