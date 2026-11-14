@@ -198,6 +198,7 @@
     flex-shrink: 0;
     scroll-snap-align: start;
     min-height: 44px;
+    height: 44px;
     padding: 0 16px;
     font-size: 13px;
     line-height: 16px;
