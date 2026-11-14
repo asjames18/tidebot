@@ -974,6 +974,7 @@ button { touch-action: manipulation; }
     overscroll-behavior: contain;
     max-width: 100%;
     overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .details .cfg-input {
     font-size: 16px !important;
@@ -983,6 +984,8 @@ button { touch-action: manipulation; }
   }
   .details .cfg-textarea {
     font-size: 16px !important;
+    min-height: 80px;
+    padding: 10px 12px;
   }
   .details .panel-card .cfg-btn {
     min-height: 44px;
