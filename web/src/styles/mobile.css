@@ -978,6 +978,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .panel-card .link-btn { min-height: 44px; padding: 6px 14px; display: inline-flex; align-items: center; font-size: 13px; }
   .lib-crumbs {
+    flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
@@ -991,6 +992,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     min-height: 44px;
     padding: 6px 14px;
     font-size: 13px;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
   }
