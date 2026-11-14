@@ -1994,6 +1994,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     width: auto !important;
     height: auto !important;
     object-fit: contain;
+    touch-action: none;
   }
   .viewer__overlay {
     padding: 16px;
@@ -2015,11 +2016,13 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: space-between;
   }
   .viewer__bar-text {
+    flex: 1 1 160px;
+    min-width: 0;
     font-size: 12px;
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-  .viewer__bar .btn { min-height: 44px; padding: 0 16px; font-size: 13.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; }
+  .viewer__bar .btn { min-height: 44px; padding: 0 16px; font-size: 13.5px; font-weight: 500; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
   .viewer__overlay .btn { min-height: 44px; padding: 0 18px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Sign-in fits small screens. */
