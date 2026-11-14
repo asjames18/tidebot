@@ -2132,22 +2132,12 @@ button { touch-action: manipulation; }
     .chat__header { padding-left: 6px; padding-right: 6px; gap: 4px; }
     .mobile-nav-btn,
     .chat__header-right .icon-btn,
-    .share-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
-    .chat__pill { height: 40px; min-height: 40px; padding: 4px 8px; }
-    .chat__pill-name { max-width: 52px; }
+    .share-btn,
+    .chat__briefing-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+    .chat__pill,
     .chat__model-pill { height: 40px; min-height: 40px; padding: 4px 8px; }
+    .chat__pill-name { max-width: 52px; }
     .chat__model-name { max-width: 36px; }
-    .chat__briefing-btn {
-      width: 40px;
-      height: 40px;
-      min-width: 40px;
-      padding: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: var(--radius-full);
-    }
-    .chat__briefing-btn span { display: none; }
     .composer__btn--enhance {
       width: 40px !important;
       min-width: 40px;
