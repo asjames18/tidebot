@@ -113,6 +113,9 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
+  .details__tabs .segmented {
+    max-width: 100%;
+  }
   .details__tabs .segmented button {
     min-height: 44px;
     height: 44px;
