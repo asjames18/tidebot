@@ -1272,6 +1272,8 @@ button { touch-action: manipulation; }
   .theme-tile__label {
     font-size: 13.5px;
     line-height: 19px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .shader-preview-card {
     height: 128px;
@@ -1279,6 +1281,7 @@ button { touch-action: manipulation; }
   }
   .shader-preview-card__overlay {
     padding: 12px 14px;
+    overflow-wrap: anywhere;
   }
   .shader-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 8px; }
   .shader-Option {
@@ -1290,6 +1293,8 @@ button { touch-action: manipulation; }
   .shader-Option__name {
     font-size: 13.5px;
     line-height: 19px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .shader-Option__desc {
     font-size: 12px;
