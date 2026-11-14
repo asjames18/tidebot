@@ -2013,8 +2013,14 @@ button { touch-action: manipulation; }
   .signin__dev { gap: 10px; }
   .signin__google, .signin__dev .btn {
     width: 100%;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
     min-height: 44px;
+    height: auto;
+    padding: 10px 16px;
+    white-space: normal;
+    text-align: center;
     font-size: 14px;
   }
   .signin__dev .text-input {
@@ -2058,6 +2064,9 @@ button { touch-action: manipulation; }
   .pinned__label {
     font-size: 12px;
     line-height: 16px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .bot-list__empty {
     min-height: 54px;
