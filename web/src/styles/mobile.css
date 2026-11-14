@@ -1567,6 +1567,7 @@ button { touch-action: manipulation; }
   }
   .cfg-row__text {
     flex: 1 1 200px;
+    min-width: 0;
   }
   .cfg-row__title {
     white-space: normal;
@@ -1588,6 +1589,12 @@ button { touch-action: manipulation; }
     padding: 12px 10px 12px 12px;
     gap: 10px;
     min-height: 56px;
+  }
+  .cfg-item > :first-child {
+    min-width: 0;
+  }
+  .cfg-item__actions {
+    flex-shrink: 0;
   }
   .cfg-item__title {
     overflow-wrap: anywhere;
@@ -1643,6 +1650,10 @@ button { touch-action: manipulation; }
     height: 44px;
     min-height: 44px;
     padding: 0 12px;
+  }
+  .cfg-seg {
+    max-width: 100%;
+    flex-wrap: wrap;
   }
   .cfg-seg button {
     height: 44px;
