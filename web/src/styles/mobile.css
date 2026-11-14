@@ -1840,6 +1840,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     gap: 10px;
   }
   .search-modal__field input {
+    flex: 1 1 0;
+    min-width: 0;
     font-size: 17px;
   }
   .search-modal__clear {
@@ -1864,6 +1866,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     padding: 32px 14px;
     font-size: 14.5px;
     text-align: center;
+    overflow-wrap: anywhere;
   }
   .search-modal__results {
     -webkit-overflow-scrolling: touch;
