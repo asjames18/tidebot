@@ -1149,11 +1149,12 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .mini-select--native {
     min-height: 44px;
     height: 44px;
+    max-width: 100%;
     padding: 0 14px;
     display: inline-flex;
     align-items: center;
   }
-  .mini-select--native select { font-size: 16px; }
+  .mini-select--native select { font-size: 16px; max-width: 100%; min-width: 0; }
   .panel-row--call { min-height: 48px; font-size: 14px; }
   .voice-error {
     font-size: 13px;
