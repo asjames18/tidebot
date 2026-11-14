@@ -1138,6 +1138,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .voice-preview {
     min-height: 44px;
     height: 44px;
+    max-width: 100%;
+    white-space: nowrap;
     padding: 0 16px;
     font-size: 13.5px;
     display: inline-flex;
