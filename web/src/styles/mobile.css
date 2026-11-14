@@ -532,11 +532,15 @@
   }
   .mode-pick__opt {
     flex: 1 1 140px;
+    min-width: 0;
+    max-width: 100%;
     min-height: 56px;
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    text-align: left;
+    white-space: normal;
   }
   .mode-pick__title {
     font-size: 13.5px;
