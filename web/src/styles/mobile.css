@@ -259,6 +259,8 @@
     background: rgba(16, 185, 129, 0.15);
   }
   .composer__input {
+    min-width: 0;
+    max-height: 36dvh;
     font-size: 16px;
     line-height: 22px;
     padding: 10px 0;
@@ -284,6 +286,7 @@
     height: 44px;
     padding: 0 14px;
     font-size: 13.5px;
+    white-space: nowrap;
   }
   .composer__plus-anchor {
     padding: 5px 0;
