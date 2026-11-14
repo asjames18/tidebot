@@ -944,11 +944,31 @@ button { touch-action: manipulation; }
   }
   .members__hint { font-size: 12.5px; line-height: 17px; padding: 8px 10px 4px; }
   .lib-row { min-height: 44px; }
-  .lib-row__main { min-height: 44px; padding: 8px 10px; }
+  .lib-row__main {
+    min-height: 44px;
+    min-width: 0;
+    padding: 8px 10px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   .panel-card .link-btn { min-height: 44px; padding: 6px 14px; display: inline-flex; align-items: center; font-size: 13px; }
-  .lib-crumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
+  .lib-crumbs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
   .lib-crumbs::-webkit-scrollbar { display: none; }
-  .lib-crumbs .link-btn { min-height: 44px; padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; }
+  .lib-crumbs .link-btn {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    min-height: 44px;
+    padding: 6px 14px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+  }
   .lib-preview__content {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
