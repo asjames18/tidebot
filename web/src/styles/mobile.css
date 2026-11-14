@@ -1533,6 +1533,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .cfg-model-picker select {
     width: 100% !important;
     min-width: 0 !important;
+    max-width: 100%;
     min-height: 44px;
     height: 44px;
     font-size: 16px;
