@@ -1485,7 +1485,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     gap: 10px;
   }
   .cfg-editor__actions .cfg-btn {
-    flex: 1 1 0;
+    flex: 1 1 120px;
     min-height: 44px;
     height: 44px;
     font-size: 13.5px;
