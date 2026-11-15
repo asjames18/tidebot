@@ -1805,6 +1805,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
     padding: 6px 14px;
     font-size: 13.5px;
     display: inline-flex;
