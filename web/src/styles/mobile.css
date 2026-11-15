@@ -992,10 +992,13 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .panel-row--setting {
     height: auto;
     min-height: 44px;
+    max-width: 100%;
     padding: 8px 10px;
     font-size: 13.5px;
     gap: 8px;
     flex-wrap: wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .voice-setting__right {
     flex-wrap: wrap;
