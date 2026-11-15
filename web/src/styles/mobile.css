@@ -1854,6 +1854,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     height: 44px;
     padding: 0 12px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     justify-content: center;
   }
 
