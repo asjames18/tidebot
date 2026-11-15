@@ -1930,6 +1930,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .search-modal {
     width: 100%;
+    max-width: 100%;
     height: min(520px, 82dvh);
     max-height: calc(100dvh - 24px - env(safe-area-inset-top));
   }
