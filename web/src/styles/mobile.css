@@ -982,9 +982,11 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .panel-row--link {
     height: auto;
     min-height: 44px;
+    max-width: 100%;
     padding: 8px 10px;
     white-space: normal;
     overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .panel-row--action { font-size: 14px; }
   .panel-row--setting {
