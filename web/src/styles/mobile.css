@@ -1827,6 +1827,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .apps-modal__titlerow > :first-child {
     min-width: 0;
     overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .apps-modal__connected {
     min-height: 44px;
