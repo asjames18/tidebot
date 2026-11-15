@@ -2210,6 +2210,9 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .signin__shader-pill {
     white-space: nowrap;
     flex-shrink: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     scroll-snap-align: center;
     min-height: 44px;
     padding: 8px 16px;
