@@ -206,6 +206,7 @@
   .composer-telemetry__left { flex-wrap: nowrap; gap: 6px; }
   .composer-telemetry__chip {
     flex-shrink: 0;
+    max-width: 100%;
     scroll-snap-align: start;
     min-height: 44px;
     height: 44px;
@@ -213,6 +214,8 @@
     font-size: 13px;
     line-height: 16px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     display: inline-flex;
     align-items: center;
   }
