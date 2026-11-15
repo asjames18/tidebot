@@ -1198,6 +1198,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     height: 44px;
     max-width: 100%;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     flex-shrink: 0;
     padding: 0 16px;
     font-size: 13.5px;
