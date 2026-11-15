@@ -322,11 +322,14 @@
   .composer__btn--enhance {
     width: auto !important;
     min-width: auto;
+    max-width: 100%;
     min-height: 44px;
     height: 44px;
     padding: 0 14px;
     font-size: 13.5px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .composer__plus-anchor {
     padding: 5px 0;
