@@ -1779,6 +1779,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     height: 44px;
     min-width: 44px;
     min-height: 44px;
+    flex-shrink: 0;
     top: calc(10px + env(safe-area-inset-top));
     right: 10px;
     display: inline-flex;
