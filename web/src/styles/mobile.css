@@ -1614,6 +1614,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     padding: 0 12px;
   }
   .cfg-chips-wrap {
+    flex-wrap: wrap;
     gap: 8px;
   }
   button.cfg-chip {
