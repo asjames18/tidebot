@@ -1534,9 +1534,11 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .cfg-editor__actions .cfg-btn {
     flex: 1 1 120px;
+    max-width: 100%;
     min-height: 44px;
     height: 44px;
     font-size: 13.5px;
+    white-space: nowrap;
     justify-content: center;
   }
   .cfg-inline-form {
