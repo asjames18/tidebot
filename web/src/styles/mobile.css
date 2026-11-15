@@ -672,9 +672,12 @@
   .tideos-pill { min-height: 28px; padding: 5px 12px; font-size: 11.5px; line-height: 16px; display: inline-flex; align-items: center; justify-content: center; }
   .tideos-pill--interactive {
     min-height: 44px;
+    max-width: 100%;
     padding: 6px 18px;
     font-size: 13.5px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     display: inline-flex;
     align-items: center;
     justify-content: center;
