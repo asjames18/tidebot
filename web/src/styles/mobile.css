@@ -1299,11 +1299,14 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .byom-filter-tabs::-webkit-scrollbar { display: none; }
   .byom-filter-tab {
     flex-shrink: 0;
+    max-width: 100%;
     min-height: 44px;
     height: 44px;
     padding: 0 16px;
     font-size: 13.5px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     scroll-snap-align: start;
     display: inline-flex;
     align-items: center;
