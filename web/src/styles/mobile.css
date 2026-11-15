@@ -1947,7 +1947,10 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     padding: 0 18px;
     width: auto;
     min-width: 92px;
+    max-width: 100%;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
