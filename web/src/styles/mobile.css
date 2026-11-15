@@ -1590,6 +1590,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     height: 44px;
     font-size: 13.5px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     justify-content: center;
   }
   .cfg-inline-form {
