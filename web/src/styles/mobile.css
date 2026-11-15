@@ -1770,7 +1770,9 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   /* Connect Apps Marketplace on mobile */
   .apps-modal {
     width: calc(100vw - 16px);
+    max-width: 100%;
     height: 90dvh;
+    max-height: 90dvh;
   }
   .apps-modal__close {
     width: 44px;
