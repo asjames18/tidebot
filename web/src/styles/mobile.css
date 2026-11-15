@@ -900,7 +900,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .card__actions { padding: 12px 14px 14px; flex-wrap: wrap; gap: 8px; }
   .card__actions .btn,
-  .draft-card__actions .btn { min-height: 44px; flex: 1 1 auto; justify-content: center; white-space: nowrap; max-width: 100%; }
+  .draft-card__actions .btn { min-height: 44px; flex: 1 1 auto; justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .card__outcome {
     padding: 10px 14px 14px;
     min-height: 44px;
