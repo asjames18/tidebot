@@ -1861,6 +1861,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 14px;
     line-height: 19px;
     overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .app-row .app-row__desc {
     max-height: none;
