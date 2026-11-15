@@ -59,6 +59,7 @@
     min-height: 44px;
     min-width: 0;
     max-width: 100%;
+    overflow: hidden;
     padding: 6px 10px;
   }
   .sidebar__footer-row {
