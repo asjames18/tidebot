@@ -2143,11 +2143,13 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 14px;
     line-height: 20px;
     overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .search-row__sub {
     font-size: 12.5px;
     line-height: 17px;
     overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Tasks view responsive layout */
