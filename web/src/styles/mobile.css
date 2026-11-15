@@ -1705,6 +1705,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     flex-shrink: 0;
   }
   .cfg-item__title {
+    white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
   }
