@@ -1723,6 +1723,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .cfg-item--routine .cfg-item__actions {
     width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
     justify-content: flex-end;
     padding-top: 6px;
     border-top: 0.5px solid var(--color-border-tertiary);
