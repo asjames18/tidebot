@@ -823,9 +823,12 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .md-copy-btn {
     min-height: 44px;
     height: 44px;
+    max-width: 100%;
     padding: 0 16px;
     font-size: 13.5px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     opacity: 0.95;
     display: inline-flex;
     align-items: center;
