@@ -935,7 +935,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .question-option { min-height: 48px; padding: 12px 14px; font-size: 14px; text-align: left; white-space: normal; }
   .question-option__label { overflow-wrap: anywhere; word-break: break-word; }
   .question-card__foot { padding: 4px 10px 10px; }
-  .question-card__foot .link-btn { min-height: 44px; padding: 10px 18px; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; }
+  .question-card__foot .link-btn { min-height: 44px; max-width: 100%; padding: 10px 18px; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Menus stay on-screen with comfortable >=44px touch targets. */
   .menu {
