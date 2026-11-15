@@ -714,8 +714,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    overflow: hidden;
-    text-overflow: ellipsis;
     display: inline-flex;
     align-items: center;
     border-radius: 4px;
