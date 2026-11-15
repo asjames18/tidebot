@@ -1422,6 +1422,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .cfg-nav::-webkit-scrollbar { display: none; }
   .cfg-nav__item {
     width: auto;
+    max-width: 100%;
     flex-shrink: 0;
     scroll-snap-align: start;
     height: 44px;
@@ -1429,6 +1430,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     padding: 0 16px;
     font-size: 13.5px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     display: inline-flex;
     align-items: center;
     justify-content: center;
