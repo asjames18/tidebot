@@ -1016,6 +1016,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .voice-setting__right {
     flex-wrap: wrap;
+    max-width: 100%;
     gap: 6px;
   }
   .panel-row--routine { min-height: 52px; padding: 8px 10px; gap: 10px; }
