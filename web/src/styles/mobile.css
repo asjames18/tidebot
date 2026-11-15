@@ -1032,11 +1032,14 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .lib-crumbs::-webkit-scrollbar { display: none; }
   .lib-crumbs .link-btn {
     flex-shrink: 0;
+    max-width: 100%;
     scroll-snap-align: start;
     min-height: 44px;
     padding: 6px 14px;
     font-size: 13px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     display: inline-flex;
     align-items: center;
   }
