@@ -1062,7 +1062,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-  .panel-card .link-btn { min-height: 44px; padding: 6px 14px; display: inline-flex; align-items: center; font-size: 13px; }
+  .panel-card .link-btn { min-height: 44px; max-width: 100%; padding: 6px 14px; display: inline-flex; align-items: center; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lib-crumbs {
     flex-wrap: nowrap;
     overflow-x: auto;
