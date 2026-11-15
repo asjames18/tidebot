@@ -1550,6 +1550,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     letter-spacing: 0.5px;
     text-transform: uppercase;
     padding: 0 2px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .cfg-look {
     gap: 12px;
