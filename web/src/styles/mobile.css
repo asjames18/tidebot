@@ -1396,6 +1396,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   /* Bot settings modal, Connect Apps modal, Search modal, and Tasks view on mobile. */
   .bot-settings {
     width: calc(100vw - 16px);
+    max-width: 100%;
     height: 90dvh;
     max-height: 90dvh;
   }
