@@ -2128,6 +2128,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .search-row {
     min-height: 52px;
+    max-width: 100%;
     height: auto;
     padding: 10px 12px;
     gap: 12px;
