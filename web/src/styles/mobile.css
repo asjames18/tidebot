@@ -811,6 +811,10 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     word-break: break-word;
     overflow-wrap: anywhere;
   }
+  .bubble .md a {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   .md-localhost {
     font-size: 12px;
     padding: 1px 6px;
