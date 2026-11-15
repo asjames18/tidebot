@@ -1652,6 +1652,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     min-height: 44px;
     height: 44px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     justify-content: center;
   }
   .cfg-editor > div:has(input) {
