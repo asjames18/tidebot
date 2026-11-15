@@ -2068,9 +2068,12 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .tasks-view__header .segmented button {
     min-height: 44px;
     height: 44px;
+    max-width: 100%;
     padding: 0 16px;
     font-size: 13.5px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     display: inline-flex;
     align-items: center;
     justify-content: center;
