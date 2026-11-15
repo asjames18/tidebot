@@ -1461,6 +1461,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 12px;
     line-height: 16px;
     overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Bot settings modal, Connect Apps modal, Search modal, and Tasks view on mobile. */
