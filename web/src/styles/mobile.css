@@ -1491,10 +1491,12 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .cfg-look .cfg-btn {
     flex-shrink: 0;
+    max-width: 100%;
     min-height: 44px;
     height: 44px;
     padding: 0 16px;
     font-size: 13.5px;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     justify-content: center;
