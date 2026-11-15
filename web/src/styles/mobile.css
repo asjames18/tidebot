@@ -1216,7 +1216,14 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     align-items: center;
   }
   .mini-select--native select { font-size: 16px; max-width: 100%; min-width: 0; }
-  .panel-row--call { min-height: 48px; font-size: 14px; }
+  .panel-row--call {
+    min-height: 48px;
+    max-width: 100%;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .voice-error {
     font-size: 13px;
     line-height: 18px;
