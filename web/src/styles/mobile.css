@@ -1593,8 +1593,11 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .cfg-meter__actions .cfg-btn {
     flex: 1 1 120px;
+    max-width: 100%;
     min-height: 44px;
     height: 44px;
+    white-space: nowrap;
+    justify-content: center;
   }
   .cfg-editor > div:has(input) {
     flex-wrap: wrap;
