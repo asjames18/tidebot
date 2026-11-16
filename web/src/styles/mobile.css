@@ -24,6 +24,8 @@
   .sidebar.is-mobile-open { transform: none; box-shadow: var(--shadow-composer); }
   .sidebar__titlebar {
     padding-top: max(12px, env(safe-area-inset-top));
+    max-width: 100%;
+    min-width: 0;
     height: auto;
     min-height: calc(56px + env(safe-area-inset-top));
   }
