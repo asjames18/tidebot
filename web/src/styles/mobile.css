@@ -257,7 +257,7 @@
   .group { max-width: 100%; }
 
   /* Composer: safe-area aware, 16px input prevents iOS focus zoom. */
-  .composer-area { padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
+  .composer-area { max-width: 100%; min-width: 0; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
   .composer-quick-bar {
     display: flex;
     align-items: center;
