@@ -1170,6 +1170,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     min-width: 0;
     white-space: normal;
     overflow-wrap: anywhere;
+    word-break: break-word;
     font-size: 13.5px;
     line-height: 18px;
   }
