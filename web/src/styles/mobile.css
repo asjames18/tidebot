@@ -2416,6 +2416,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     overscroll-behavior: contain;
   }
   .bot-row {
+    max-width: 100%;
+    min-width: 0;
     min-height: 56px;
     height: auto;
     padding: 10px 12px;
