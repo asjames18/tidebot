@@ -2263,7 +2263,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     word-break: break-word;
   }
   .task-row__note { overflow-wrap: anywhere; word-break: break-word; }
-  .task-row__meta { flex-wrap: wrap; font-size: 12px; gap: 6px; }
+  .task-row__meta { max-width: 100%; min-width: 0; flex-wrap: wrap; font-size: 12px; gap: 6px; }
   .task-chip { height: 32px; line-height: 32px; padding: 0 12px; font-size: 12px; display: inline-flex; align-items: center; border-radius: 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .task-row .cfg-btn { min-height: 44px; height: 44px; max-width: 100%; padding: 0 16px; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
   .task-row__check { width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
