@@ -2435,6 +2435,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .pinned__tile {
     min-width: 0;
+    max-width: 100%;
     min-height: 68px;
     padding: 10px 10px 8px;
   }
