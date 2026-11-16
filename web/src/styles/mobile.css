@@ -1532,6 +1532,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .cfg-page {
+    max-width: 100%;
+    min-width: 0;
     padding: 16px 14px calc(24px + env(safe-area-inset-bottom));
     gap: 16px;
     -webkit-overflow-scrolling: touch;
