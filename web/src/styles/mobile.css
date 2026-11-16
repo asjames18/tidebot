@@ -2368,7 +2368,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     word-break: break-word;
     max-width: 100%;
   }
-  .signin__dev { gap: 10px; }
+  .signin__dev { max-width: 100%; min-width: 0; gap: 10px; }
   .signin__google, .signin__dev .btn {
     width: 100%;
     display: inline-flex;
