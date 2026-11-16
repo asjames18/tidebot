@@ -1318,7 +1318,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     align-items: center;
     justify-content: center;
   }
-  .app-settings__page { padding: 20px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
+  .app-settings__page { max-width: 100%; min-width: 0; padding: 20px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
   .app-settings__head { padding-right: 44px; }
   .app-settings__head h1 {
     font-size: 20px;
