@@ -168,6 +168,7 @@
   }
   .chat__briefing-btn span { display: none; }
   .chat__header {
+    max-width: 100%;
     justify-content: space-between;
     gap: 6px;
     padding: env(safe-area-inset-top) 10px 0 10px;
