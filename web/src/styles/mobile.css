@@ -2213,7 +2213,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .tasks-view__inner { max-width: 100%; min-width: 0; padding: 14px 12px calc(32px + env(safe-area-inset-bottom)); }
-  .tasks-view__inner form { min-width: 0; flex-wrap: wrap; gap: 8px; }
+  .tasks-view__inner form { max-width: 100%; min-width: 0; flex-wrap: wrap; gap: 8px; }
   .tasks-view__inner form .text-input,
   .tasks-view__inner form select {
     min-height: 44px;
