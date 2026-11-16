@@ -2275,6 +2275,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .viewer__overlay span {
     overflow-wrap: anywhere;
+    word-break: break-word;
     max-width: 100%;
   }
   .viewer__close { width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
