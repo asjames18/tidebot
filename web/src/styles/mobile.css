@@ -1613,6 +1613,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .cfg-savebar {
     margin: -4px -14px 0;
+    max-width: calc(100% + 28px);
+    min-width: 0;
     padding: 10px 14px calc(12px + env(safe-area-inset-bottom));
     flex-wrap: wrap;
     gap: 8px;
