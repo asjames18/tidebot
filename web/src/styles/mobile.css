@@ -1709,6 +1709,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 16px;
   }
   .cfg-meter__actions {
+    max-width: 100%;
+    min-width: 0;
     flex-wrap: wrap;
     gap: 8px;
   }
