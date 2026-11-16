@@ -2051,6 +2051,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 12.5px;
   }
   .cat-pills {
+    max-width: 100%;
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 4px;
