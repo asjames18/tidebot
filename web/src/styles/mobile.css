@@ -1391,6 +1391,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     overscroll-behavior: contain;
   }
   .byom-model-card {
+    max-width: 100%;
+    min-width: 0;
     min-height: 58px;
     padding: 12px 14px;
     gap: 6px;
