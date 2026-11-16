@@ -201,6 +201,7 @@
 
   /* Composer telemetry: horizontal swipeable strip on mobile; hide desktop kbd hints. */
   .composer-telemetry {
+    max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
