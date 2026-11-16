@@ -113,6 +113,8 @@
   }
   .details__top {
     padding-top: max(12px, env(safe-area-inset-top));
+    max-width: 100%;
+    min-width: 0;
     justify-content: space-between;
   }
   .details__scroll {
