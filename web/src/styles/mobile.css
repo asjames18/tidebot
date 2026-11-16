@@ -1870,6 +1870,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     word-break: break-word;
   }
   .cfg-card--padded {
+    max-width: 100%;
+    min-width: 0;
     padding: 14px 12px;
     gap: 12px;
   }
