@@ -1568,6 +1568,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .cfg-section {
+    max-width: 100%;
+    min-width: 0;
     gap: 12px;
   }
   .cfg-section__label {
