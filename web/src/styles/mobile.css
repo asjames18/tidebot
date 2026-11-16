@@ -65,6 +65,8 @@
   .sidebar__footer-row {
     height: auto;
     min-height: 44px;
+    max-width: 100%;
+    min-width: 0;
     gap: 8px;
   }
   .sidebar-island {
