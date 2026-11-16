@@ -1959,6 +1959,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .apps-modal__searchrow {
+    max-width: 100%;
+    min-width: 0;
     flex-wrap: wrap;
     gap: 8px;
   }
