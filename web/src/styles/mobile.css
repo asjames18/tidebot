@@ -234,6 +234,7 @@
   .transcript { padding: calc(64px + env(safe-area-inset-top)) 10px 8px; }
   .transcript__col { gap: 10px; }
   .bubble-wrap {
+    max-width: 100%;
     flex-wrap: wrap;
     row-gap: 2px;
   }
