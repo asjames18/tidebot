@@ -345,6 +345,10 @@
   .composer__plus-anchor {
     padding: 5px 0;
   }
+  .composer__left {
+    min-width: 0;
+    max-width: 100%;
+  }
   .composer__right {
     min-width: 0;
     max-width: 100%;
