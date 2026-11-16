@@ -2177,6 +2177,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .tasks-view__header {
     padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+    max-width: 100%;
+    min-width: 0;
     flex-wrap: wrap;
     height: auto;
     min-height: calc(56px + env(safe-area-inset-top));
