@@ -2382,6 +2382,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 14px;
   }
   .signin__dev .text-input {
+    max-width: 100%;
+    min-width: 0;
     min-height: 44px;
     font-size: 16px;
   }
