@@ -99,7 +99,7 @@
 
   /* Hide desktop window traffic lights on mobile */
   .traffic-lights { display: none; }
-  .sidebar__brand { padding-left: 4px; }
+  .sidebar__brand { padding-left: 4px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
   /* Details panel becomes a right-side drawer instead of squeezing the chat. */
   .details {
