@@ -2355,6 +2355,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .signin__card {
+    max-width: 100%;
     padding: 28px 22px 22px;
   }
   .signin__title {
