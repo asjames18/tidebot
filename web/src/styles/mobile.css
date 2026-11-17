@@ -1442,6 +1442,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 16px;
   }
   .theme-tiles {
+    max-width: 100%;
+    min-width: 0;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 10px;
