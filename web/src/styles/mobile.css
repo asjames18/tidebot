@@ -1981,6 +1981,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     padding: 44px 16px 0;
   }
   .apps-modal__titlerow {
+    max-width: 100%;
+    min-width: 0;
     height: auto;
     min-height: 32px;
     flex-wrap: wrap;
