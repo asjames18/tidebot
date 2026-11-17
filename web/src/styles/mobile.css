@@ -1808,6 +1808,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     flex-shrink: 0;
   }
   .cfg-row {
+    max-width: 100%;
+    min-width: 0;
     min-height: 52px;
     padding: 10px 12px;
     gap: 10px;
