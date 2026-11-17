@@ -1561,6 +1561,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     word-break: break-word;
   }
   .cfg-page__head {
+    max-width: 100%;
+    min-width: 0;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
