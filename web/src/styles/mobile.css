@@ -1978,6 +1978,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .apps-modal__head {
+    max-width: 100%;
+    min-width: 0;
     padding: 44px 16px 0;
   }
   .apps-modal__titlerow {
