@@ -1870,6 +1870,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     word-break: break-word;
   }
   .cfg-item__meta {
+    max-width: 100%;
+    min-width: 0;
     flex-wrap: wrap;
     gap: 6px;
   }
