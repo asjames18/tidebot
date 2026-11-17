@@ -1842,6 +1842,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .cfg-item {
+    max-width: 100%;
+    min-width: 0;
     padding: 12px 10px 12px 12px;
     gap: 10px;
     min-height: 56px;
