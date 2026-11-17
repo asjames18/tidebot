@@ -1472,7 +1472,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     padding: 12px 14px;
     overflow-wrap: anywhere;
   }
-  .shader-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 8px; }
+  .shader-grid { max-width: 100%; min-width: 0; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 8px; }
   .shader-Option {
     max-width: 100%;
     min-width: 0;
