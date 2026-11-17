@@ -1709,6 +1709,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 16px;
   }
   .cfg-model-picker {
+    max-width: 100%;
+    min-width: 0;
     flex-direction: column;
     gap: 8px;
     width: 100%;
