@@ -1695,6 +1695,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .cfg-routine-fields {
+    max-width: 100%;
+    min-width: 0;
     flex-direction: column;
     gap: 8px;
   }
