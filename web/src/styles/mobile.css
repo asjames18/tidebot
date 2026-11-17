@@ -1594,6 +1594,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     word-break: break-word;
   }
   .cfg-look {
+    max-width: 100%;
     gap: 12px;
     min-width: 0;
     flex-wrap: wrap;
