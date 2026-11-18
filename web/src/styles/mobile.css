@@ -456,6 +456,8 @@
   .modal-backdrop { touch-action: none; }
   .modal {
     width: calc(100vw - 20px);
+    max-width: 100%;
+    min-width: 0;
     max-height: 92dvh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
