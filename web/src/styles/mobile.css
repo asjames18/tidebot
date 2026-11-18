@@ -2354,6 +2354,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     touch-action: none;
   }
   .viewer__overlay {
+    max-width: 100%;
+    min-width: 0;
     padding: 16px;
     text-align: center;
   }
