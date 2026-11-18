@@ -2049,6 +2049,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     overscroll-behavior: contain;
   }
   .app-grid {
+    max-width: 100%;
+    min-width: 0;
     grid-template-columns: 1fr;
   }
   .app-row {
