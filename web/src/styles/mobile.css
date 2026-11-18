@@ -625,6 +625,8 @@
     padding: 4px 0 8px;
   }
   .mode-pick {
+    max-width: 100%;
+    min-width: 0;
     width: 100%;
     flex-wrap: wrap;
     gap: 8px;
