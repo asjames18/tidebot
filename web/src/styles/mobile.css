@@ -591,6 +591,8 @@
     padding: 8px 6px;
   }
   .group-pick {
+    max-width: 100%;
+    min-width: 0;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     max-height: min(280px, 40dvh);
