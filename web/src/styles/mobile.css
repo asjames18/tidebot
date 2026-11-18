@@ -2457,6 +2457,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     font-size: 16px;
   }
   .signin__foot-grid {
+    max-width: 100%;
+    min-width: 0;
     flex-wrap: wrap;
     justify-content: center;
     row-gap: 4px;
