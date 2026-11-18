@@ -2335,7 +2335,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .bot-tasks__submit { min-height: 44px; height: 44px; min-width: 44px; max-width: 100%; padding: 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Computer viewer. */
-  .viewer__top { padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: calc(56px + env(safe-area-inset-top)); }
+  .viewer__top { max-width: 100%; min-width: 0; padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: calc(56px + env(safe-area-inset-top)); }
   .viewer__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .viewer__title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .viewer__stage { padding: 0 6px; }
