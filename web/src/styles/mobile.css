@@ -2056,6 +2056,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .app-row {
     min-height: 60px;
     max-width: 100%;
+    min-width: 0;
     height: auto;
     padding: 10px 12px;
     gap: 12px;
