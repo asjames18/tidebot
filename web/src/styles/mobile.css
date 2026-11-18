@@ -776,6 +776,8 @@
     border-radius: 6px;
   }
   .bubble__meta-bar {
+    max-width: 100%;
+    min-width: 0;
     flex-wrap: wrap;
     row-gap: 4px;
     min-height: 44px;
