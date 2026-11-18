@@ -510,6 +510,8 @@
   }
 
   .create-modal__body {
+    max-width: 100%;
+    min-width: 0;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     padding: 10px 14px 16px;
