@@ -2197,6 +2197,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     overflow-wrap: anywhere;
   }
   .search-modal__results {
+    max-width: 100%;
+    min-width: 0;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     padding: 6px 8px calc(12px + env(safe-area-inset-bottom));
