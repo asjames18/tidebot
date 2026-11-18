@@ -2160,6 +2160,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     max-height: calc(100dvh - 24px - env(safe-area-inset-top));
   }
   .search-modal__field {
+    max-width: 100%;
+    min-width: 0;
     height: 52px;
     padding: 10px 14px;
     gap: 10px;
