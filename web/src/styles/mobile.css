@@ -2338,7 +2338,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   .viewer__top { max-width: 100%; min-width: 0; padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: calc(56px + env(safe-area-inset-top)); }
   .viewer__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .viewer__title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .viewer__stage { padding: 0 6px; }
+  .viewer__stage { max-width: 100%; min-width: 0; padding: 0 6px; }
   .viewer__screen {
     display: flex;
     align-items: center;
