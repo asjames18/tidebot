@@ -2468,6 +2468,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
 
   /* Sidebar rows are finger-sized. */
   .sidebar__scroll {
+    max-width: 100%;
+    min-width: 0;
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
