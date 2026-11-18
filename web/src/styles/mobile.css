@@ -704,7 +704,7 @@
   }
 
   /* Empty-chat hero scales down. */
-  .empty-chat { padding: 18px 8px; }
+  .empty-chat { max-width: 100%; min-width: 0; padding: 18px 8px; }
   .empty-chat__stage-inner { max-width: 100%; min-width: 0; padding: 24px 14px 20px; gap: 8px; }
   .empty-chat__badges {
     flex-wrap: wrap;
