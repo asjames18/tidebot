@@ -2424,6 +2424,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .signin__card {
     max-width: 100%;
+    min-width: 0;
     padding: 28px 22px 22px;
   }
   .signin__title {
