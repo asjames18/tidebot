@@ -846,7 +846,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
 @media (max-width: 900px) {
   /* Flex children must be allowed to shrink to the viewport, not their content. */
   .app > * { min-width: 0; }
-  .chat, .tasks-view { flex: 1 1 auto; width: 100%; min-width: 0; }
+  .chat, .tasks-view { flex: 1 1 auto; width: 100%; max-width: 100%; min-width: 0; }
   .tasks-stats .cfg-card > div:first-child { font-size: 10px !important; letter-spacing: 0; }
 
   .transcript {
