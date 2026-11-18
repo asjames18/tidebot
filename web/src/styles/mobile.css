@@ -750,6 +750,8 @@
   }
 
   .activity-line {
+    max-width: 100%;
+    min-width: 0;
     flex-wrap: wrap;
     row-gap: 4px;
     font-size: 13px;
