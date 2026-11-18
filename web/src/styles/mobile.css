@@ -937,7 +937,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
 
   /* Cards: full width, stacked comfortable actions, 44px options. */
-  .card, .panel-card, .question-card { max-width: 100%; }
+  .card, .panel-card, .question-card { max-width: 100%; min-width: 0; }
   .question-card { width: 100%; }
   .card__head, .draft-card__head { padding: 14px 14px 4px; }
   .draft-card__copy {
