@@ -243,7 +243,7 @@
 
   /* Chat column: tighter padding, wider bubbles. */
   .transcript { max-width: 100%; min-width: 0; padding: calc(64px + env(safe-area-inset-top)) 10px 8px; }
-  .transcript__col { gap: 10px; }
+  .transcript__col { max-width: 100%; min-width: 0; gap: 10px; }
   .bubble-wrap {
     max-width: 100%;
     flex-wrap: wrap;
