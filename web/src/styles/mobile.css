@@ -855,7 +855,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
 
   /* Markdown content can never push the bubble wider than the screen. */
-  .bubble .md { min-width: 0; overflow-wrap: anywhere; }
+  .bubble .md { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
   .bubble .md img, .bubble .md video { max-width: 100%; height: auto; }
   .bubble .md code:not(pre code) {
     word-break: break-word;
