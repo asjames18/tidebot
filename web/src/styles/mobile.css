@@ -731,7 +731,7 @@
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-  .empty-chat__prompts { width: 100%; }
+  .empty-chat__prompts { max-width: 100%; min-width: 0; width: 100%; }
   .empty-chat__prompt-chip {
     width: 100%;
     min-height: 48px;
