@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -7,28 +7,53 @@ const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), in
 export function Modal({ onClose, children, className, label, top }: { onClose: () => void; children: ReactNode; className?: string; label: string; top?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number | null>(null);
+  const closedRef = useRef(false);
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
+  const safeClose = () => {
+    if (closedRef.current) return;
+    closedRef.current = true;
+    onClose();
+  };
 
   const onHandleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
+    setDragging(true);
+  };
+
+  const onHandleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const deltaY = Math.max(0, e.touches[0].clientY - touchStartY.current);
+    setDragY(deltaY);
   };
 
   const onHandleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartY.current === null) return;
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-    if (deltaY > 45) {
+    touchStartY.current = null;
+    setDragging(false);
+    if (deltaY > 56) {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(8); } catch {}
       }
-      onClose();
+      safeClose();
+    } else {
+      setDragY(0);
     }
+  };
+
+  const onHandleTouchCancel = () => {
     touchStartY.current = null;
+    setDragging(false);
+    setDragY(0);
   };
 
   const handleScrim = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
-    onClose();
+    safeClose();
   };
 
   useEffect(() => {
@@ -54,11 +79,23 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
   return createPortal(
     <div className="modal-root">
       <div className="modal-scrim" onMouseDown={handleScrim} onTouchStart={handleScrim} />
-      <div ref={ref} className={`modal ${className ?? ''}`} role="dialog" aria-modal="true" aria-label={label} style={top !== undefined ? { marginTop: top } : undefined}>
+      <div
+        ref={ref}
+        className={`modal ${className ?? ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        style={{
+          ...(top !== undefined ? { marginTop: top } : undefined),
+          ...(dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: dragging ? 'none' : 'transform 180ms ease-out' } : undefined),
+        }}
+      >
         <div
           className="sheet-handle-wrap"
           onTouchStart={onHandleTouchStart}
+          onTouchMove={onHandleTouchMove}
           onTouchEnd={onHandleTouchEnd}
+          onTouchCancel={onHandleTouchCancel}
           aria-hidden="true"
         >
           <div className="sheet-handle" />
