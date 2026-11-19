@@ -157,26 +157,64 @@ export function DetailsPanel() {
   };
 
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const swipeLocked = useRef<'x' | 'y' | null>(null);
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
   const onTouchStart = (e: React.TouchEvent) => {
+    if (window.innerWidth > 900) return;
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    swipeLocked.current = null;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (!swipeLocked.current) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      swipeLocked.current = Math.abs(dx) > Math.abs(dy) * 1.2 && dx > 0 ? 'x' : 'y';
+      if (swipeLocked.current === 'x') setDragging(true);
+    }
+    if (swipeLocked.current === 'x') {
+      setDragX(Math.max(0, dx));
+    }
   };
   const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    if (deltaX > 45 && window.innerWidth <= 900) {
+    const wasHorizontal = swipeLocked.current === 'x';
+    touchStartX.current = null;
+    touchStartY.current = null;
+    swipeLocked.current = null;
+    setDragging(false);
+    setDragX(0);
+    if (wasHorizontal && deltaX > 56 && window.innerWidth <= 900) {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
       set({ detailsOpen: false });
     }
+  };
+  const onTouchCancel = () => {
     touchStartX.current = null;
+    touchStartY.current = null;
+    swipeLocked.current = null;
+    setDragging(false);
+    setDragX(0);
   };
 
   return (
     <aside
       className="details"
-      style={botVars(bot.avatarColor)}
+      style={{
+        ...botVars(bot.avatarColor),
+        ...(dragX > 0 ? { transform: `translateX(${dragX}px)`, transition: dragging ? 'none' : 'transform 180ms ease-out' } : undefined),
+      }}
       aria-label="Conversation details"
       onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
     >
       <div className="details__top">
         <button
