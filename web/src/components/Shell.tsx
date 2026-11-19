@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { startEvents } from '../lib/events';
 import { useStore } from '../store';
 import { ChatView } from './ChatView';
@@ -24,9 +24,55 @@ export function Shell() {
   const collapsed = useStore((s) => s.sidebarCollapsed);
   const hasBot = useStore((s) => !!s.selectedBotId);
   const view = useConfigUI((s) => s.view);
+  const edgeTouch = useRef<{ x: number; y: number; side: 'left' | 'right' } | null>(null);
 
   // Switching views (e.g. to Tasks from the sidebar drawer) closes the mobile drawer.
   useEffect(() => { set({ mobileSidebarOpen: false }); }, [view, set]);
+
+  // Mobile edge-swipe to open the left Operators drawer (from left edge) or right Details drawer (from right edge).
+  useEffect(() => {
+    const onStart = (e: TouchEvent) => {
+      if (window.innerWidth > 900 || e.touches.length !== 1) return;
+      const st = useStore.getState();
+      const cfg = useConfigUI.getState();
+      if (st.mobileSidebarOpen || st.detailsOpen || st.modal || st.viewerOpen || cfg.botSettings || cfg.appSettings) return;
+      const t = e.touches[0];
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry')) return;
+      if (t.clientX <= 28) {
+        edgeTouch.current = { x: t.clientX, y: t.clientY, side: 'left' };
+      } else if (t.clientX >= window.innerWidth - 28 && st.selectedBotId && cfg.view === 'chat') {
+        edgeTouch.current = { x: t.clientX, y: t.clientY, side: 'right' };
+      } else {
+        edgeTouch.current = null;
+      }
+    };
+    const onEnd = (e: TouchEvent) => {
+      const start = edgeTouch.current;
+      edgeTouch.current = null;
+      if (!start || !e.changedTouches.length) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (Math.abs(dx) < 52 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      if (start.side === 'left' && dx > 52) {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+        useStore.getState().set({ mobileSidebarOpen: true, sidebarCollapsed: false });
+      } else if (start.side === 'right' && dx < -52) {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+        useStore.getState().set({ detailsOpen: true });
+      }
+    };
+    const onCancel = () => { edgeTouch.current = null; };
+    window.addEventListener('touchstart', onStart, { passive: true });
+    window.addEventListener('touchend', onEnd, { passive: true });
+    window.addEventListener('touchcancel', onCancel, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onStart);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onCancel);
+    };
+  }, []);
 
   useEffect(() => {
     const st = useStore.getState();
@@ -77,11 +123,8 @@ export function Shell() {
       {(mobileSidebarOpen || detailsOpen) && (
         <div
           className="mobile-scrim"
-          onClick={() => {
-            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-            set({ mobileSidebarOpen: false, detailsOpen: false });
-          }}
-          onTouchStart={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
             set({ mobileSidebarOpen: false, detailsOpen: false });
           }}
