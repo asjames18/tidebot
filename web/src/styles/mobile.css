@@ -147,7 +147,8 @@
   }
 
   /* Header: flexbox row so left nav, center pills, and right buttons never overlap. */
-  .share-btn {
+  .share-btn,
+  .new-chat-btn {
     display: inline-flex;
     flex-shrink: 0;
     width: 44px;
@@ -161,7 +162,11 @@
     background: var(--color-bg-pane);
     border: 1px solid var(--color-border-secondary);
   }
-  .share-btn__label { display: none; }
+  .share-btn__label,
+  .new-chat-btn__label { display: none; }
+  @media (max-width: 520px) {
+    .share-btn { display: none; }
+  }
   .chat__briefing-btn {
     width: 44px;
     height: 44px;
@@ -664,7 +669,7 @@
   button:active, .icon-btn:active, .cfg-btn:active, .byom-model-card:active, .bot-row:active,
   .pinned__tile:active, .composer-quick-chip:active, .sidebar-island:active, .segmented button:active,
   .cat-pill:active, .empty-chat__prompt-chip:active, .chat__pill:active, .chat__model-pill:active,
-  .share-btn:active, .jump-btn:active, .vcall__btn:active, .vcall__captions:active, .draft-card__copy:active,
+  .share-btn:active, .new-chat-btn:active, .jump-btn:active, .vcall__btn:active, .vcall__captions:active, .draft-card__copy:active,
   .search-row:active, .search-modal__clear:active, .swatch-cell:active, .shape-cell:active,
   .shader-Option:active, .byom-provider-card:active, .theme-tile:active, .byom-filter-tab:active,
   .toggle:active, .lib-row:active, .signin__shader-pill:active, .viewer__close:active,
@@ -2557,6 +2562,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     .mobile-nav-btn,
     .chat__header-right .icon-btn,
     .share-btn,
+    .new-chat-btn,
     .chat__briefing-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
     .chat__pill,
     .chat__model-pill { height: 40px; min-height: 40px; padding: 4px 8px; }

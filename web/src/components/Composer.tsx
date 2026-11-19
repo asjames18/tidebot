@@ -33,11 +33,20 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   const [enhancing, setEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
+  const [confirmFresh, setConfirmFresh] = useState(false);
+  const confirmTimer = useRef<number | null>(null);
   const ref = useRef<HTMLTextAreaElement>(null);
   const setModal = useStore((s) => s.setModal);
 
   // Per-bot drafts.
-  useEffect(() => { setText(drafts.get(bot.id) ?? ''); setError(null); ref.current?.focus(); }, [bot.id]);
+  useEffect(() => {
+    setText(drafts.get(bot.id) ?? '');
+    setError(null);
+    setConfirmFresh(false);
+    if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
+    ref.current?.focus();
+  }, [bot.id]);
+  useEffect(() => () => { if (confirmTimer.current) window.clearTimeout(confirmTimer.current); }, []);
   useEffect(() => { drafts.set(bot.id, text); }, [bot.id, text]);
 
   // Auto-grow.
@@ -178,6 +187,25 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
       )}
       {!hasText && !matchingSlash.length && (
         <div className="composer-quick-bar" role="toolbar" aria-label="Quick mobile shortcuts">
+          <button
+            type="button"
+            className={`composer-quick-chip${confirmFresh ? ' is-active' : ''}`}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              if (!confirmFresh) {
+                setConfirmFresh(true);
+                if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
+                confirmTimer.current = window.setTimeout(() => { setConfirmFresh(false); confirmTimer.current = null; }, 3500);
+                return;
+              }
+              if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
+              setConfirmFresh(false);
+              fresh();
+            }}
+            title={confirmFresh ? 'Tap again to start a fresh chat' : `Start a new chat with ${displayName(bot)}`}
+          >
+            <span>{confirmFresh ? '✓ Confirm new chat?' : '✏️ New chat'}</span>
+          </button>
           <button
             type="button"
             className={`composer-quick-chip${bot.effort === 'low' ? ' is-active' : ''}`}

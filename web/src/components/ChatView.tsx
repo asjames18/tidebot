@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
 import { configApi } from '../lib/configApi';
@@ -22,7 +22,18 @@ export function ChatView() {
   const [menu, setMenu] = useState(false);
   const [modelMenu, setModelMenu] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [confirmFresh, setConfirmFresh] = useState(false);
+  const confirmTimer = useRef<number | null>(null);
   const rows = useMemo(() => sortedRows(transcript), [transcript]);
+
+  useEffect(() => {
+    setConfirmFresh(false);
+    if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
+  }, [bot?.id]);
+
+  useEffect(() => () => {
+    if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
+  }, []);
 
   if (!bot) {
     return (
@@ -33,6 +44,24 @@ export function ChatView() {
   }
 
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2200); };
+
+  const startNewChat = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    if (!rows.length) {
+      flash(`Already in a fresh chat with ${displayName(bot)}`);
+      return;
+    }
+    if (!confirmFresh) {
+      setConfirmFresh(true);
+      flash('Click New chat again to start fresh (memories & skills stay)');
+      if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
+      confirmTimer.current = window.setTimeout(() => { setConfirmFresh(false); confirmTimer.current = null; }, 3500);
+      return;
+    }
+    if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
+    setConfirmFresh(false);
+    api.fresh(bot.id).then(() => flash(`Started a new chat with ${displayName(bot)}`)).catch((e) => flash(e.message));
+  };
 
   const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
   const shortModel = activeModel.includes('/') ? activeModel.split('/').pop()! : activeModel;
@@ -204,6 +233,16 @@ export function ChatView() {
           </button>
         </div>
         <div className="chat__header-right">
+          <button
+            type="button"
+            className={`new-chat-btn${confirmFresh ? ' is-confirming' : ''}`}
+            onClick={startNewChat}
+            title={confirmFresh ? 'Click again to clear this chat and start fresh' : `Start a new chat with ${displayName(bot)}`}
+            aria-label={confirmFresh ? 'Confirm new chat' : 'New chat'}
+          >
+            <Icon name="edit" size={14} opacity={0.85} />
+            <span className="new-chat-btn__label">{confirmFresh ? 'Confirm?' : 'New chat'}</span>
+          </button>
           <button
             type="button"
             className="icon-btn icon-btn--bordered mobile-only-btn"
