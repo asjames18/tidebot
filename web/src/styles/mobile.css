@@ -976,7 +976,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     display: flex;
     align-items: center;
   }
-  .draft-card__actions { padding: 10px 14px 14px; flex-wrap: wrap; gap: 8px; }
+  .draft-card__actions { max-width: 100%; min-width: 0; padding: 10px 14px 14px; flex-wrap: wrap; gap: 8px; }
   .question-card__head { padding: 12px 14px 4px; }
   .question-card__options { padding: 6px; }
   .question-card__q { font-size: 14.5px; line-height: 21px; overflow-wrap: anywhere; word-break: break-word; }
