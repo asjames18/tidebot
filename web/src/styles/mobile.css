@@ -1065,8 +1065,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     max-width: 100%;
     gap: 6px;
   }
-  .panel-row--routine { min-height: 52px; padding: 8px 10px; gap: 10px; }
-  .panel-row--computer { min-height: 56px; padding: 8px 10px; gap: 10px; }
+  .panel-row--routine { max-width: 100%; min-width: 0; min-height: 52px; padding: 8px 10px; gap: 10px; }
+  .panel-row--computer { max-width: 100%; min-width: 0; min-height: 56px; padding: 8px 10px; gap: 10px; }
   .panel-row--routine .panel-row__title,
   .panel-row--computer .panel-row__title {
     font-size: 13.5px;
