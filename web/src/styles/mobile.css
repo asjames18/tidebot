@@ -1086,9 +1086,9 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     overflow-wrap: anywhere;
     word-break: break-word;
   }
-  .section-label--row { min-height: 44px; height: auto; }
+  .section-label--row { max-width: 100%; min-width: 0; min-height: 44px; height: auto; }
   .section-label--row .link-btn { min-height: 44px; max-width: 100%; padding: 8px 16px; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
-  .members__row { min-height: 44px; height: auto; padding: 4px 0; }
+  .members__row { max-width: 100%; min-width: 0; min-height: 44px; height: auto; padding: 4px 0; }
   .members__remove { width: 44px; height: 44px; min-width: 44px; min-height: 44px; flex-shrink: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
   .members__add {
     max-height: 260px;
@@ -1110,7 +1110,7 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
     justify-content: center;
   }
   .members__hint { font-size: 12.5px; line-height: 17px; padding: 8px 10px 4px; }
-  .lib-row { min-height: 44px; }
+  .lib-row { max-width: 100%; min-width: 0; min-height: 44px; }
   .lib-row__main {
     min-height: 44px;
     min-width: 0;
@@ -1120,6 +1120,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
   .panel-card .link-btn { min-height: 44px; max-width: 100%; padding: 6px 14px; display: inline-flex; align-items: center; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lib-crumbs {
+    max-width: 100%;
+    min-width: 0;
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
