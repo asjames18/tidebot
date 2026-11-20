@@ -299,6 +299,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
               className="composer__btn"
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                if (!menu && typeof window !== 'undefined' && window.innerWidth <= 900) ref.current?.blur();
                 setMenu(!menu);
               }}
               aria-label="More actions"
@@ -366,6 +367,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             disabled={dictation.state === 'transcribing'}
             onPointerDown={dictation.onPointerDown}
             onPointerUp={dictation.onPointerUp}
+            onPointerCancel={dictation.onPointerUp}
             onKeyDown={dictation.onKeyDown}
             onContextMenu={(e) => e.preventDefault()}
           >
@@ -400,6 +402,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
               className="composer__cta"
               onClick={hasText ? send : () => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                if (typeof window !== 'undefined' && window.innerWidth <= 900) ref.current?.blur();
                 startCall(bot.id);
               }}
               disabled={hasText && sending}
