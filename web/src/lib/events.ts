@@ -11,6 +11,7 @@ export function startEvents(): () => void {
   let retry = 1000;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let everConnected = false;
+  let hiddenAt: number | null = null;
 
   const resync = () => {
     const st = useStore.getState();
@@ -21,6 +22,8 @@ export function startEvents(): () => void {
 
   const open = () => {
     if (stopped) return;
+    clearTimeout(timer);
+    es?.close();
     es = new EventSource('/api/events', { withCredentials: true });
     es.onopen = () => {
       retry = 1000;
@@ -35,11 +38,43 @@ export function startEvents(): () => void {
       useStore.getState().set({ sseConnected: false });
       if (es?.readyState === EventSource.CLOSED) {
         es = null;
+        clearTimeout(timer);
         timer = setTimeout(open, retry);
         retry = Math.min(retry * 2, 15_000);
       }
     };
   };
+
+  const wake = () => {
+    if (stopped) return;
+    if (!es || es.readyState !== EventSource.OPEN) {
+      retry = 1000;
+      open();
+    } else if (everConnected) {
+      resync();
+    }
+  };
+
+  const onVisibility = () => {
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+      return;
+    }
+    const awayMs = hiddenAt ? Date.now() - hiddenAt : 0;
+    hiddenAt = null;
+    if (!es || es.readyState !== EventSource.OPEN || awayMs > 10_000) {
+      wake();
+    }
+  };
+
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('online', wake);
   open();
-  return () => { stopped = true; clearTimeout(timer); es?.close(); };
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+    document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('online', wake);
+    es?.close();
+  };
 }
