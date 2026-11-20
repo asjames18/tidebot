@@ -25,15 +25,17 @@ export function computerStatusText(c: ComputerState | null): string {
   }
 }
 
-function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={on}
       aria-label={label}
+      disabled={disabled}
       className={`toggle${on ? ' is-on' : ''}`}
       onClick={() => {
+        if (disabled) return;
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
         onChange(!on);
       }}
@@ -45,10 +47,14 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
 
 function RoutineRow({ r }: { r: Routine }) {
   const [enabled, setEnabled] = useState(r.enabled);
+  const [busy, setBusy] = useState(false);
   useEffect(() => setEnabled(r.enabled), [r.enabled]);
   const toggle = async (v: boolean) => {
+    if (busy) return;
+    setBusy(true);
     setEnabled(v);
     try { await api.setRoutine(r.id, v); } catch { setEnabled(!v); }
+    finally { setBusy(false); }
   };
   return (
     <div className="panel-row panel-row--routine" title={r.prompt}>
@@ -57,7 +63,7 @@ function RoutineRow({ r }: { r: Routine }) {
         <span className="panel-row__title">{r.name}</span>
         <span className="panel-row__sub">{enabled ? r.description || r.schedule : 'Paused'}</span>
       </span>
-      <Toggle on={enabled} onChange={toggle} label={`${r.name} ${enabled ? 'on' : 'off'}`} />
+      <Toggle on={enabled} onChange={toggle} disabled={busy} label={`${r.name} ${enabled ? 'on' : 'off'}`} />
     </div>
   );
 }
@@ -191,6 +197,11 @@ export function DetailsPanel() {
     }
     if (swipeLocked.current === 'x') {
       setDragX(Math.max(0, dx));
+    } else if (swipeLocked.current === 'y' && Math.abs(dy) > 14 && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && scrollRef.current?.contains(ae)) {
+        ae.blur();
+      }
     }
   };
   const onTouchEnd = (e: React.TouchEvent) => {
@@ -260,9 +271,11 @@ export function DetailsPanel() {
           <div className="details__name" title={displayName(bot)}>{displayName(bot)}</div>
         </div>
         <div className="details__tabs">
-          <div className="segmented">
+          <div className="segmented" role="tablist" aria-label="Details sections">
             <button
               type="button"
+              role="tab"
+              aria-selected={tab === 'activity'}
               className={tab === 'activity' ? 'is-active' : ''}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
@@ -273,6 +286,8 @@ export function DetailsPanel() {
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={tab === 'tasks'}
               className={tab === 'tasks' ? 'is-active' : ''}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
@@ -283,6 +298,8 @@ export function DetailsPanel() {
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={tab === 'library'}
               className={tab === 'library' ? 'is-active' : ''}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
