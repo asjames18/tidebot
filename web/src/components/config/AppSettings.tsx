@@ -670,7 +670,7 @@ function ModelsSection() {
           </div>
 
           {statusMsg && (
-            <div className={`byom-status ${statusMsg.ok ? 'is-ok' : 'is-err'}`}>
+            <div className={`byom-status ${statusMsg.ok ? 'is-ok' : 'is-err'}`} role={statusMsg.ok ? 'status' : 'alert'}>
               {statusMsg.text}
             </div>
           )}
@@ -849,6 +849,7 @@ function ComputerSection() {
   const running = status === 'running';
   const transitioning = status === 'starting' || status === 'resuming' || status === 'creating' || status === 'suspending';
   const act = async (kind: 'wake' | 'sleep') => {
+    if (busy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
@@ -878,8 +879,8 @@ function ComputerSection() {
               <button type="button" className="cfg-btn cfg-btn--primary" disabled={transitioning || !!busy} onClick={() => act('wake')}>{busy === 'wake' || transitioning ? 'Waking…' : 'Wake'}</button>
             )}
           </div>
-          {computer?.error && status === 'error' && <div className="cfg-error cfg-error--inset">{computer.error}</div>}
-          {note && <div className="cfg-error cfg-error--inset">{note}</div>}
+          {computer?.error && status === 'error' && <div className="cfg-error cfg-error--inset" role="alert">{computer.error}</div>}
+          {note && <div className="cfg-error cfg-error--inset" role="alert">{note}</div>}
         </div>
       </section>
 
@@ -994,7 +995,7 @@ function AppsSection() {
   };
 
   const saveComposioKey = async () => {
-    if (!composioKey.trim()) return;
+    if (!composioKey.trim() || savingKey) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(12); } catch {}
     }
@@ -1015,6 +1016,7 @@ function AppsSection() {
   };
 
   const testComposio = async () => {
+    if (testingKey) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
@@ -1063,6 +1065,13 @@ function AppsSection() {
               placeholder={llmConfig?.hasComposioKey ? 'Paste new key to replace saved COMPOSIO_API_KEY (ak_...)' : 'ak_...'}
               value={composioKey}
               onChange={(e) => setComposioKey(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (window.innerWidth <= 900) e.currentTarget.blur();
+                  if (composioKey.trim()) void saveComposioKey();
+                }
+              }}
             />
             <div className="cfg-field__hint">
               Get your key at <a href="https://app.composio.dev" target="_blank" rel="noreferrer">app.composio.dev</a>. Hot-reloads immediately without restarting the server.
@@ -1082,7 +1091,7 @@ function AppsSection() {
             </button>
           </div>
           {keyNote && (
-            <div className={`byom-status ${keyNote.ok ? 'is-ok' : 'is-err'}`}>
+            <div className={`byom-status ${keyNote.ok ? 'is-ok' : 'is-err'}`} role={keyNote.ok ? 'status' : 'alert'}>
               {keyNote.text}
             </div>
           )}
