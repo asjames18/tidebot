@@ -23,12 +23,16 @@ export function ChatView() {
   const [menu, setMenu] = useState(false);
   const [modelMenu, setModelMenu] = useState(false);
   const [confirmFresh, setConfirmFresh] = useState(false);
+  const [freshBusy, setFreshBusy] = useState(false);
   const [briefingBusy, setBriefingBusy] = useState(false);
   const confirmTimer = useRef<number | null>(null);
   const rows = useMemo(() => sortedRows(transcript), [transcript]);
 
   useEffect(() => {
+    setMenu(false);
+    setModelMenu(false);
     setConfirmFresh(false);
+    setFreshBusy(false);
     if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
   }, [bot?.id]);
 
@@ -47,21 +51,27 @@ export function ChatView() {
   const flash = (t: string) => useStore.getState().notify(t);
 
   const startNewChat = () => {
+    if (freshBusy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    blurComposerOnMobile();
     if (!rows.length) {
       flash(`Already in a fresh chat with ${displayName(bot)}`);
       return;
     }
     if (!confirmFresh) {
       setConfirmFresh(true);
-      flash('Click New chat again to start fresh (memories & skills stay)');
+      flash('Tap New chat again to start fresh (memories & skills stay)');
       if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
       confirmTimer.current = window.setTimeout(() => { setConfirmFresh(false); confirmTimer.current = null; }, 3500);
       return;
     }
     if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
     setConfirmFresh(false);
-    api.fresh(bot.id).then(() => flash(`Started a new chat with ${displayName(bot)}`)).catch((e) => flash(e.message));
+    setFreshBusy(true);
+    api.fresh(bot.id)
+      .then(() => flash(`Started a new chat with ${displayName(bot)}`))
+      .catch((e) => flash(e.message))
+      .finally(() => setFreshBusy(false));
   };
 
   const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
@@ -257,18 +267,20 @@ export function ChatView() {
           <button
             type="button"
             className={`new-chat-btn${confirmFresh ? ' is-confirming' : ''}`}
+            disabled={freshBusy}
             onClick={startNewChat}
-            title={confirmFresh ? 'Click again to clear this chat and start fresh' : `Start a new chat with ${displayName(bot)}`}
+            title={confirmFresh ? 'Tap again to clear this chat and start fresh' : `Start a new chat with ${displayName(bot)}`}
             aria-label={confirmFresh ? 'Confirm new chat' : 'New chat'}
           >
             <Icon name="edit" size={14} opacity={0.85} />
-            <span className="new-chat-btn__label">{confirmFresh ? 'Confirm?' : 'New chat'}</span>
+            <span className="new-chat-btn__label">{freshBusy ? 'Starting…' : confirmFresh ? 'Confirm?' : 'New chat'}</span>
           </button>
           <button
             type="button"
             className="icon-btn icon-btn--bordered mobile-only-btn"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              blurComposerOnMobile();
               useStore.getState().setModal('search');
             }}
             aria-label="Command palette"
@@ -294,10 +306,7 @@ export function ChatView() {
           <button
             type="button"
             className="share-btn"
-            onClick={() => {
-              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-              void shareTranscript();
-            }}
+            onClick={() => { void shareTranscript(); }}
             title="Export conversation as Markdown"
             aria-label="Share conversation"
           >
