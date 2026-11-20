@@ -237,13 +237,16 @@ function GeneralSection() {
   const [sysStatus, setSysStatus] = useState<{ bots: number; activeTasks: number; activeRoutines: number; memories: number; messages: number } | null>(null);
 
   useEffect(() => {
-    fetch('/api/health').then((r) => r.json()).then(setHealth).catch(() => {});
-    fetch('/api/system/status', { credentials: 'include' }).then((r) => (r.ok ? r.json() : null)).then(setSysStatus).catch(() => {});
-  }, [llmConfig]);
+    let alive = true;
+    fetch('/api/health').then((r) => r.json()).then((d) => { if (alive) setHealth(d); }).catch(() => {});
+    fetch('/api/system/status', { credentials: 'include' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive) setSysStatus(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, [llmConfig?.provider, llmConfig?.defaultModel, llmConfig?.isConfigured, llmConfig?.hasComposioKey]);
 
   const currentShader: ShaderStyle = llmConfig?.shaderStyle ?? 'aurora';
 
   const pickShader = async (s: ShaderStyle) => {
+    if (s === currentShader) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
