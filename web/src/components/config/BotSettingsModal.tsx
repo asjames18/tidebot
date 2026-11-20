@@ -758,8 +758,14 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
   const [adding, setAdding] = useState(false);
   const [maintBusy, setMaintBusy] = useState<'consolidate' | 'compact' | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const say = (t: string) => { setFlash(t); setTimeout(() => setFlash(null), 2600); };
+  useEffect(() => () => { if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current); }, []);
+  const say = (t: string) => {
+    setFlash(t);
+    if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = window.setTimeout(() => { setFlash(null); flashTimerRef.current = null; }, 2600);
+  };
   const memories = useMemo(() => (data?.memories ?? []).filter((m) => !hidden.has(m.id) && (!q || m.text.toLowerCase().includes(q.toLowerCase()))), [data, hidden, q]);
   const remove = async (m: Memory) => {
     setHidden((h) => new Set(h).add(m.id));
@@ -911,8 +917,14 @@ const CRON_PRESETS: { label: string; cron: string }[] = [
 
 function RoutinesTab({ bot, routines, onChange }: { bot: Bot; routines: Routine[] | undefined; onChange: () => void }) {
   const [flash, setFlash] = useState<string | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
   const [editing, setEditing] = useState<string | 'new' | null>(null);
-  const say = (t: string) => { setFlash(t); setTimeout(() => setFlash(null), 2200); };
+  useEffect(() => () => { if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current); }, []);
+  const say = (t: string) => {
+    setFlash(t);
+    if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = window.setTimeout(() => { setFlash(null); flashTimerRef.current = null; }, 2200);
+  };
   const refresh = () => {
     onChange();
     useStore.getState().loadRoutines(bot.id).catch(() => {});

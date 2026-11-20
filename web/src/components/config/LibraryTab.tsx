@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Bot, LibraryFile } from '@shared/types';
 import { configApi, type LibraryListing } from '../../lib/configApi';
 import { copyText } from '../../lib/clipboard';
@@ -24,6 +24,12 @@ export function LibraryTab({ bot }: { bot: Bot }) {
   const [newFilename, setNewFilename] = useState('notes.md');
   const [newContent, setNewContent] = useState('');
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<number | null>(null);
+  useEffect(() => () => { if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current); }, []);
+  useEffect(() => {
+    setCopied(false);
+    if (copyTimerRef.current) { window.clearTimeout(copyTimerRef.current); copyTimerRef.current = null; }
+  }, [preview?.rel]);
 
   const load = useCallback(async (wake = false) => {
     setLoading(true); setError(null);
@@ -213,7 +219,8 @@ export function LibraryTab({ bot }: { bot: Bot }) {
                       if (!ok) return;
                       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
                       setCopied(true);
-                      setTimeout(() => setCopied(false), 1400);
+                      if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+                      copyTimerRef.current = window.setTimeout(() => { setCopied(false); copyTimerRef.current = null; }, 1400);
                     });
                   }}
                 >
@@ -289,7 +296,20 @@ export function LibraryTab({ bot }: { bot: Bot }) {
           ) : !list && loading ? (
             <div className="panel-empty">Looking for files…</div>
           ) : list?.status === 'error' ? (
-            <div className="panel-empty">Couldn’t load files. {list.error ? <span className="lib-err">{list.error}</span> : null}</div>
+            <div className="lib-empty">
+              <div>Couldn’t load files. {list.error ? <span className="lib-err">{list.error}</span> : null}</div>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--secondary"
+                disabled={loading}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  load();
+                }}
+              >
+                {loading ? 'Retrying…' : 'Retry'}
+              </button>
+            </div>
           ) : !list?.files.length ? (
             <div className="panel-empty panel-empty--center">{path ? 'This folder is empty.' : `Deliverables that ${bot.name} creates (reports, code, markdown) are kept here.`}</div>
           ) : (
@@ -314,7 +334,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
             })
           )}
         </div>
-        {error && <div className="cfg-error cfg-error--small">{error}</div>}
+        {error && <div className="cfg-error cfg-error--small" role="alert">{error}</div>}
       </section>
     </div>
   );
