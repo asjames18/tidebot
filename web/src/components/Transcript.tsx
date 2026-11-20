@@ -63,8 +63,11 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
   const [showReasoning, setShowReasoning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const copyTimerRef = useRef<number | null>(null);
   const isThinkingNow = Boolean(b.streaming && b.reasoning && !b.text);
   const reasoningOpen = showReasoning || isThinkingNow;
+
+  useEffect(() => () => { if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current); }, []);
 
   const copyMsg = () => {
     if (!b.text) return;
@@ -74,7 +77,8 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(12); } catch {}
       }
-      setTimeout(() => setCopied(false), 1600);
+      if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = window.setTimeout(() => { setCopied(false); copyTimerRef.current = null; }, 1600);
     });
   };
 
@@ -448,6 +452,9 @@ function EmptyChat({ bot }: { bot: Bot }) {
               className="tidebot-pill tideos-pill tideos-pill--interactive"
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && document.activeElement.classList.contains('composer__input')) {
+                  document.activeElement.blur();
+                }
                 useConfigUI.getState().openAppSettings('models');
               }}
               title="Click to configure OpenRouter key or switch default model"

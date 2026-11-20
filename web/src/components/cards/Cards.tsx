@@ -165,6 +165,8 @@ export function DraftCard({ body }: { body: Card<'draft'> }) {
   const user = useStore((s) => s.user);
   const pending = body.status === 'pending';
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<number | null>(null);
+  useEffect(() => () => { if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current); }, []);
   const copy = async () => {
     const ok = await copyText(body.text);
     if (!ok) return;
@@ -172,7 +174,8 @@ export function DraftCard({ body }: { body: Card<'draft'> }) {
       try { navigator.vibrate(12); } catch {}
     }
     setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = window.setTimeout(() => { setCopied(false); copyTimerRef.current = null; }, 1200);
   };
   const handle = user?.email ? `@${user.email.split('@')[0]}` : '';
   return (
