@@ -795,6 +795,7 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
       <form className="cfg-inline-form" onSubmit={addMemory}>
         <input
           className="text-input"
+          enterKeyHint="done"
           placeholder={`Add a fact or preference for ${bot.name} to remember…`}
           value={newText}
           maxLength={400}
@@ -806,7 +807,7 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
         </button>
       </form>
       {(data?.memories.length ?? 0) > 6 && (
-        <input className="text-input" placeholder="Search memories" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search memories" />
+        <input type="search" enterKeyHint="search" className="text-input" placeholder="Search memories" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search memories" />
       )}
       {!data ? <div className="cfg-empty">Loading…</div> : memories.length === 0 ? (
         <div className="cfg-empty">{q ? 'No memories match.' : `Nothing yet. Add a note above or tell ${bot.name} about yourself in chat.`}</div>
@@ -822,7 +823,9 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
                 </div>
               </div>
               <div className="cfg-item__actions">
-                <button type="button" className="cfg-icon-btn" onClick={() => remove(m)} aria-label="Forget this" title="Forget"><Glyph name="trash" size={14} /></button>
+                <ConfirmButton className="cfg-icon-btn" confirmLabel="Forget?" onConfirm={() => remove(m)} title="Forget">
+                  <Glyph name="trash" size={14} />
+                </ConfirmButton>
               </div>
             </div>
           ))}
