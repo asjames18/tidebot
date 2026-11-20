@@ -104,7 +104,7 @@ function ComputerCard({ bot }: { bot: Bot }) {
         tabIndex={0}
         onClick={() => {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-          set({ viewerOpen: true });
+          set(window.innerWidth <= 900 ? { viewerOpen: true, detailsOpen: false } : { viewerOpen: true });
         }}
         onKeyDown={(e) => { if (e.key === 'Enter') set({ viewerOpen: true }); }}
       >
@@ -147,6 +147,17 @@ export function DetailsPanel() {
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const [tab, setTab] = useState<'activity' | 'tasks' | 'library'>('activity');
   const [hideSuggested, setHideSuggested] = useState(() => { try { return localStorage.getItem('grokbot.hideSuggested') === '1'; } catch { return false; } });
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const swipeLocked = useRef<'x' | 'y' | null>(null);
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [tab, bot?.id]);
+
   if (!bot) return null;
 
   const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
@@ -155,12 +166,6 @@ export function DetailsPanel() {
     const popup = openPopup('about:blank');
     try { const { redirectUrl } = await api.connect('slack'); if (popup) popup.location.href = redirectUrl; } catch { popup?.close(); }
   };
-
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const swipeLocked = useRef<'x' | 'y' | null>(null);
-  const [dragX, setDragX] = useState(0);
-  const [dragging, setDragging] = useState(false);
 
   const onTouchStart = (e: React.TouchEvent) => {
     if (window.innerWidth > 900) return;
@@ -242,7 +247,7 @@ export function DetailsPanel() {
           <Icon name="close" opacity={0.92} />
         </button>
       </div>
-      <div className="details__scroll">
+      <div ref={scrollRef} className="details__scroll">
         <div className="details__identity">
           <BotAvatarFor bot={bot} size={64} />
           <div className="details__name" title={displayName(bot)}>{displayName(bot)}</div>
@@ -369,6 +374,7 @@ export function DetailsPanel() {
                     className="panel-row panel-row--link"
                     onClick={() => {
                       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                      if (window.innerWidth <= 900) set({ detailsOpen: false });
                       addSlack();
                     }}
                   >

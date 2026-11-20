@@ -94,6 +94,9 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
         className={`panel-row panel-row--action panel-row--call${inCall ? ' is-active' : ''}`}
         onClick={() => {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
+          if (!inCall && typeof window !== 'undefined' && window.innerWidth <= 900) {
+            useStore.getState().set({ detailsOpen: false });
+          }
           inCall ? endCall() : startCall(bot.id);
         }}
       >
