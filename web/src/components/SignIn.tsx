@@ -21,6 +21,7 @@ export function SignIn() {
   useEffect(() => { if (studioEmail && !email) setEmail(studioEmail); }, [studioEmail]); // eslint-disable-line react-hooks/exhaustive-deps
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [shader, setShader] = useState<ShaderStyle>('aurora');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(() =>
@@ -61,9 +62,10 @@ export function SignIn() {
               key={p.id}
               type="button"
               className={`signin__shader-pill${shader === p.id ? ' is-active' : ''}`}
-              onClick={() => {
+              onClick={(e) => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
                 setShader(p.id);
+                e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
               }}
             >
               {p.label}
@@ -98,6 +100,11 @@ export function SignIn() {
           <input
             className="text-input"
             type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="next"
             placeholder="Email (from .env)"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -106,21 +113,56 @@ export function SignIn() {
           />
           <input
             className="text-input"
+            autoCapitalize="words"
+            enterKeyHint="next"
             placeholder="Name (optional, first sign-in)"
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-label="Name"
             autoComplete="name"
           />
-          <input
-            className="text-input"
-            type="password"
-            placeholder="Password (from .env)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            aria-label="Password"
-            autoComplete="current-password"
-          />
+          <div style={{ position: 'relative', width: '100%' }}>
+            <input
+              className="text-input"
+              type={showPassword ? 'text' : 'password'}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="go"
+              placeholder="Password (from .env)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-label="Password"
+              autoComplete="current-password"
+              style={{ width: '100%', paddingRight: 64 }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                setShowPassword((v) => !v);
+              }}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-pressed={showPassword}
+              style={{
+                position: 'absolute',
+                right: 6,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                minHeight: 36,
+                padding: '0 10px',
+                border: 0,
+                borderRadius: 8,
+                background: 'transparent',
+                color: 'var(--color-text-secondary)',
+                fontSize: 12.5,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
           <button type="submit" className="btn btn--cta" disabled={busy}>
             {busy ? 'Initializing Studio…' : 'Launch TideBot Studio →'}
           </button>
