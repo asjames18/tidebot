@@ -29,6 +29,8 @@ export function SearchModal() {
   const [remote, setRemote] = useState<SearchResults | null>(null);
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listTouchStartYRef = useRef<number | null>(null);
   const close = useCallback(() => setModal(null), [setModal]);
 
   const byId = useMemo(() => new Map(bots.map((b) => [b.id, b])), [bots]);
@@ -177,6 +179,21 @@ export function SearchModal() {
       { id: 'create-group', title: 'New Multi-Operator War Room', sub: 'Start a collaborative room with multiple Operators', keywords: 'group room chat team war room', run: () => setModal('group') },
       ...(selectedBot && selectedBot.kind !== 'room' ? [
         {
+          id: 'new-chat',
+          title: `Start new chat with ${selectedBot.name}`,
+          sub: 'Clear this conversation thread while keeping memories, skills, and routines',
+          keywords: 'new chat fresh reset clear thread conversation',
+          run: () => {
+            close();
+            api.fresh(selectedBot.id)
+              .then(() => {
+                useConfigUI.getState().setView('chat');
+                useStore.getState().notify(`Started a new chat with ${selectedBot.name}`);
+              })
+              .catch(() => useStore.getState().notify('Could not start a new chat'));
+          },
+        },
+        {
           id: 'clone-bot',
           title: `Clone ${selectedBot.name}`,
           sub: 'Duplicate instructions, skills, and model configuration into a new Operator',
@@ -250,6 +267,7 @@ export function SearchModal() {
       <div className="search-modal__field">
         <span className="search-modal__icon"><Icon name="search" size={18} opacity={0.56} /></span>
         <input
+          ref={inputRef}
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -272,6 +290,7 @@ export function SearchModal() {
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
               setQ('');
+              inputRef.current?.focus();
             }}
             aria-label="Clear search input"
             title="Clear"
@@ -280,7 +299,22 @@ export function SearchModal() {
           </button>
         )}
       </div>
-      <div className="search-modal__results" ref={listRef} role="listbox">
+      <div
+        className="search-modal__results"
+        ref={listRef}
+        role="listbox"
+        onTouchStart={(e) => { listTouchStartYRef.current = e.touches[0]?.clientY ?? null; }}
+        onTouchMove={(e) => {
+          if (listTouchStartYRef.current === null || window.innerWidth > 900) return;
+          const y = e.touches[0]?.clientY;
+          if (y !== undefined && Math.abs(y - listTouchStartYRef.current) > 14) {
+            listTouchStartYRef.current = null;
+            if (document.activeElement === inputRef.current) inputRef.current?.blur();
+          }
+        }}
+        onTouchEnd={() => { listTouchStartYRef.current = null; }}
+        onTouchCancel={() => { listTouchStartYRef.current = null; }}
+      >
         {items.map((item, i) => {
           const showHeader = item.section !== lastSection;
           lastSection = item.section;
