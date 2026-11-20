@@ -42,9 +42,12 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   useEffect(() => {
     setText(drafts.get(bot.id) ?? '');
     setError(null);
+    setMenu(false);
     setConfirmFresh(false);
     if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
-    ref.current?.focus();
+    if (typeof window === 'undefined' || window.innerWidth > 900) {
+      ref.current?.focus();
+    }
   }, [bot.id]);
   useEffect(() => () => { if (confirmTimer.current) window.clearTimeout(confirmTimer.current); }, []);
   useEffect(() => { drafts.set(bot.id, text); }, [bot.id, text]);
@@ -160,7 +163,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   return (
     <div className="composer-area">
       {error && (
-        <div className="composer__error">
+        <div className="composer__error" role="alert">
           {error}{' '}
           <button
             type="button"
@@ -180,6 +183,8 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             <button
               key={item.cmd}
               type="button"
+              role="option"
+              aria-selected={false}
               className="slash-palette__item"
               onClick={() => runSlash(item)}
             >
