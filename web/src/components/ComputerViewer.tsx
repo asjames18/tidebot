@@ -20,9 +20,15 @@ export function ComputerViewer() {
   const [mode, setMode] = useState<Mode>('watch');
   const [conn, setConn] = useState<Conn>('connecting');
   const [attempt, setAttempt] = useState(0);
+  const [waking, setWaking] = useState(false);
   const topSwipeY = useRef<number | null>(null);
   const [dragY, setDragY] = useState(0);
   const running = computer?.status === 'running';
+  const busy = computer?.status === 'starting' || computer?.status === 'resuming' || computer?.status === 'creating';
+
+  useEffect(() => {
+    if (running || busy) setWaking(false);
+  }, [running, busy]);
   const close = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     setDragY(0);
@@ -69,7 +75,6 @@ export function ComputerViewer() {
   }, [bot?.id, running, mode, attempt]);
 
   if (!bot) return null;
-  const busy = computer?.status === 'starting' || computer?.status === 'resuming' || computer?.status === 'creating';
 
   return (
     <div
@@ -148,12 +153,15 @@ export function ComputerViewer() {
               <button
                 type="button"
                 className="btn btn--light"
+                disabled={waking}
                 onClick={() => {
+                  if (waking) return;
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
-                  api.ensureComputer().catch(() => {});
+                  setWaking(true);
+                  api.ensureComputer().catch(() => setWaking(false));
                 }}
               >
-                Wake computer
+                {waking ? 'Waking…' : 'Wake computer'}
               </button>
             )}
             {computer?.error && <span className="viewer__err">{computer.error}</span>}
