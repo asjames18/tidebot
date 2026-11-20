@@ -143,6 +143,7 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
   const [draft, setDraft] = useState<Draft>(() => draftOf(bot));
   const [picker, setPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [promoting, setPromoting] = useState(false);
   const [note, setNote] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null);
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const curatedModels = useConfigUI((s) => s.curatedModels);
@@ -295,14 +296,23 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
               <button
                 type="button"
                 className="cfg-btn cfg-btn--secondary"
+                disabled={promoting}
                 onClick={() => {
+                  if (promoting) return;
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                     try { navigator.vibrate(10); } catch {}
                   }
-                  configApi.makePrimary(bot.id).then(() => flash(`${bot.name} is now your primary Bot`)).catch((e) => flash(e.message, 'error'));
+                  setPromoting(true);
+                  configApi.makePrimary(bot.id)
+                    .then(() => {
+                      useStore.setState((s) => ({ bots: s.bots.map((b) => ({ ...b, isPrimary: b.id === bot.id })) }));
+                      flash(`${bot.name} is now your primary Bot`);
+                    })
+                    .catch((e) => flash(e.message, 'error'))
+                    .finally(() => setPromoting(false));
                 }}
               >
-                Make primary
+                {promoting ? 'Updating…' : 'Make primary'}
               </button>
             </div>
           )}
