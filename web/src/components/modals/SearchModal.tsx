@@ -269,6 +269,10 @@ export function SearchModal() {
         <input
           ref={inputRef}
           autoFocus
+          enterKeyHint="go"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={typeof window !== 'undefined' && window.innerWidth <= 640 ? "Search Operators, models, commands…" : "Search Operators, switch models (claude, gemini, deepseek…), or run commands…"}

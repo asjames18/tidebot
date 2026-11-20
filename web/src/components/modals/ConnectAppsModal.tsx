@@ -233,7 +233,23 @@ export function ConnectAppsModal() {
           <div className="apps-modal__searchrow">
             <label className="pill-input">
               <Icon name="search" size={14} opacity={0.56} />
-              <input ref={searchInputRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search apps and skills" aria-label="Search apps" />
+              <input
+                ref={searchInputRef}
+                enterKeyHint="search"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && window.innerWidth <= 900) {
+                    e.preventDefault();
+                    searchInputRef.current?.blur();
+                  }
+                }}
+                placeholder="Search apps and skills"
+                aria-label="Search apps"
+              />
               {search && (
                 <button
                   type="button"
