@@ -81,7 +81,10 @@ export function Sidebar() {
   const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
-    if (!mobileOpen) return;
+    if (!mobileOpen) {
+      setAccountMenu(false);
+      return;
+    }
     const selectedEl = scrollRef.current?.querySelector<HTMLElement>('.bot-row.is-selected, .pinned__tile.is-selected');
     selectedEl?.scrollIntoView({ block: 'nearest' });
   }, [mobileOpen]);

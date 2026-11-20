@@ -63,7 +63,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
   };
 
   const savePreviewEdit = async () => {
-    if (!preview) return;
+    if (!preview || busyFile === preview.name) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     setBusyFile(preview.name);
     try {
@@ -79,7 +79,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
 
   const createNewFile = async () => {
     const clean = newFilename.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
-    if (!clean) return;
+    if (!clean || loading) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     const rel = path ? `${path}/${clean}` : clean;
     setLoading(true);
@@ -97,7 +97,6 @@ export function LibraryTab({ bot }: { bot: Bot }) {
   };
 
   const removeFile = async (rel: string) => {
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     try {
       await configApi.deleteFile(bot.id, rel);
       if (preview?.rel === rel) setPreview(null);
@@ -187,7 +186,14 @@ export function LibraryTab({ bot }: { bot: Bot }) {
               >
                 Cancel
               </button>
-              <button type="button" className="cfg-btn cfg-btn--primary" onClick={() => void createNewFile()}>Save File</button>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--primary"
+                disabled={loading || !newFilename.trim()}
+                onClick={() => void createNewFile()}
+              >
+                {loading ? 'Saving…' : 'Save File'}
+              </button>
             </div>
           </div>
         )}
@@ -240,12 +246,20 @@ export function LibraryTab({ bot }: { bot: Bot }) {
                 <textarea
                   className="cfg-textarea"
                   rows={8}
+                  aria-label="Edit file contents"
                   value={preview.content}
                   onChange={(e) => setPreview({ ...preview, content: e.target.value })}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
                   <ConfirmButton confirmLabel="Confirm delete" onConfirm={() => removeFile(preview.rel)}>Delete</ConfirmButton>
-                  <button type="button" className="cfg-btn cfg-btn--primary" onClick={() => void savePreviewEdit()}>Save Changes</button>
+                  <button
+                    type="button"
+                    className="cfg-btn cfg-btn--primary"
+                    disabled={busyFile === preview.name}
+                    onClick={() => void savePreviewEdit()}
+                  >
+                    {busyFile === preview.name ? 'Saving…' : 'Save Changes'}
+                  </button>
                 </div>
               </>
             ) : preview.name.endsWith('.md') ? (
@@ -283,7 +297,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
               const rel = path ? `${path}/${f.name}` : f.name;
               return (
                 <div key={f.name} className={`lib-row${f.isDir ? ' is-dir' : ''}`}>
-                  <button type="button" className="lib-row__main" onClick={() => (f.isDir ? setPath(rel) : openFile(f))} title={f.isDir ? `Open ${f.name}` : `Preview ${f.name}`}>
+                  <button type="button" className="lib-row__main" disabled={!f.isDir && busyFile === f.name} onClick={() => (f.isDir ? setPath(rel) : openFile(f))} title={f.isDir ? `Open ${f.name}` : `Preview ${f.name}`}>
                     <span className="lib-row__icon"><Glyph name={f.isDir ? 'folder' : 'doc'} size={16} opacity={0.6} /></span>
                     <span className="panel-row__text">
                       <span className="panel-row__title">{f.name}</span>
