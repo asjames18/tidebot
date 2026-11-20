@@ -10,7 +10,14 @@ export function MembersCard({ room }: { room: Bot }) {
   const bots = useStore((s) => s.bots);
   const [members, setMembers] = useState<RoomMember[] | null>(null);
   const [adding, setAdding] = useState(false);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!confirmRemoveId) return;
+    const t = setTimeout(() => setConfirmRemoveId(null), 3500);
+    return () => clearTimeout(t);
+  }, [confirmRemoveId]);
 
   const load = useCallback(() => {
     api.roomMembers(room.id).then((r) => setMembers(r.members)).catch((e) => setError((e as Error).message));
@@ -40,18 +47,26 @@ export function MembersCard({ room }: { room: Bot }) {
             </span>
             <button
               type="button"
-              className="icon-btn members__remove"
-              aria-label={`Remove ${m.name}`}
-              title={`Remove ${m.name}`}
+              className={confirmRemoveId === m.id ? 'cfg-btn cfg-btn--danger' : 'icon-btn members__remove'}
+              aria-label={confirmRemoveId === m.id ? `Confirm remove ${m.name}` : `Remove ${m.name}`}
+              title={confirmRemoveId === m.id ? 'Tap again to remove' : `Remove ${m.name}`}
               onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                  try { navigator.vibrate(8); } catch {}
+                if (confirmRemoveId !== m.id) {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                    try { navigator.vibrate(8); } catch {}
+                  }
+                  setConfirmRemoveId(m.id);
+                  return;
                 }
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(12); } catch {}
+                }
+                setConfirmRemoveId(null);
                 save(ids.filter((x) => x !== m.id));
               }}
               disabled={ids.length <= 2}
             >
-              <Icon name="close" size={10} opacity={0.56} />
+              {confirmRemoveId === m.id ? 'Remove?' : <Icon name="close" size={10} opacity={0.56} />}
             </button>
           </div>
         );

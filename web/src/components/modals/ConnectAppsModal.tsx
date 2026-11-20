@@ -25,6 +25,11 @@ function AppRow({ app, onChanged }: { app: Toolkit; onChanged: () => void }) {
   const [state, setState] = useState<'idle' | 'busy' | 'waiting' | 'confirm'>('idle');
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { setState('idle'); }, [app.connected]);
+  useEffect(() => {
+    if (state !== 'confirm') return;
+    const t = setTimeout(() => setState('idle'), 3500);
+    return () => clearTimeout(t);
+  }, [state]);
 
   const connect = async () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
