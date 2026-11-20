@@ -27,6 +27,12 @@ function refreshTaskViews(botId: string) {
 }
 
 function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const timer = setTimeout(() => setConfirmDelete(false), 3500);
+    return () => clearTimeout(timer);
+  }, [confirmDelete]);
   const open = () => { if (bot) { useStore.getState().selectBot(bot.id); useConfigUI.getState().setView('chat'); } };
   const toggleDone = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -45,7 +51,13 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
   };
   const remove = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    if (!confirmDelete) {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+      setConfirmDelete(true);
+      return;
+    }
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
+    setConfirmDelete(false);
     await configApi.deleteTask(t.id).catch(() => {});
     refreshTaskViews(t.botId);
   };
@@ -89,8 +101,14 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
         </button>
       )}
       <span className={`task-chip is-${t.state}`}>{STATE_LABEL[t.state]}</span>
-      <button type="button" className="cfg-icon-btn" onClick={remove} title="Delete task" aria-label={`Delete ${t.title}`}>
-        <Glyph name="trash" size={13} />
+      <button
+        type="button"
+        className={confirmDelete ? 'cfg-btn cfg-btn--danger' : 'cfg-icon-btn'}
+        onClick={remove}
+        title={confirmDelete ? 'Tap again to delete task' : 'Delete task'}
+        aria-label={confirmDelete ? `Confirm delete ${t.title}` : `Delete ${t.title}`}
+      >
+        {confirmDelete ? 'Delete?' : <Glyph name="trash" size={13} />}
       </button>
     </div>
   );

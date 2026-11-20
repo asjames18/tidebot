@@ -1,22 +1,40 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 
 export interface MenuItem { label: string; onSelect: () => void; danger?: boolean; hint?: string }
 
 /** Small popover menu anchored by its parent (position: relative). Closes on outside click / Escape. */
 export function Menu({ items, onClose, align = 'left', placement = 'below', children }: { items: MenuItem[]; onClose: () => void; align?: 'left' | 'right' | 'center'; placement?: 'below' | 'above'; children?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+
+  // Keep popover menus within viewport bounds on narrow mobile screens.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const pad = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let dx = 0;
+    let dy = 0;
+    if (rect.right > vw - pad) dx = vw - pad - rect.right;
+    if (rect.left + dx < pad) dx += pad - (rect.left + dx);
+    if (rect.bottom > vh - pad) dy = vh - pad - rect.bottom;
+    if (rect.top + dy < pad) dy += pad - (rect.top + dy);
+    if (dx !== 0 || dy !== 0) {
+      el.style.translate = `${Math.round(dx)}px ${Math.round(dy)}px`;
+    }
+  }, [items.length, align, placement]);
+
   useEffect(() => {
     const down = (e: Event) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
     const t = setTimeout(() => {
-      document.addEventListener('mousedown', down);
-      document.addEventListener('touchstart', down, { passive: true });
+      document.addEventListener('pointerdown', down, { passive: true });
     });
     document.addEventListener('keydown', key, true);
     return () => {
       clearTimeout(t);
-      document.removeEventListener('mousedown', down);
-      document.removeEventListener('touchstart', down);
+      document.removeEventListener('pointerdown', down);
       document.removeEventListener('keydown', key, true);
     };
   }, [onClose]);
