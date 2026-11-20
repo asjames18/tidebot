@@ -240,10 +240,14 @@ function GeneralSection() {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
+    const prev = llmConfig;
+    if (prev) setLlmConfig({ ...prev, shaderStyle: s });
     try {
       const updated = await configApi.saveLlmConfig({ shaderStyle: s });
       setLlmConfig(updated);
-    } catch { /* ignore */ }
+    } catch {
+      if (prev) setLlmConfig(prev);
+    }
   };
 
   const p = health?.providers;
@@ -280,6 +284,7 @@ function GeneralSection() {
               key={st.id}
               type="button"
               className={`shader-Option${currentShader === st.id ? ' is-active' : ''}`}
+              aria-pressed={currentShader === st.id}
               onClick={() => void pickShader(st.id)}
             >
               <span className="shader-Option__name">{st.label}</span>
@@ -318,7 +323,14 @@ function GeneralSection() {
                   Route operators through OpenRouter (Claude, Gemini, GPT-4.1, DeepSeek, Llama, Grok) or any OpenAI-compatible endpoint.
                 </div>
               </div>
-              <button type="button" className="cfg-btn cfg-btn--primary" onClick={() => openAppSettings('models')}>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--primary"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  openAppSettings('models');
+                }}
+              >
                 Configure BYOM
               </button>
             </div>
