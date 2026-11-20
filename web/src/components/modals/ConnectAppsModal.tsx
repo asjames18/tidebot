@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Toolkit } from '@shared/types';
 import { BotAvatarFor } from '../../avatar/BotAvatar';
 import { api, openPopup, type AppsResponse } from '../../lib/api';
@@ -123,6 +123,16 @@ export function ConnectAppsModal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [more, setMore] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const pillsRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const bodyTouchStartYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const activePill = pillsRef.current?.querySelector<HTMLElement>('.cat-pill.is-active');
+    activePill?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  }, [view]);
   const [bump, setBump] = useState(0);
   const refresh = useCallback(() => setBump((n) => n + 1), []);
 
@@ -223,7 +233,23 @@ export function ConnectAppsModal() {
           <div className="apps-modal__searchrow">
             <label className="pill-input">
               <Icon name="search" size={14} opacity={0.56} />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search apps and skills" aria-label="Search apps" />
+              <input ref={searchInputRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search apps and skills" aria-label="Search apps" />
+              {search && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                    setSearch('');
+                    searchInputRef.current?.focus();
+                  }}
+                  aria-label="Clear app search"
+                  title="Clear"
+                  style={{ border: 0, background: 'transparent', color: 'var(--color-text-tertiary)', padding: '0 4px', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}
+                >
+                  ✕
+                </button>
+              )}
             </label>
             <button
               type="button"
@@ -239,7 +265,7 @@ export function ConnectAppsModal() {
               <Icon name="share" size={12} opacity={0.56} />
             </button>
           </div>
-          <div className="cat-pills">
+          <div ref={pillsRef} className="cat-pills">
             <button
               type="button"
               className={`cat-pill${view.kind === 'all' ? ' is-active' : ''}`}
@@ -292,7 +318,23 @@ export function ConnectAppsModal() {
           </div>
         </div>
       </div>
-      <div className={`apps-modal__body${loading ? ' is-loading' : ''}`}>{body}</div>
+      <div
+        ref={bodyRef}
+        className={`apps-modal__body${loading ? ' is-loading' : ''}`}
+        onTouchStart={(e) => { bodyTouchStartYRef.current = e.touches[0]?.clientY ?? null; }}
+        onTouchMove={(e) => {
+          if (bodyTouchStartYRef.current === null || window.innerWidth > 900) return;
+          const y = e.touches[0]?.clientY;
+          if (y !== undefined && Math.abs(y - bodyTouchStartYRef.current) > 14) {
+            bodyTouchStartYRef.current = null;
+            if (document.activeElement === searchInputRef.current) searchInputRef.current?.blur();
+          }
+        }}
+        onTouchEnd={() => { bodyTouchStartYRef.current = null; }}
+        onTouchCancel={() => { bodyTouchStartYRef.current = null; }}
+      >
+        {body}
+      </div>
     </Modal>
   );
 }
