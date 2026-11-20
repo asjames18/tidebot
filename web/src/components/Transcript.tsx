@@ -419,6 +419,7 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
 
 function EmptyChat({ bot }: { bot: Bot }) {
   const llmConfig = useConfigUI((s) => s.llmConfig);
+  const [sendingIdx, setSendingIdx] = useState<number | null>(null);
   const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
   const shaderStyle = llmConfig?.shaderStyle || 'aurora';
 
@@ -464,12 +465,17 @@ function EmptyChat({ bot }: { bot: Bot }) {
                 key={i}
                 type="button"
                 className="empty-chat__prompt-chip"
+                disabled={sendingIdx !== null}
                 onClick={() => {
+                  if (sendingIdx !== null) return;
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-                  api.send(bot.id, p).catch(() => useStore.getState().notify('Message failed to send'));
+                  setSendingIdx(i);
+                  api.send(bot.id, p)
+                    .catch(() => useStore.getState().notify('Message failed to send'))
+                    .finally(() => setSendingIdx(null));
                 }}
               >
-                <span>{p}</span>
+                <span>{sendingIdx === i ? 'Sending…' : p}</span>
                 <span className="empty-chat__prompt-arrow">↗</span>
               </button>
             ))}

@@ -23,6 +23,7 @@ export function ChatView() {
   const [menu, setMenu] = useState(false);
   const [modelMenu, setModelMenu] = useState(false);
   const [confirmFresh, setConfirmFresh] = useState(false);
+  const [briefingBusy, setBriefingBusy] = useState(false);
   const confirmTimer = useRef<number | null>(null);
   const rows = useMemo(() => sortedRows(transcript), [transcript]);
 
@@ -236,14 +237,20 @@ export function ChatView() {
           <button
             type="button"
             className="chat__model-pill chat__briefing-btn"
+            disabled={briefingBusy || !!live?.isRunning}
             title="Get your briefing: tasks, routines, connected apps, one focus"
             onClick={() => {
+              if (briefingBusy || live?.isRunning) return;
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-              api.send(bot.id, 'Give me my daily briefing: 1) open tasks and anything waiting on me, 2) routines coming up in the next 24 hours, 3) anything important from my connected apps (email, calendar, Slack) if available, 4) one suggested focus for today. Keep it tight and spoken-friendly — short sentences, no tables, no code.').catch(() => useStore.getState().notify('Briefing request failed'));
+              blurComposerOnMobile();
+              setBriefingBusy(true);
+              api.send(bot.id, 'Give me my daily briefing: 1) open tasks and anything waiting on me, 2) routines coming up in the next 24 hours, 3) anything important from my connected apps (email, calendar, Slack) if available, 4) one suggested focus for today. Keep it tight and spoken-friendly — short sentences, no tables, no code.')
+                .catch(() => useStore.getState().notify('Briefing request failed'))
+                .finally(() => setBriefingBusy(false));
             }}
           >
             <Icon name="clock" size={12} opacity={0.7} />
-            <span>Briefing</span>
+            <span>{briefingBusy ? 'Sending…' : 'Briefing'}</span>
           </button>
         </div>
         <div className="chat__header-right">
