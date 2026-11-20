@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { botVars } from '../lib/colors';
 import { useStore } from '../store';
-import { callLevels, endCall, toggleMute, useVoice } from '../voice/call';
+import { callLevels, endCall, startCall, toggleMute, useVoice } from '../voice/call';
 
 function MicGlyph({ off }: { off?: boolean }) {
   return (
@@ -38,7 +38,10 @@ export function VoiceCallBar() {
   const active = v.status === 'connecting' || v.status === 'live';
 
   useEffect(() => {
-    if (v.status !== 'live') return;
+    if (v.status !== 'live') {
+      setExpanded(false);
+      return;
+    }
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [v.status]);
@@ -133,17 +136,30 @@ export function VoiceCallBar() {
               <HangUpGlyph />
             </button>
           ) : (
-            <button
-              type="button"
-              className="vcall__btn"
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                useVoice.setState({ status: 'idle', botId: null, error: null });
-              }}
-              aria-label="Dismiss"
-            >
-              ✕
-            </button>
+            <>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--secondary"
+                style={{ height: 32, padding: '0 10px', fontSize: 12 }}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  startCall(bot.id);
+                }}
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                className="vcall__btn"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  useVoice.setState({ status: 'idle', botId: null, error: null });
+                }}
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </>
           )}
         </div>
       </div>

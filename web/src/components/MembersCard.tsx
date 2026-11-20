@@ -10,6 +10,7 @@ export function MembersCard({ room }: { room: Bot }) {
   const bots = useStore((s) => s.bots);
   const [members, setMembers] = useState<RoomMember[] | null>(null);
   const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,8 +26,11 @@ export function MembersCard({ room }: { room: Bot }) {
   useEffect(load, [load]);
 
   const save = async (ids: string[]) => {
+    if (saving) return;
+    setSaving(true);
     setError(null);
     try { await api.setRoomMembers(room.id, ids); load(); } catch (e) { setError((e as Error).message); }
+    finally { setSaving(false); }
   };
 
   const ids = members?.map((m) => m.id) ?? [];
@@ -64,7 +68,7 @@ export function MembersCard({ room }: { room: Bot }) {
                 setConfirmRemoveId(null);
                 save(ids.filter((x) => x !== m.id));
               }}
-              disabled={ids.length <= 2}
+              disabled={saving || ids.length <= 2}
             >
               {confirmRemoveId === m.id ? 'Remove?' : <Icon name="close" size={10} opacity={0.56} />}
             </button>
@@ -91,6 +95,7 @@ export function MembersCard({ room }: { room: Bot }) {
               key={b.id}
               type="button"
               className="panel-row panel-row--link"
+              disabled={saving}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                   try { navigator.vibrate(10); } catch {}
@@ -108,6 +113,7 @@ export function MembersCard({ room }: { room: Bot }) {
         <button
           type="button"
           className="panel-row panel-row--action"
+          disabled={saving}
           onClick={() => {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
               try { navigator.vibrate(8); } catch {}
@@ -115,7 +121,7 @@ export function MembersCard({ room }: { room: Bot }) {
             setAdding(true);
           }}
         >
-          <Icon name="plus" size={12} opacity={0.56} /> Add a Bot
+          <Icon name="plus" size={12} opacity={0.56} /> {saving ? 'Updating…' : 'Add a Bot'}
         </button>
       )}
       {error && <div className="card__error">{error}</div>}
