@@ -1003,6 +1003,11 @@ function AppsSection() {
             <input
               type="password"
               className="cfg-input"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              autoComplete="off"
+              enterKeyHint="done"
               placeholder={llmConfig?.hasComposioKey ? 'Paste new key to replace saved COMPOSIO_API_KEY (ak_...)' : 'ak_...'}
               value={composioKey}
               onChange={(e) => setComposioKey(e.target.value)}
@@ -1062,7 +1067,6 @@ function AppsSection() {
 
 function AccountSection() {
   const user = useStore((s) => s.user);
-  const [busy, setBusy] = useState(false);
   const initials = (user?.name ?? user?.email ?? '?').trim().split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
   return (
     <>
@@ -1075,19 +1079,16 @@ function AccountSection() {
               <div className="cfg-row__title">{user?.name}</div>
               <div className="cfg-row__sub">{user?.email}</div>
             </div>
-            <button
-              type="button"
+            <ConfirmButton
               className="cfg-btn cfg-btn--secondary"
-              disabled={busy}
-              onClick={async () => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-                setBusy(true);
+              confirmLabel="Confirm sign out"
+              onConfirm={async () => {
                 await configApi.logout().catch(() => {});
                 location.reload();
               }}
             >
-              {busy ? 'Signing out…' : 'Sign out'}
-            </button>
+              Sign out
+            </ConfirmButton>
           </div>
         </div>
       </section>
