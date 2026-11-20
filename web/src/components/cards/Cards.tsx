@@ -47,9 +47,9 @@ export function ApprovalCard({ body }: { body: Card<'approval'> }) {
       {pending ? (
         <>
           <div className="card__actions">
-            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('deny')}>Don't allow</button>
-            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('always')}>Always allow</button>
-            <button type="button" className="btn btn--primary" disabled={!!busy} onClick={() => decide('allow')}>Allow</button>
+            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('deny')}>{busy === 'deny' ? 'Denying…' : "Don't allow"}</button>
+            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('always')}>{busy === 'always' ? 'Saving…' : 'Always allow'}</button>
+            <button type="button" className="btn btn--primary" disabled={!!busy} onClick={() => decide('allow')}>{busy === 'allow' ? 'Allowing…' : 'Allow'}</button>
           </div>
           {error && <div className="card__error">{error}</div>}
         </>
@@ -135,8 +135,8 @@ export function ConnectCard({ row, body }: { row: Row; body: Card<'connect'> }) 
       {pending ? (
         <>
           <div className="card__actions">
-            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => run('skip', () => api.dismiss(row.botId, row.seq))}>Skip</button>
-            <button type="button" className="btn btn--primary" disabled={!!busy} onClick={connect}>{waiting ? 'Waiting for sign-in…' : 'Connect'}</button>
+            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => run('skip', () => api.dismiss(row.botId, row.seq))}>{busy === 'skip' ? 'Skipping…' : 'Skip'}</button>
+            <button type="button" className="btn btn--primary" disabled={!!busy} onClick={connect}>{busy === 'connect' ? 'Opening…' : waiting ? 'Waiting for sign-in…' : 'Connect'}</button>
           </div>
           {error && <div className="card__error">{error}</div>}
         </>
@@ -193,8 +193,8 @@ export function DraftCard({ body }: { body: Card<'draft'> }) {
       </div>
       {pending ? (
         <div className="draft-card__actions">
-          <button type="button" className="btn btn--secondary btn--grow" disabled={!!busy} onClick={() => run('discard', () => api.approve(body.approvalId, 'deny'))}>Discard</button>
-          <button type="button" className="btn btn--primary btn--grow" disabled={!!busy} onClick={() => run('send', () => api.approve(body.approvalId, 'allow'))}>Send</button>
+          <button type="button" className="btn btn--secondary btn--grow" disabled={!!busy} onClick={() => run('discard', () => api.approve(body.approvalId, 'deny'))}>{busy === 'discard' ? 'Discarding…' : 'Discard'}</button>
+          <button type="button" className="btn btn--primary btn--grow" disabled={!!busy} onClick={() => run('send', () => api.approve(body.approvalId, 'allow'))}>{busy === 'send' ? 'Sending…' : 'Send'}</button>
         </div>
       ) : (
         <div className={`card__outcome is-${body.status}`} style={{ padding: '0 16px 16px' }}>
