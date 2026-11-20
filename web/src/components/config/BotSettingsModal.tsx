@@ -31,6 +31,10 @@ export function BotSettingsModal() {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
+    }
     if (target) useConfigUI.setState({ botSettings: { ...target, tab } });
   };
   const bot = useStore((s) => s.bots.find((b) => b.id === target?.botId));
@@ -113,7 +117,21 @@ export function BotSettingsModal() {
           onTouchEnd={() => { contentTouchStartYRef.current = null; }}
           onTouchCancel={() => { contentTouchStartYRef.current = null; }}
         >
-          {loadError && <div className="cfg-error">Couldn’t load settings: {loadError}</div>}
+          {loadError && (
+            <div className="cfg-error" role="alert" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <span>Couldn’t load settings: {loadError}</span>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--secondary"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  reload();
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
           {target.tab === 'general' && <GeneralTab bot={bot} onClose={onClose} />}
           {target.tab === 'skills' && <SkillsTab bot={bot} skills={data?.skills} onChange={reload} />}
           {target.tab === 'memories' && <MemoriesTab bot={bot} data={data} onChange={reload} />}

@@ -53,6 +53,10 @@ export function AppSettings() {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
+    }
     open(id);
   };
 
@@ -65,6 +69,7 @@ export function AppSettings() {
   }, [section]);
 
   useEffect(() => {
+    if (!section) return;
     const k = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !document.querySelector('.modal-root')) {
         e.preventDefault();
@@ -73,10 +78,12 @@ export function AppSettings() {
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-  }, [close]);
+  }, [section, close]);
 
   const onTouchStart = (e: React.TouchEvent) => {
     if (window.innerWidth > 900) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('.app-settings__nav, .byom-filter-tabs')) return;
     const t = e.touches[0];
     if (!t || t.clientX > 28) return;
     swipeRef.current = { x: t.clientX, y: t.clientY, locked: null };
