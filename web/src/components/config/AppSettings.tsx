@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LlmProvider, ShaderStyle, Toolkit } from '@shared/types';
 import { BotAvatarFor } from '../../avatar/BotAvatar';
@@ -35,13 +35,18 @@ export function AppSettings() {
   const section = useConfigUI((s) => s.appSettings);
   const close = useConfigUI((s) => s.closeAppSettings);
   const open = useConfigUI((s) => s.openAppSettings);
+  const navRef = useRef<HTMLElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const swipeRef = useRef<{ x: number; y: number; locked: boolean | null } | null>(null);
+  const [dragX, setDragX] = useState(0);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
+    setDragX(0);
     close();
-  };
+  }, [close]);
 
   const handleNav = (id: AppSection) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -49,6 +54,14 @@ export function AppSettings() {
     }
     open(id);
   };
+
+  useEffect(() => {
+    if (!section) return;
+    // Keep the active tab visible in the horizontal mobile nav strip and reset page scroll.
+    const activeBtn = navRef.current?.querySelector<HTMLElement>('.cfg-nav__item.is-active');
+    activeBtn?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, [section]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -60,10 +73,57 @@ export function AppSettings() {
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [close]);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (window.innerWidth > 900) return;
+    const t = e.touches[0];
+    if (!t || t.clientX > 28) return;
+    swipeRef.current = { x: t.clientX, y: t.clientY, locked: null };
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const s = swipeRef.current;
+    const t = e.touches[0];
+    if (!s || !t) return;
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    if (s.locked === null) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      s.locked = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.2;
+      if (!s.locked) { swipeRef.current = null; return; }
+    }
+    if (s.locked && dx > 0) setDragX(dx);
+  };
+
+  const onTouchEnd = () => {
+    const s = swipeRef.current;
+    swipeRef.current = null;
+    if (s?.locked && dragX > 72) {
+      handleClose();
+      return;
+    }
+    setDragX(0);
+  };
+
+  const onTouchCancel = () => {
+    swipeRef.current = null;
+    setDragX(0);
+  };
+
   if (!section) return null;
   return createPortal(
-    <div className="app-settings" role="dialog" aria-modal="true" aria-label="Settings">
-      <aside className="app-settings__nav">
+    <div
+      className="app-settings"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Settings"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
+      style={dragX > 0 ? { transform: `translate3d(${dragX}px, 0, 0)`, transition: 'none' } : undefined}
+    >
+      <aside ref={navRef} className="app-settings__nav">
         <button type="button" className="app-settings__back" onClick={handleClose}>
           <Glyph name="arrow_left" size={14} /> Back
         </button>
@@ -80,7 +140,7 @@ export function AppSettings() {
           </button>
         ))}
       </aside>
-      <div className="app-settings__main">
+      <div ref={mainRef} className="app-settings__main">
         <button
           type="button"
           className="app-settings__close icon-btn"

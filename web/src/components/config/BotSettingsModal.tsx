@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AvatarColor, AvatarShape, Bot, Memory, Routine, Skill } from '@shared/types';
 import { BotAvatar, BotAvatarFor, PICKER_SHAPES } from '../../avatar/BotAvatar';
 import { COLOR_ORDER, botVars, palette } from '../../lib/colors';
@@ -38,6 +38,8 @@ export function BotSettingsModal() {
   const memVersion = useVersion(`memories:${target?.botId ?? ''}`);
   const [data, setData] = useState<BotSettingsBundle | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const onClose = useCallback(() => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
@@ -55,6 +57,12 @@ export function BotSettingsModal() {
 
   // Bot deleted while open (or bad id): close.
   useEffect(() => { if (target && !bot && useStore.getState().bots.length) close(); }, [bot, target, close]);
+  useEffect(() => {
+    if (!target) return;
+    const activeBtn = navRef.current?.querySelector<HTMLElement>('.cfg-nav__item.is-active');
+    activeBtn?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  }, [target?.tab, target?.botId]);
   if (!target || !bot) return null;
 
   const tabs: { id: BotSettingsTab; label: string; count?: number }[] = [
@@ -74,7 +82,7 @@ export function BotSettingsModal() {
         <button type="button" className="modal__close" onClick={onClose} aria-label="Close"><Icon name="close" size={14} opacity={0.68} /></button>
       </div>
       <div className="bot-settings__body" style={botVars(bot.avatarColor)}>
-        <nav className="cfg-nav" aria-label="Bot settings sections">
+        <nav ref={navRef} className="cfg-nav" aria-label="Bot settings sections">
           {tabs.map((t) => (
             <button key={t.id} type="button" className={`cfg-nav__item${target.tab === t.id ? ' is-active' : ''}`} onClick={() => setTab(t.id)} aria-current={target.tab === t.id || undefined}>
               <span>{t.label}</span>
@@ -82,7 +90,7 @@ export function BotSettingsModal() {
             </button>
           ))}
         </nav>
-        <div className="cfg-content">
+        <div ref={contentRef} className="cfg-content">
           {loadError && <div className="cfg-error">Couldn’t load settings: {loadError}</div>}
           {target.tab === 'general' && <GeneralTab bot={bot} onClose={onClose} />}
           {target.tab === 'skills' && <SkillsTab bot={bot} skills={data?.skills} onChange={reload} />}
