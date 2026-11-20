@@ -1016,6 +1016,7 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
 
 function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (t: string) => void; onEdit: () => void; onRefresh: () => void }) {
   const [enabled, setEnabled] = useState(r.enabled);
+  const [runningNow, setRunningNow] = useState(false);
   useEffect(() => setEnabled(r.enabled), [r.enabled]);
   const toggle = async (v: boolean) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -1038,14 +1039,20 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
           className="cfg-icon-btn"
           title="Run now"
           aria-label={`Run ${r.name} now`}
+          disabled={runningNow}
           onClick={() => {
+            if (runningNow) return;
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
               try { navigator.vibrate(10); } catch {}
             }
-            configApi.runRoutine(r.id).then(() => onFlash('Running now')).catch((e) => onFlash(e.message));
+            setRunningNow(true);
+            configApi.runRoutine(r.id)
+              .then(() => onFlash('Running now'))
+              .catch((e) => onFlash(e.message))
+              .finally(() => setRunningNow(false));
           }}
         >
-          <Glyph name="play" size={13} />
+          {runningNow ? <span className="cfg-spinner" /> : <Glyph name="play" size={13} />}
         </button>
         <button
           type="button"
@@ -1064,12 +1071,7 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
         <ConfirmButton
           className="cfg-icon-btn"
           title="Delete"
-          onConfirm={() => {
-            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-              try { navigator.vibrate(12); } catch {}
-            }
-            configApi.deleteRoutine(r.id).then(() => { onFlash('Deleted'); onRefresh(); });
-          }}
+          onConfirm={() => configApi.deleteRoutine(r.id).then(() => { onFlash('Deleted'); onRefresh(); })}
         >
           <Glyph name="trash" size={14} />
         </ConfirmButton>
