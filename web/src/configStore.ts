@@ -47,6 +47,8 @@ export function applyTheme(t: Theme) {
   const resolved = t === 'system' ? (darkQuery?.matches ? 'dark' : 'light') : t;
   document.documentElement.dataset.theme = resolved;
   document.documentElement.style.colorScheme = resolved;
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (meta) meta.content = resolved === 'dark' ? '#06080F' : '#F6F8FC';
 }
 
 export const useConfigUI = create<ConfigUI>((set, get) => ({
