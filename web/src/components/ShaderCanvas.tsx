@@ -131,7 +131,7 @@ export function ShaderCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const gl = canvas.getContext('webgl', { antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false });
+    const gl = canvas.getContext('webgl', { antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false, powerPreference: 'low-power' });
     if (!gl) return;
 
     const compile = (type: number, src: string) => {
@@ -173,19 +173,15 @@ export function ShaderCanvas({
     let lastFrame = 0;
     let visible = true;
     const start = performance.now();
+    const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-    const io = typeof IntersectionObserver !== 'undefined'
+    const io = !reducedMotion && typeof IntersectionObserver !== 'undefined'
       ? new IntersectionObserver(([entry]) => { visible = entry?.isIntersecting ?? true; })
       : null;
     io?.observe(canvas);
 
-    const render = (nowMs: number) => {
-      raf = requestAnimationFrame(render);
-      if (!visible || document.hidden) return;
-      if (nowMs - lastFrame < 33) return; // 30fps cap for cool, quiet GPU usage
-      lastFrame = nowMs;
-
-      const scale = 0.6;
+    const drawFrame = (elapsedSec: number) => {
+      const scale = typeof window !== 'undefined' && window.innerWidth <= 900 ? 0.5 : 0.6;
       const w = Math.max(1, Math.floor(canvas.clientWidth * scale));
       const h = Math.max(1, Math.floor(canvas.clientHeight * scale));
       if (canvas.width !== w || canvas.height !== h) {
@@ -194,11 +190,22 @@ export function ShaderCanvas({
         gl.viewport(0, 0, w, h);
       }
       gl.uniform2f(resLoc, w, h);
-      gl.uniform1f(timeLoc, (nowMs - start) * 0.001);
+      gl.uniform1f(timeLoc, elapsedSec);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
 
-    raf = requestAnimationFrame(render);
+    if (reducedMotion) {
+      drawFrame(4.0);
+    } else {
+      const render = (nowMs: number) => {
+        raf = requestAnimationFrame(render);
+        if (!visible || document.hidden) return;
+        if (nowMs - lastFrame < 33) return; // 30fps cap for cool, quiet GPU usage
+        lastFrame = nowMs;
+        drawFrame((nowMs - start) * 0.001);
+      };
+      raf = requestAnimationFrame(render);
+    }
     return () => {
       cancelAnimationFrame(raf);
       io?.disconnect();
