@@ -684,6 +684,12 @@ function ModelsSection() {
             placeholder="Filter models (e.g. claude, gemini, deepseek, gpt-4.1, llama)…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && window.innerWidth <= 900) {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
           />
         </div>
 
@@ -693,11 +699,12 @@ function ModelsSection() {
             role="tab"
             aria-selected={filterTab === 'all'}
             className={`byom-filter-tab${filterTab === 'all' ? ' is-active' : ''}`}
-            onClick={() => {
+            onClick={(e) => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
               setFilterTab('all');
+              e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
             }}
           >
             All Models ({totalCount})
@@ -707,11 +714,12 @@ function ModelsSection() {
             role="tab"
             aria-selected={filterTab === 'free'}
             className={`byom-filter-tab byom-filter-tab--free${filterTab === 'free' ? ' is-active' : ''}`}
-            onClick={() => {
+            onClick={(e) => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
               setFilterTab('free');
+              e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
             }}
           >
             🎁 100% Free (:free) ({freeCount})
@@ -721,11 +729,12 @@ function ModelsSection() {
             role="tab"
             aria-selected={filterTab === 'vision'}
             className={`byom-filter-tab${filterTab === 'vision' ? ' is-active' : ''}`}
-            onClick={() => {
+            onClick={(e) => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
               setFilterTab('vision');
+              e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
             }}
           >
             👁️ Vision
@@ -735,11 +744,12 @@ function ModelsSection() {
             role="tab"
             aria-selected={filterTab === 'fast'}
             className={`byom-filter-tab${filterTab === 'fast' ? ' is-active' : ''}`}
-            onClick={() => {
+            onClick={(e) => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
               setFilterTab('fast');
+              e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
             }}
           >
             ⚡ Fast
@@ -755,6 +765,7 @@ function ModelsSection() {
                 key={m.id}
                 type="button"
                 className={`byom-model-card${active ? ' is-active' : ''}${isFree ? ' is-free' : ''}`}
+                aria-pressed={active}
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                     try { navigator.vibrate(10); } catch {}
