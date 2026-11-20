@@ -484,6 +484,11 @@ function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: s
 }
 
 function LookPicker({ shape, color, onShape, onColor }: { shape: AvatarShape; color: AvatarColor; onShape: (s: AvatarShape) => void; onColor: (c: AvatarColor) => void }) {
+  const blurOnMobile = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) {
+      document.activeElement.blur();
+    }
+  };
   return (
     <div className="cfg-picker">
       <div className="shape-grid" role="radiogroup" aria-label="Character shape">
@@ -501,6 +506,7 @@ function LookPicker({ shape, color, onShape, onColor }: { shape: AvatarShape; co
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                     try { navigator.vibrate(8); } catch {}
                   }
+                  blurOnMobile();
                   onShape(s);
                 }}
               >
@@ -525,6 +531,7 @@ function LookPicker({ shape, color, onShape, onColor }: { shape: AvatarShape; co
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                     try { navigator.vibrate(8); } catch {}
                   }
+                  blurOnMobile();
                   onColor(c);
                 }}
               >
@@ -569,6 +576,7 @@ function SkillsTab({ bot, skills, onChange }: { bot: Bot; skills: Skill[] | unde
   const existingNames = new Set((skills ?? []).map((s) => s.name.toLowerCase()));
 
   const installTemplate = async (tpl: (typeof SKILL_TEMPLATES)[number]) => {
+    if (installing !== null) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
@@ -576,6 +584,9 @@ function SkillsTab({ bot, skills, onChange }: { bot: Bot; skills: Skill[] | unde
     try {
       await configApi.createSkill(bot.id, tpl);
       onChange();
+      useStore.getState().notify(`Installed "${tpl.name}"`);
+    } catch {
+      useStore.getState().notify(`Could not install "${tpl.name}"`);
     } finally {
       setInstalling(null);
     }
@@ -665,7 +676,7 @@ function SkillsTab({ bot, skills, onChange }: { bot: Bot; skills: Skill[] | unde
                 <button
                   type="button"
                   className="cfg-btn cfg-btn--secondary"
-                  disabled={installed || installing === tpl.name}
+                  disabled={installed || installing !== null}
                   onClick={() => void installTemplate(tpl)}
                 >
                   {installed ? '✓ Installed' : installing === tpl.name ? 'Installing…' : '+ Install'}
@@ -700,10 +711,10 @@ function SkillEditor({ botId, skill, onDone }: { botId: string; skill?: Skill; o
   };
   return (
     <form className="cfg-editor" onSubmit={(e) => { e.preventDefault(); save(); }}>
-      <input className="text-input" placeholder="Skill name, e.g. Weekly report" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="Skill name" />
-      <input className="text-input" placeholder="When to use it (optional)" value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} aria-label="Skill description" />
+      <input className="text-input" enterKeyHint="next" placeholder="Skill name, e.g. Weekly report" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="Skill name" />
+      <input className="text-input" enterKeyHint="next" placeholder="When to use it (optional)" value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} aria-label="Skill description" />
       <textarea className="text-input cfg-textarea cfg-textarea--tall" rows={8} placeholder={'Write the steps to follow:\n1. …\n2. …'} value={body} onChange={(e) => setBody(e.target.value)} aria-label="Skill steps" />
-      {error && <div className="cfg-error">{error}</div>}
+      {error && <div className="cfg-error" role="alert">{error}</div>}
       <div className="cfg-editor__actions">
         <button
           type="button"
@@ -733,9 +744,6 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
   const say = (t: string) => { setFlash(t); setTimeout(() => setFlash(null), 2600); };
   const memories = useMemo(() => (data?.memories ?? []).filter((m) => !hidden.has(m.id) && (!q || m.text.toLowerCase().includes(q.toLowerCase()))), [data, hidden, q]);
   const remove = async (m: Memory) => {
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      try { navigator.vibrate(8); } catch {}
-    }
     setHidden((h) => new Set(h).add(m.id));
     try { await configApi.deleteMemory(m.id); onChange(); } catch { setHidden((h) => { const n = new Set(h); n.delete(m.id); return n; }); }
   };
