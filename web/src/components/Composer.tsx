@@ -142,6 +142,9 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
     }
     setText('');
     drafts.delete(bot.id);
+    if (typeof window !== 'undefined' && window.innerWidth <= 900 && (item.action === 'apps' || item.action === 'models')) {
+      ref.current?.blur();
+    }
     if (item.action === 'clear') fresh();
     else if (item.action === 'apps') setModal('apps');
     else if (item.action === 'models') useConfigUI.getState().openAppSettings('models');
@@ -149,6 +152,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
       const effort = item.action === 'fast' ? 'low' : 'high';
       configApi.updateBot(bot.id, { effort }).then(({ bot: updated }) => {
         useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
+        useStore.getState().notify(effort === 'low' ? `${bot.name}: Fast mode` : `${bot.name}: Deep reasoning mode`);
       }).catch(() => {});
     }
   };
@@ -297,6 +301,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             ref={ref}
             className="composer__input"
             rows={1}
+            enterKeyHint="send"
             value={text}
             placeholder={`Message ${displayName(bot)} (type / for commands)`}
             onChange={(e) => setText(e.target.value)}
