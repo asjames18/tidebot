@@ -821,7 +821,21 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
         </button>
       </form>
       {(data?.memories.length ?? 0) > 6 && (
-        <input type="search" enterKeyHint="search" className="text-input" placeholder="Search memories" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search memories" />
+        <input
+          type="search"
+          enterKeyHint="search"
+          className="text-input"
+          placeholder="Search memories"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && window.innerWidth <= 900) {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          aria-label="Search memories"
+        />
       )}
       {!data ? <div className="cfg-empty">Loading…</div> : memories.length === 0 ? (
         <div className="cfg-empty">{q ? 'No memories match.' : `Nothing yet. Add a note above or tell ${bot.name} about yourself in chat.`}</div>
@@ -981,18 +995,20 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
 
   return (
     <form className="cfg-editor" onSubmit={save}>
-      <input className="text-input" placeholder="Routine name, e.g. Morning briefing" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="Routine name" />
+      <input className="text-input" enterKeyHint="next" placeholder="Routine name, e.g. Morning briefing" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="Routine name" />
       {!isEvent && (
         <div className="cfg-chips-wrap">
           {CRON_PRESETS.map((p) => (
             <button
               key={p.cron}
               type="button"
+              aria-pressed={schedule === p.cron}
               className={`cfg-chip${schedule === p.cron ? '' : ' cfg-chip--muted'}`}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                   try { navigator.vibrate(8); } catch {}
                 }
+                if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
                 setSchedule(p.cron);
               }}
             >
@@ -1002,11 +1018,11 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
         </div>
       )}
       <div className="cfg-routine-fields">
-        <input className="text-input" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Cron schedule (e.g. 0 9 * * 1-5)" value={schedule} disabled={isEvent} onChange={(e) => setSchedule(e.target.value)} aria-label="Cron schedule" />
-        <input className="text-input" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Timezone (e.g. America/New_York)" value={timezone} disabled={isEvent} onChange={(e) => setTimezone(e.target.value)} aria-label="Routine timezone" />
+        <input className="text-input" enterKeyHint="next" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Cron schedule (e.g. 0 9 * * 1-5)" value={schedule} disabled={isEvent} onChange={(e) => setSchedule(e.target.value)} aria-label="Cron schedule" />
+        <input className="text-input" enterKeyHint="next" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Timezone (e.g. America/New_York)" value={timezone} disabled={isEvent} onChange={(e) => setTimezone(e.target.value)} aria-label="Routine timezone" />
       </div>
       <textarea className="text-input cfg-textarea" rows={4} placeholder="What should this Bot do each time the routine runs?" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Routine instructions" />
-      {error && <div className="cfg-error">{error}</div>}
+      {error && <div className="cfg-error" role="alert">{error}</div>}
       <div className="cfg-editor__actions">
         <button
           type="button"
@@ -1026,14 +1042,16 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
 
 function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (t: string) => void; onEdit: () => void; onRefresh: () => void }) {
   const [enabled, setEnabled] = useState(r.enabled);
+  const [toggling, setToggling] = useState(false);
   const [runningNow, setRunningNow] = useState(false);
   useEffect(() => setEnabled(r.enabled), [r.enabled]);
   const toggle = async (v: boolean) => {
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      try { navigator.vibrate(10); } catch {}
-    }
+    if (toggling) return;
+    setToggling(true);
     setEnabled(v);
-    try { await configApi.setRoutine(r.id, v); onFlash(v ? 'Resumed' : 'Paused'); onRefresh(); } catch { setEnabled(!v); }
+    try { await configApi.setRoutine(r.id, v); onFlash(v ? 'Resumed' : 'Paused'); onRefresh(); }
+    catch { setEnabled(!v); }
+    finally { setToggling(false); }
   };
   return (
     <div className="cfg-item cfg-item--routine">
@@ -1086,7 +1104,7 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
         >
           <Glyph name="trash" size={14} />
         </ConfirmButton>
-        <Switch on={enabled} onChange={toggle} label={`${r.name} ${enabled ? 'on' : 'paused'}`} />
+        <Switch on={enabled} onChange={toggle} disabled={toggling} label={`${r.name} ${enabled ? 'on' : 'paused'}`} />
       </div>
     </div>
   );
