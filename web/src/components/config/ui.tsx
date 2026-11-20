@@ -43,6 +43,10 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
           className={value === o.value ? 'is-active' : ''}
           onClick={() => {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+              const ae = document.activeElement;
+              if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
+            }
             onChange(o.value);
           }}
         >
@@ -58,10 +62,10 @@ export function ConfirmButton({ children, confirmLabel = 'Delete', onConfirm, cl
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (!asking) return;
+    if (!asking || busy) return;
     const t = setTimeout(() => setAsking(false), 4000);
     return () => clearTimeout(t);
-  }, [asking]);
+  }, [asking, busy]);
   if (!asking) {
     return (
       <button
@@ -86,6 +90,7 @@ export function ConfirmButton({ children, confirmLabel = 'Delete', onConfirm, cl
       disabled={busy}
       aria-label={ariaLabel ? `Confirm ${ariaLabel}` : undefined}
       onClick={async () => {
+        if (busy) return;
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
         setBusy(true);
         try { await onConfirm(); } finally { setBusy(false); setAsking(false); }
