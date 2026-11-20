@@ -61,6 +61,7 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
   const b = row.body as MessageBody;
   const [showReasoning, setShowReasoning] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const isThinkingNow = Boolean(b.streaming && b.reasoning && !b.text);
   const reasoningOpen = showReasoning || isThinkingNow;
 
@@ -142,13 +143,16 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
               <button
                 type="button"
                 className="bubble__copy-btn"
+                disabled={retrying}
                 onClick={() => {
+                  if (retrying) return;
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-                  api.retry(row.botId).catch(() => {});
+                  setRetrying(true);
+                  api.retry(row.botId).catch(() => {}).finally(() => setRetrying(false));
                 }}
                 title="Re-run with current model"
               >
-                Retry
+                {retrying ? 'Retrying…' : 'Retry'}
               </button>
               <SpeakButton text={b.text} />
               <button
@@ -170,18 +174,26 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
 
 function SpeakButton({ text }: { text: string }) {
   const [speaking, setSpeaking] = useState(false);
+  const speakingRef = useRef(false);
+  useEffect(() => () => {
+    if (speakingRef.current && 'speechSynthesis' in window) {
+      speechSynthesis.cancel();
+      speakingRef.current = false;
+    }
+  }, []);
   if (!('speechSynthesis' in window)) return null;
   const toggle = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
-    if (speaking) { speechSynthesis.cancel(); setSpeaking(false); return; }
+    if (speaking) { speechSynthesis.cancel(); speakingRef.current = false; setSpeaking(false); return; }
     const clean = text.replace(/```[\s\S]*?```/g, ' code block ').replace(/[#*_`>[\]()]/g, '').slice(0, 1200);
     const u = new SpeechSynthesisUtterance(clean);
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
+    u.onend = () => { speakingRef.current = false; setSpeaking(false); };
+    u.onerror = () => { speakingRef.current = false; setSpeaking(false); };
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
+    speakingRef.current = true;
     setSpeaking(true);
   };
   return (
@@ -189,6 +201,7 @@ function SpeakButton({ text }: { text: string }) {
       type="button"
       className={`bubble__copy-btn${speaking ? ' is-speaking' : ''}`}
       onClick={toggle}
+      aria-pressed={speaking}
       title={speaking ? 'Stop reading' : 'Read aloud'}
       aria-label={speaking ? 'Stop reading aloud' : 'Read message aloud'}
     >
