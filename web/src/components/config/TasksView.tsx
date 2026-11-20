@@ -28,29 +28,52 @@ function refreshTaskViews(botId: string) {
 
 function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState<'toggle' | 'run' | 'delete' | null>(null);
   useEffect(() => {
     if (!confirmDelete) return;
     const timer = setTimeout(() => setConfirmDelete(false), 3500);
     return () => clearTimeout(timer);
   }, [confirmDelete]);
-  const open = () => { if (bot) { useStore.getState().selectBot(bot.id); useConfigUI.getState().setView('chat'); } };
+  const open = () => {
+    if (!bot) return;
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      useStore.getState().set({ detailsOpen: false });
+    }
+    useStore.getState().selectBot(bot.id);
+    useConfigUI.getState().setView('chat');
+  };
   const toggleDone = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (busy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-    const nextState: Task['state'] = t.state === 'done' ? 'working' : 'done';
-    await configApi.updateTask(t.id, { state: nextState }).catch(() => {});
-    refreshTaskViews(t.botId);
+    setBusy('toggle');
+    try {
+      const nextState: Task['state'] = t.state === 'done' ? 'working' : 'done';
+      await configApi.updateTask(t.id, { state: nextState }).catch(() => {});
+      refreshTaskViews(t.botId);
+    } finally {
+      setBusy(null);
+    }
   };
   const runTaskNow = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!bot) return;
+    if (!bot || busy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-    useStore.getState().selectBot(bot.id);
-    useConfigUI.getState().setView('chat');
-    await api.send(bot.id, `Please execute this task and mark it done when complete: "${t.title}" (task_id: ${t.id})${t.note ? ` — Notes: ${t.note}` : ''}`).catch(() => {});
+    setBusy('run');
+    try {
+      if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+        useStore.getState().set({ detailsOpen: false });
+      }
+      useStore.getState().selectBot(bot.id);
+      useConfigUI.getState().setView('chat');
+      await api.send(bot.id, `Please execute this task and mark it done when complete: "${t.title}" (task_id: ${t.id})${t.note ? ` — Notes: ${t.note}` : ''}`).catch(() => {});
+    } finally {
+      setBusy(null);
+    }
   };
   const remove = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (busy) return;
     if (!confirmDelete) {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
       setConfirmDelete(true);
@@ -58,8 +81,13 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
     }
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     setConfirmDelete(false);
-    await configApi.deleteTask(t.id).catch(() => {});
-    refreshTaskViews(t.botId);
+    setBusy('delete');
+    try {
+      await configApi.deleteTask(t.id).catch(() => {});
+      refreshTaskViews(t.botId);
+    } finally {
+      setBusy(null);
+    }
   };
   return (
     <div className={`task-row is-${t.state}`} role="listitem">
@@ -67,6 +95,7 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
         type="button"
         className={`task-row__check is-${t.state}`}
         onClick={toggleDone}
+        disabled={busy !== null}
         title={t.state === 'done' ? 'Mark as in progress' : 'Mark as done'}
         aria-label={t.state === 'done' ? `Mark "${t.title}" as in progress` : `Mark "${t.title}" as done`}
         style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
@@ -94,10 +123,11 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
           type="button"
           className="cfg-btn cfg-btn--secondary task-row__run-btn"
           onClick={runTaskNow}
+          disabled={busy !== null}
           style={{ height: 26, padding: '0 8px', fontSize: 11.5 }}
           title={`Have ${bot.name} work on this task now`}
         >
-          Run ↗
+          {busy === 'run' ? 'Running…' : 'Run ↗'}
         </button>
       )}
       <span className={`task-chip is-${t.state}`}>{STATE_LABEL[t.state]}</span>
@@ -105,10 +135,11 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
         type="button"
         className={confirmDelete ? 'cfg-btn cfg-btn--danger' : 'cfg-icon-btn'}
         onClick={remove}
+        disabled={busy !== null}
         title={confirmDelete ? 'Tap again to delete task' : 'Delete task'}
         aria-label={confirmDelete ? `Confirm delete ${t.title}` : `Delete ${t.title}`}
       >
-        {confirmDelete ? 'Delete?' : <Glyph name="trash" size={13} />}
+        {busy === 'delete' ? 'Deleting…' : confirmDelete ? 'Delete?' : <Glyph name="trash" size={13} />}
       </button>
     </div>
   );
@@ -282,7 +313,7 @@ export function TasksView() {
                 </select>
               )}
               <button type="submit" className="cfg-btn cfg-btn--primary" disabled={!newTitle.trim() || adding}>
-                <Icon name="plus" size={12} /> Add Task
+                {adding ? 'Adding…' : <><Icon name="plus" size={12} /> Add Task</>}
               </button>
             </form>
           )}
@@ -377,7 +408,7 @@ export function BotTasks({ bot }: { bot: Bot }) {
             aria-label={`Add task for ${bot.name}`}
           />
           <button type="submit" className="cfg-btn cfg-btn--secondary bot-tasks__submit" disabled={!newTitle.trim() || adding} aria-label="Add task">
-            <Icon name="plus" size={12} />
+            {adding ? <span className="cfg-spinner" /> : <Icon name="plus" size={12} />}
           </button>
         </form>
         {tasks === null ? <div className="panel-card"><div className="panel-empty">Loading…</div></div> : sorted.length === 0 ? (
