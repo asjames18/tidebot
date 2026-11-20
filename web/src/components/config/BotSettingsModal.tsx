@@ -199,10 +199,10 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
 
       <section className="cfg-section cfg-grid">
         <Field label="Name" htmlFor="cfg-name">
-          <input id="cfg-name" className="text-input" value={draft.name} maxLength={60} onChange={(e) => put('name', e.target.value)} aria-invalid={!nameOk} />
+          <input id="cfg-name" className="text-input" enterKeyHint="next" value={draft.name} maxLength={60} onChange={(e) => put('name', e.target.value)} aria-invalid={!nameOk} />
         </Field>
         <Field label="Label" htmlFor="cfg-label" hint="Shown next to the name, like “Research” or “Inbox”.">
-          <input id="cfg-label" className="text-input" value={draft.label} maxLength={60} placeholder="Add a label" onChange={(e) => put('label', e.target.value)} />
+          <input id="cfg-label" className="text-input" enterKeyHint="next" value={draft.label} maxLength={60} placeholder="Add a label" onChange={(e) => put('label', e.target.value)} />
         </Field>
       </section>
 
@@ -218,6 +218,10 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
             <input
               id="cfg-model"
               className="text-input"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="done"
               value={draft.model}
               placeholder={`Default (${llmConfig?.defaultModel ?? 'anthropic/claude-3.7-sonnet'})`}
               onChange={(e) => put('model', e.target.value)}
