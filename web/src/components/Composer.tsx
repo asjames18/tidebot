@@ -368,10 +368,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             <button
               type="button"
               className="composer__cta"
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-                stop();
-              }}
+              onClick={stop}
               aria-label="Stop"
               title="Stop"
             >
@@ -401,6 +398,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             className="composer-telemetry__chip"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              if (window.innerWidth <= 900) ref.current?.blur();
               useConfigUI.getState().openAppSettings('models');
             }}
             title="Configure OpenRouter / Bring Your Own Model"
@@ -417,9 +415,13 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
               const cur = bot.effort ?? 'low';
               const next = EFFORT_CYCLE[(EFFORT_CYCLE.indexOf(cur) + 1) % EFFORT_CYCLE.length];
+              useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: next } : x)) }));
+              useStore.getState().notify(`${bot.name}: ${next.toUpperCase()} effort`);
               configApi.updateBot(bot.id, { effort: next }).then(({ bot: updated }) => {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
-              }).catch(() => {});
+              }).catch(() => {
+                useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: cur } : x)) }));
+              });
             }}
             title="Click to cycle reasoning effort (Low = Fastest)"
           >
@@ -430,6 +432,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             className="composer-telemetry__chip"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              if (window.innerWidth <= 900) ref.current?.blur();
               setModal('apps');
             }}
             title="Open Composio Connected Apps Marketplace"
