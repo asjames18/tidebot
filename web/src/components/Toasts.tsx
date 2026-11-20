@@ -3,7 +3,14 @@ import { useStore } from '../store';
 
 function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismiss: (id: number) => void }) {
   const dragRef = useRef<{ x: number; y: number; active: boolean } | null>(null);
+  const dismissedRef = useRef(false);
   const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
+
+  const dismissOnce = () => {
+    if (dismissedRef.current) return;
+    dismissedRef.current = true;
+    onDismiss(id);
+  };
 
   const onTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
@@ -30,7 +37,7 @@ function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismis
     dragRef.current = null;
     if (start?.active && offset && (Math.abs(offset.x) > 56 || offset.y < -28)) {
       setOffset(null);
-      onDismiss(id);
+      dismissOnce();
       return;
     }
     setOffset(null);
@@ -48,7 +55,7 @@ function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismis
     <div
       className="toast toast--item"
       role="status"
-      onClick={() => onDismiss(id)}
+      onClick={dismissOnce}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -71,13 +78,12 @@ function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismis
 /** Global transient notifications (errors and confirmations), stacked top-center. Tap or swipe to dismiss immediately. */
 export function Toasts() {
   const toasts = useStore((s) => s.toasts);
-  const set = useStore((s) => s.set);
   if (!toasts.length) return null;
   const dismiss = (id: number) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(6); } catch {}
     }
-    set({ toasts: toasts.filter((t) => t.id !== id) });
+    useStore.setState((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
   };
   return (
     <div className="toasts" aria-live="polite">

@@ -86,7 +86,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     const k = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); safeClose(); return; }
       if (e.key !== 'Tab' || !ref.current) return;
       const els = [...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement);
       if (!els.length) return;
@@ -102,7 +102,12 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
       const el = ref.current?.querySelector<HTMLElement>(mobile ? '[autofocus], button' : '[autofocus], input, textarea, button');
       el?.focus();
     });
-    return () => { window.removeEventListener('keydown', k); clearTimeout(t); prev?.focus?.(); };
+    return () => {
+      window.removeEventListener('keydown', k);
+      clearTimeout(t);
+      const isMobileInput = window.innerWidth <= 900 && prev && (prev.tagName === 'INPUT' || prev.tagName === 'TEXTAREA');
+      if (!isMobileInput) prev?.focus?.();
+    };
   }, [onClose]);
   return createPortal(
     <div className="modal-root">
@@ -122,7 +127,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
           ...(dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: dragging ? 'none' : 'transform 180ms ease-out' } : undefined),
         }}
       >
-        <div className="sheet-handle-wrap" aria-hidden="true">
+        <div className="sheet-handle-wrap" aria-hidden="true" style={{ touchAction: 'none' }}>
           <div className="sheet-handle" />
         </div>
         {children}
