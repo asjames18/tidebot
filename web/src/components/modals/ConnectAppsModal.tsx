@@ -65,7 +65,7 @@ function AppRow({ app, onChanged }: { app: Toolkit; onChanged: () => void }) {
       </span>
       {app.connected ? (
         <button type="button" className={`app-row__connected${state === 'confirm' ? ' is-confirm' : ''}`} onClick={disconnect} onMouseLeave={() => state === 'confirm' && setState('idle')} disabled={state === 'busy'}>
-          {state === 'confirm' ? 'Disconnect?' : <><Icon name="check" size={12} opacity={0.56} /><span className="app-row__connected-label">Connected</span><span className="app-row__disconnect-label">Disconnect</span></>}
+          {state === 'busy' ? 'Disconnecting…' : state === 'confirm' ? 'Disconnect?' : <><Icon name="check" size={12} opacity={0.56} /><span className="app-row__connected-label">Connected</span><span className="app-row__disconnect-label">Disconnect</span></>}
         </button>
       ) : app.noAuth ? (
         <span className="app-row__connected is-static"><Icon name="check" size={12} opacity={0.56} />Built in</span>
@@ -174,7 +174,23 @@ export function ConnectAppsModal() {
   const moreActive = activeCategory !== null && !PILLS.some((p) => p.category === activeCategory);
 
   let body: React.ReactNode;
-  if (error) body = <div className="apps-empty">Couldn’t load apps. {error}</div>;
+  if (error) {
+    body = (
+      <div className="apps-empty" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <span>Couldn’t load apps. {error}</span>
+        <button
+          type="button"
+          className="cfg-btn cfg-btn--secondary"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+            refresh();
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
   else if (!data && loading) body = <div className="apps-empty">Loading apps…</div>;
   else if (view.kind === 'connected') body = connectedApps.length ? <Section title="Connected" apps={connectedApps} onChanged={refresh} /> : <div className="apps-empty">No apps connected yet.</div>;
   else if (searching || view.kind === 'category') {
@@ -215,8 +231,10 @@ export function ConnectAppsModal() {
           <button
             type="button"
             className={`apps-modal__connected${view.kind === 'connected' ? ' is-active' : ''}`}
+            aria-pressed={view.kind === 'connected'}
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              if (window.innerWidth <= 900) searchInputRef.current?.blur();
               setView(view.kind === 'connected' ? { kind: 'all' } : { kind: 'connected' });
             }}
           >
@@ -285,8 +303,10 @@ export function ConnectAppsModal() {
             <button
               type="button"
               className={`cat-pill${view.kind === 'all' ? ' is-active' : ''}`}
+              aria-pressed={view.kind === 'all'}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                if (window.innerWidth <= 900) searchInputRef.current?.blur();
                 setView({ kind: 'all' });
               }}
             >
@@ -297,8 +317,10 @@ export function ConnectAppsModal() {
                 key={p.category}
                 type="button"
                 className={`cat-pill${activeCategory === p.category ? ' is-active' : ''}`}
+                aria-pressed={activeCategory === p.category}
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  if (window.innerWidth <= 900) searchInputRef.current?.blur();
                   setView({ kind: 'category', category: p.category });
                 }}
               >
