@@ -30,6 +30,7 @@ export function SignIn() {
 
   const dev = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     if (!email.includes('@')) {
       setError('Enter an email address');
@@ -61,9 +62,13 @@ export function SignIn() {
             <button
               key={p.id}
               type="button"
+              aria-pressed={shader === p.id}
               className={`signin__shader-pill${shader === p.id ? ' is-active' : ''}`}
               onClick={(e) => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                if (typeof window !== 'undefined' && window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) {
+                  document.activeElement.blur();
+                }
                 setShader(p.id);
                 e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
               }}
@@ -107,7 +112,7 @@ export function SignIn() {
             enterKeyHint="next"
             placeholder="Email (from .env)"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }}
             aria-label="Email"
             autoComplete="email"
           />
@@ -131,7 +136,7 @@ export function SignIn() {
               enterKeyHint="go"
               placeholder="Password (from .env)"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); if (error) setError(null); }}
               aria-label="Password"
               autoComplete="current-password"
               style={{ width: '100%', paddingRight: 64 }}
@@ -167,7 +172,7 @@ export function SignIn() {
             {busy ? 'Initializing Studio…' : 'Launch TideBot Studio →'}
           </button>
         </form>
-        {error && <div className="card__error signin__error">{error}</div>}
+        {error && <div className="card__error signin__error" role="alert">{error}</div>}
         <div className="signin__foot-grid">
           <span>OPENROUTER · 250+ MODELS</span>
           <span>•</span>

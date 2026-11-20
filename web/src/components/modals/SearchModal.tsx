@@ -92,7 +92,10 @@ export function SearchModal() {
           run: () => {
             configApi.updateBot(selectedBot.id, { model: m.id }).then(({ bot: updated }) => {
               useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
-            }).catch(() => {});
+              useStore.getState().notify(`Switched ${selectedBot.name} to ${m.name}`);
+            }).catch(() => {
+              useStore.getState().notify('Could not update model');
+            });
             close();
           },
           render: () => (
