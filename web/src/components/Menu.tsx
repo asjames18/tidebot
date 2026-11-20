@@ -10,10 +10,11 @@ export function Menu({ items, onClose, align = 'left', placement = 'below', chil
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
+    el.style.translate = '';
     const rect = el.getBoundingClientRect();
     const pad = 8;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const vw = window.visualViewport?.width ?? window.innerWidth;
+    const vh = window.visualViewport?.height ?? window.innerHeight;
     let dx = 0;
     let dy = 0;
     if (rect.right > vw - pad) dx = vw - pad - rect.right;

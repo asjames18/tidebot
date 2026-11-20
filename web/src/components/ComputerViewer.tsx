@@ -22,6 +22,7 @@ export function ComputerViewer() {
   const [attempt, setAttempt] = useState(0);
   const [waking, setWaking] = useState(false);
   const topSwipeY = useRef<number | null>(null);
+  const topSwipeX = useRef<number | null>(null);
   const [dragY, setDragY] = useState(0);
   const running = computer?.status === 'running';
   const busy = computer?.status === 'starting' || computer?.status === 'resuming' || computer?.status === 'creating';
@@ -93,30 +94,40 @@ export function ComputerViewer() {
       />
       <div
         className="viewer__top"
+        style={mode === 'watch' ? { touchAction: 'none' } : undefined}
         onTouchStart={(e) => {
           if (mode !== 'watch' || window.innerWidth > 900 || e.touches.length !== 1) return;
+          topSwipeX.current = e.touches[0].clientX;
           topSwipeY.current = e.touches[0].clientY;
         }}
         onTouchMove={(e) => {
-          if (topSwipeY.current === null) return;
-          const dy = Math.max(0, e.touches[0].clientY - topSwipeY.current);
+          if (topSwipeY.current === null || topSwipeX.current === null) return;
+          const dx = Math.abs(e.touches[0].clientX - topSwipeX.current);
+          const dy = e.touches[0].clientY - topSwipeY.current;
+          if (dx > Math.abs(dy) && dragY === 0) {
+            topSwipeY.current = null;
+            topSwipeX.current = null;
+            return;
+          }
           if (dy > 6) setDragY(dy);
         }}
         onTouchEnd={() => {
           if (topSwipeY.current === null) return;
           topSwipeY.current = null;
+          topSwipeX.current = null;
           if (dragY > 64) close();
           else setDragY(0);
         }}
         onTouchCancel={() => {
           topSwipeY.current = null;
+          topSwipeX.current = null;
           setDragY(0);
         }}
       >
         <div className="viewer__title">
           <BotAvatarFor bot={bot} size={24} />
           <span>{bot.name}'s computer</span>
-          <span className="viewer__status">{computerStatusText(computer)}</span>
+          <span className="viewer__status" aria-live="polite">{computerStatusText(computer)}</span>
         </div>
         <button type="button" className="viewer__close" onClick={close} aria-label="Close computer"><Icon name="close" color="#FFFFFF" /></button>
       </div>
