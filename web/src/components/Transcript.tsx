@@ -1,4 +1,4 @@
-import { Fragment, memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Bot, LiveState, MessageBody, Row, ToolCallBody } from '@shared/types';
 import { BotAvatar, BotAvatarFor } from '../avatar/BotAvatar';
 import { clock, dividerLabel } from '../lib/time';
@@ -260,6 +260,7 @@ const RENDER_WINDOW = 80;
 export function Transcript({ bot, rows, live, loaded }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
+  const touchStartYRef = useRef<number | null>(null);
   const [showJump, setShowJump] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const visibleRows = expanded ? rows : rows.slice(-RENDER_WINDOW);
@@ -285,11 +286,43 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [bot.id]);
 
+  // Keep pinned to the bottom when the viewport resizes (e.g., mobile keyboard opens or composer grows).
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      if (stick.current) el.scrollTop = el.scrollHeight;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const onScroll = () => {
     const el = scrollRef.current!;
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
     stick.current = dist < 40;
     setShowJump(dist > 200);
+  };
+
+  const onTranscriptTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0]?.clientY ?? null;
+  };
+
+  const onTranscriptTouchMove = (e: React.TouchEvent) => {
+    if (touchStartYRef.current === null || window.innerWidth > 900) return;
+    const y = e.touches[0]?.clientY;
+    if (y === undefined) return;
+    if (Math.abs(y - touchStartYRef.current) > 18) {
+      touchStartYRef.current = null;
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active.classList.contains('composer__input')) {
+        active.blur();
+      }
+    }
+  };
+
+  const onTranscriptTouchEnd = () => {
+    touchStartYRef.current = null;
   };
 
   const jump = () => {
@@ -302,7 +335,15 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
 
   return (
     <div className="transcript-wrap">
-    <div className="transcript" ref={scrollRef} onScroll={onScroll}>
+    <div
+      className="transcript"
+      ref={scrollRef}
+      onScroll={onScroll}
+      onTouchStart={onTranscriptTouchStart}
+      onTouchMove={onTranscriptTouchMove}
+      onTouchEnd={onTranscriptTouchEnd}
+      onTouchCancel={onTranscriptTouchEnd}
+    >
       <div className="transcript__col">
         {!loaded && rows.length === 0 && (
           <div className="transcript-skeleton" aria-hidden="true">
@@ -351,10 +392,7 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
         <button
           type="button"
           className="jump-btn"
-          onClick={() => {
-            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-            jump();
-          }}
+          onClick={jump}
           aria-label="Scroll to bottom"
         >
           <Icon name="arrow_down" size={16} />
