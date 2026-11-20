@@ -40,6 +40,7 @@ export function BotSettingsModal() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const contentTouchStartYRef = useRef<number | null>(null);
   const onClose = useCallback(() => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
@@ -90,7 +91,28 @@ export function BotSettingsModal() {
             </button>
           ))}
         </nav>
-        <div ref={contentRef} className="cfg-content">
+        <div
+          ref={contentRef}
+          className="cfg-content"
+          onTouchStart={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (target?.closest('textarea')) { contentTouchStartYRef.current = null; return; }
+            contentTouchStartYRef.current = e.touches[0]?.clientY ?? null;
+          }}
+          onTouchMove={(e) => {
+            if (contentTouchStartYRef.current === null || window.innerWidth > 900) return;
+            const y = e.touches[0]?.clientY;
+            if (y !== undefined && Math.abs(y - contentTouchStartYRef.current) > 18) {
+              contentTouchStartYRef.current = null;
+              const active = document.activeElement;
+              if (active instanceof HTMLElement && contentRef.current?.contains(active) && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+                active.blur();
+              }
+            }
+          }}
+          onTouchEnd={() => { contentTouchStartYRef.current = null; }}
+          onTouchCancel={() => { contentTouchStartYRef.current = null; }}
+        >
           {loadError && <div className="cfg-error">Couldn’t load settings: {loadError}</div>}
           {target.tab === 'general' && <GeneralTab bot={bot} onClose={onClose} />}
           {target.tab === 'skills' && <SkillsTab bot={bot} skills={data?.skills} onChange={reload} />}
@@ -672,7 +694,7 @@ function SkillEditor({ botId, skill, onDone }: { botId: string; skill?: Skill; o
   };
   return (
     <form className="cfg-editor" onSubmit={(e) => { e.preventDefault(); save(); }}>
-      <input className="text-input" placeholder="Skill name, e.g. Weekly report" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus aria-label="Skill name" />
+      <input className="text-input" placeholder="Skill name, e.g. Weekly report" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="Skill name" />
       <input className="text-input" placeholder="When to use it (optional)" value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} aria-label="Skill description" />
       <textarea className="text-input cfg-textarea cfg-textarea--tall" rows={8} placeholder={'Write the steps to follow:\n1. …\n2. …'} value={body} onChange={(e) => setBody(e.target.value)} aria-label="Skill steps" />
       {error && <div className="cfg-error">{error}</div>}
@@ -942,7 +964,7 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
 
   return (
     <form className="cfg-editor" onSubmit={save}>
-      <input className="text-input" placeholder="Routine name, e.g. Morning briefing" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus aria-label="Routine name" />
+      <input className="text-input" placeholder="Routine name, e.g. Morning briefing" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="Routine name" />
       {!isEvent && (
         <div className="cfg-chips-wrap">
           {CRON_PRESETS.map((p) => (
@@ -963,8 +985,8 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
         </div>
       )}
       <div className="cfg-routine-fields">
-        <input className="text-input" placeholder="Cron schedule (e.g. 0 9 * * 1-5)" value={schedule} disabled={isEvent} onChange={(e) => setSchedule(e.target.value)} aria-label="Cron schedule" />
-        <input className="text-input" placeholder="Timezone (e.g. America/New_York)" value={timezone} disabled={isEvent} onChange={(e) => setTimezone(e.target.value)} aria-label="Routine timezone" />
+        <input className="text-input" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Cron schedule (e.g. 0 9 * * 1-5)" value={schedule} disabled={isEvent} onChange={(e) => setSchedule(e.target.value)} aria-label="Cron schedule" />
+        <input className="text-input" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Timezone (e.g. America/New_York)" value={timezone} disabled={isEvent} onChange={(e) => setTimezone(e.target.value)} aria-label="Routine timezone" />
       </div>
       <textarea className="text-input cfg-textarea" rows={4} placeholder="What should this Bot do each time the routine runs?" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Routine instructions" />
       {error && <div className="cfg-error">{error}</div>}
