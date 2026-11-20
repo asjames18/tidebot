@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { BotAvatarFor } from '../../avatar/BotAvatar';
+import { useConfigUI } from '../../configStore';
 import { api } from '../../lib/api';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
@@ -14,8 +15,11 @@ export function CreateGroupModal() {
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const bodyTouchStartYRef = useRef<number | null>(null);
   const close = useCallback(() => setModal(null), [setModal]);
   const canCreate = name.trim().length > 0 && picked.length >= 2 && !busy;
+  const allPicked = bots.length > 0 && picked.length === bots.length;
   const toggle = (id: string) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -30,6 +34,7 @@ export function CreateGroupModal() {
       const { bots: all } = await api.bots();
       const st = useStore.getState();
       st.set({ bots: all });
+      useConfigUI.getState().setView('chat');
       st.selectBot(id);
       close();
     } catch (e) {
@@ -45,9 +50,41 @@ export function CreateGroupModal() {
           <div className="modal__title">New Multi-Operator War Room</div>
           <button type="button" className="modal__close" onClick={close} aria-label="Close"><Icon name="close" size={14} opacity={0.68} /></button>
         </div>
-        <div className="create-modal__body" style={{ alignItems: 'stretch' }}>
-          <input className="text-input create-modal__name" placeholder="War room name (e.g. Product Launch, Security Triage)" value={name} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="War room name" />
-          <div className="section-label" style={{ marginTop: 14 }}>Select at least 2 Operators ({picked.length} selected)</div>
+        <div
+          ref={bodyRef}
+          className="create-modal__body"
+          style={{ alignItems: 'stretch' }}
+          onTouchStart={(e) => { bodyTouchStartYRef.current = e.touches[0]?.clientY ?? null; }}
+          onTouchMove={(e) => {
+            if (bodyTouchStartYRef.current === null || window.innerWidth > 900) return;
+            const y = e.touches[0]?.clientY;
+            if (y !== undefined && Math.abs(y - bodyTouchStartYRef.current) > 18) {
+              bodyTouchStartYRef.current = null;
+              const active = document.activeElement;
+              if (active instanceof HTMLElement && bodyRef.current?.contains(active) && active.tagName === 'INPUT') {
+                active.blur();
+              }
+            }
+          }}
+          onTouchEnd={() => { bodyTouchStartYRef.current = null; }}
+          onTouchCancel={() => { bodyTouchStartYRef.current = null; }}
+        >
+          <input className="text-input create-modal__name" enterKeyHint="done" placeholder="War room name (e.g. Product Launch, Security Triage)" value={name} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="War room name" />
+          <div className="section-label section-label--row" style={{ marginTop: 14 }}>
+            <span>Select at least 2 Operators ({picked.length} selected)</span>
+            {bots.length >= 2 && (
+              <button
+                type="button"
+                className="link-btn link-btn--small"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  setPicked(allPicked ? [] : bots.map((b) => b.id));
+                }}
+              >
+                {allPicked ? 'Clear' : 'Select all'}
+              </button>
+            )}
+          </div>
           <div className="group-pick">
             {bots.map((b) => (
               <button key={b.id} type="button" role="checkbox" aria-checked={picked.includes(b.id)} className={`group-pick__opt${picked.includes(b.id) ? ' is-active' : ''}`} onClick={() => toggle(b.id)}>
