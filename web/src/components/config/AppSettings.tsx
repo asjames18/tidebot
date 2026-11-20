@@ -491,10 +491,12 @@ function ModelsSection() {
           <button
             type="button"
             className={`byom-provider-card${provider === 'openrouter' ? ' is-active' : ''}`}
+            aria-pressed={provider === 'openrouter'}
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
+              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
               setProvider('openrouter');
               if (defaultModel === 'grok-4.7') setDefaultModel('anthropic/claude-3.7-sonnet');
             }}
@@ -511,10 +513,12 @@ function ModelsSection() {
           <button
             type="button"
             className={`byom-provider-card${provider === 'custom' ? ' is-active' : ''}`}
+            aria-pressed={provider === 'custom'}
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
+              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
               setProvider('custom');
             }}
           >
@@ -530,10 +534,12 @@ function ModelsSection() {
           <button
             type="button"
             className={`byom-provider-card${provider === 'xai' ? ' is-active' : ''}`}
+            aria-pressed={provider === 'xai'}
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
+              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
               setProvider('xai');
               if (defaultModel.includes('/')) setDefaultModel('grok-4.7');
             }}
@@ -703,6 +709,7 @@ function ModelsSection() {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
+              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
               setFilterTab('all');
               e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
             }}
@@ -718,6 +725,7 @@ function ModelsSection() {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
+              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
               setFilterTab('free');
               e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
             }}
@@ -733,6 +741,7 @@ function ModelsSection() {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
+              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
               setFilterTab('vision');
               e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
             }}
@@ -748,6 +757,7 @@ function ModelsSection() {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
+              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
               setFilterTab('fast');
               e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
             }}
@@ -757,7 +767,22 @@ function ModelsSection() {
         </div>
 
         <div className="byom-model-grid">
-          {allModels.map((m) => {
+          {allModels.length === 0 ? (
+            <div className="cfg-empty" style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <span>No models match “{search || filterTab}”.</span>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--secondary"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  setSearch('');
+                  setFilterTab('all');
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : allModels.map((m) => {
             const active = defaultModel === m.id;
             const isFree = m.id.includes(':free') || (m.badge && m.badge.toLowerCase().includes('free'));
             return (
@@ -766,7 +791,9 @@ function ModelsSection() {
                 type="button"
                 className={`byom-model-card${active ? ' is-active' : ''}${isFree ? ' is-free' : ''}`}
                 aria-pressed={active}
+                disabled={saving}
                 onClick={() => {
+                  if (saving) return;
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                     try { navigator.vibrate(10); } catch {}
                   }
