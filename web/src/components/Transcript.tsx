@@ -150,7 +150,9 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
                   if (retrying) return;
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
                   setRetrying(true);
-                  api.retry(row.botId).catch(() => {}).finally(() => setRetrying(false));
+                  api.retry(row.botId)
+                    .catch(() => useStore.getState().notify('Retry failed'))
+                    .finally(() => setRetrying(false));
                 }}
                 title="Re-run with current model"
               >
@@ -297,6 +299,7 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
   useLayoutEffect(() => {
     stick.current = true;
     setExpanded(false);
+    setShowJump(false);
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [bot.id]);
@@ -345,6 +348,8 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
+    stick.current = true;
+    setShowJump(false);
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   };
 
