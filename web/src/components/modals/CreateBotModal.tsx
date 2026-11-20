@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { AvatarColor, AvatarShape, Bot } from '@shared/types';
 import { BotAvatar, PICKER_SHAPES } from '../../avatar/BotAvatar';
 import { api } from '../../lib/api';
@@ -82,13 +82,17 @@ export function CreateBotModal() {
   const [shape, setShape] = useState<AvatarShape>('hex');
   const [color, setColor] = useState<AvatarColor>('cyan');
   const [mode, setMode] = useState<Bot['mode']>('personal');
+  const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const bodyTouchStartYRef = useRef<number | null>(null);
   const close = useCallback(() => setModal(null), [setModal]);
   const canCreate = name.trim().length > 0 && !busy;
 
-  const applyTemplate = (t: BotTemplate) => {
+  const applyTemplate = (t: BotTemplate, el?: HTMLElement | null) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    setActiveTemplate(t.id);
     setName(t.name);
     setLabel(t.label);
     setDescription(t.description);
@@ -96,6 +100,7 @@ export function CreateBotModal() {
     setShape(t.shape);
     setColor(t.color);
     setMode(t.mode);
+    el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   };
 
   const create = async () => {
@@ -130,15 +135,37 @@ export function CreateBotModal() {
           <div className="modal__title">Create New Bot</div>
           <button type="button" className="modal__close" onClick={close} aria-label="Close"><Icon name="close" size={14} opacity={0.68} /></button>
         </div>
-        <div className="create-modal__body">
+        <div
+          ref={bodyRef}
+          className="create-modal__body"
+          onTouchStart={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (target?.closest('textarea')) { bodyTouchStartYRef.current = null; return; }
+            bodyTouchStartYRef.current = e.touches[0]?.clientY ?? null;
+          }}
+          onTouchMove={(e) => {
+            if (bodyTouchStartYRef.current === null || window.innerWidth > 900) return;
+            const y = e.touches[0]?.clientY;
+            if (y !== undefined && Math.abs(y - bodyTouchStartYRef.current) > 18) {
+              bodyTouchStartYRef.current = null;
+              const active = document.activeElement;
+              if (active instanceof HTMLElement && bodyRef.current?.contains(active) && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+                active.blur();
+              }
+            }
+          }}
+          onTouchEnd={() => { bodyTouchStartYRef.current = null; }}
+          onTouchCancel={() => { bodyTouchStartYRef.current = null; }}
+        >
           <BotAvatar shape={shape} color={color} size={96} className="create-modal__preview" />
           <div className="create-modal__templates" aria-label="Role templates">
             {TEMPLATES.map((t) => (
               <button
                 key={t.id}
                 type="button"
-                className="cat-pill create-modal__template-pill"
-                onClick={() => applyTemplate(t)}
+                className={`cat-pill create-modal__template-pill${activeTemplate === t.id ? ' is-active' : ''}`}
+                aria-pressed={activeTemplate === t.id}
+                onClick={(e) => applyTemplate(t, e.currentTarget)}
                 title={t.description}
               >
                 {t.title}
@@ -147,15 +174,17 @@ export function CreateBotModal() {
           </div>
           <input
             className="text-input create-modal__name"
+            enterKeyHint="next"
             placeholder="Give your Bot a name"
             value={name}
             maxLength={60}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setActiveTemplate(null); setName(e.target.value); }}
             autoFocus={typeof window === 'undefined' || window.innerWidth > 900}
             aria-label="Bot name"
           />
           <input
             className="text-input create-modal__name"
+            enterKeyHint="next"
             placeholder="Role or label (optional, e.g. Research)"
             value={label}
             maxLength={60}
