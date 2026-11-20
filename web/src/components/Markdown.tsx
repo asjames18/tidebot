@@ -1,6 +1,7 @@
 import { memo, useRef, useState } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { copyText } from '../lib/clipboard';
 
 function PreBlock({ node: _n, children, ...props }: any) {
   const preRef = useRef<HTMLPreElement>(null);
@@ -8,31 +9,14 @@ function PreBlock({ node: _n, children, ...props }: any) {
   const copy = () => {
     const text = preRef.current?.innerText ?? '';
     if (!text) return;
-    const onDone = () => {
+    void copyText(text).then((ok) => {
+      if (!ok) return;
       setCopied(true);
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(12); } catch { /* ignore haptics unsupported */ }
       }
       setTimeout(() => setCopied(false), 1600);
-    };
-    const fallback = () => {
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-        onDone();
-      } catch { /* ignore */ }
-    };
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).then(onDone).catch(fallback);
-    } else {
-      fallback();
-    }
+    });
   };
   return (
     <div className="md-pre-wrap" style={{ position: 'relative' }}>

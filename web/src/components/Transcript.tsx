@@ -10,6 +10,7 @@ import { Markdown } from './Markdown';
 import { ShaderCanvas } from './ShaderCanvas';
 import { useConfigUI } from '../configStore';
 import { api } from '../lib/api';
+import { copyText } from '../lib/clipboard';
 
 type Item =
   | { kind: 'divider'; key: string; ts: number }
@@ -67,13 +68,14 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
 
   const copyMsg = () => {
     if (!b.text) return;
-    navigator.clipboard.writeText(b.text).then(() => {
+    void copyText(b.text).then((ok) => {
+      if (!ok) return;
       setCopied(true);
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(12); } catch {}
       }
       setTimeout(() => setCopied(false), 1600);
-    }).catch(() => {});
+    });
   };
 
   const shortModel = b.model ? (b.model.includes('/') ? b.model.split('/').pop()! : b.model) : null;

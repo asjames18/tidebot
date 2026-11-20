@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { CardBody, Row } from '@shared/types';
 import { api, openPopup } from '../../lib/api';
+import { copyText } from '../../lib/clipboard';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
 import { ToolkitLogo } from '../ToolkitLogo';
@@ -160,14 +161,13 @@ export function DraftCard({ body }: { body: Card<'draft'> }) {
   const pending = body.status === 'pending';
   const [copied, setCopied] = useState(false);
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(body.text);
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-        try { navigator.vibrate(12); } catch {}
-      }
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch { /* ignore */ }
+    const ok = await copyText(body.text);
+    if (!ok) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(12); } catch {}
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
   };
   const handle = user?.email ? `@${user.email.split('@')[0]}` : '';
   return (

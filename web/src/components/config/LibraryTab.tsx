@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Bot, LibraryFile } from '@shared/types';
 import { configApi, type LibraryListing } from '../../lib/configApi';
+import { copyText } from '../../lib/clipboard';
 import { relativeShort } from '../../lib/time';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
@@ -202,10 +203,12 @@ export function LibraryTab({ bot }: { bot: Bot }) {
                   type="button"
                   className="link-btn link-btn--small"
                   onClick={() => {
-                    navigator.clipboard?.writeText(preview.content);
-                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1400);
+                    void copyText(preview.content).then((ok) => {
+                      if (!ok) return;
+                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1400);
+                    });
                   }}
                 >
                   {copied ? 'Copied' : 'Copy'}
