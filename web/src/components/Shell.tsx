@@ -100,6 +100,14 @@ export function Shell() {
     const k = (e: KeyboardEvent) => {
       const st = useStore.getState();
       const key = e.key.toLowerCase();
+      if (key === 'escape' && !e.defaultPrevented && window.innerWidth <= 900) {
+        const cfg = useConfigUI.getState();
+        if (!st.modal && !st.viewerOpen && !cfg.botSettings && !cfg.appSettings && (st.mobileSidebarOpen || st.detailsOpen)) {
+          e.preventDefault();
+          st.set({ mobileSidebarOpen: false, detailsOpen: false });
+          return;
+        }
+      }
       if (e.altKey && !e.metaKey && !e.ctrlKey && key === 'n') {
         e.preventDefault();
         st.setModal(st.modal === 'create' ? null : 'create');

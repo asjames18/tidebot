@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useConfigUI } from '../configStore';
 import { TasksIsland } from './config/TasksView';
 import type { Bot } from '@shared/types';
@@ -76,8 +76,15 @@ export function Sidebar() {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const swipeLocked = useRef<'x' | 'y' | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const selectedEl = scrollRef.current?.querySelector<HTMLElement>('.bot-row.is-selected, .pinned__tile.is-selected');
+    selectedEl?.scrollIntoView({ block: 'nearest' });
+  }, [mobileOpen]);
 
   const onTouchStart = (e: React.TouchEvent) => {
     if (!mobileOpen) return;
@@ -184,7 +191,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="sidebar__scroll">
+      <div ref={scrollRef} className="sidebar__scroll">
         <TasksIsland />
         {primary && (
           <div className="pinned">
