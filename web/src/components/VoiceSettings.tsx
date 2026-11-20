@@ -95,6 +95,8 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
         onClick={() => {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
           if (!inCall && typeof window !== 'undefined' && window.innerWidth <= 900) {
+            const ae = document.activeElement;
+            if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
             useStore.getState().set({ detailsOpen: false });
           }
           inCall ? endCall() : startCall(bot.id);
@@ -102,7 +104,7 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
       >
         <Icon name="voice_a" size={14} opacity={inCall ? 1 : 0.56} /> {inCall ? 'End voice chat' : 'Start voice chat'}
       </button>
-      {error && <div className="voice-error">{error}</div>}
+      {error && <div className="voice-error" role="alert">{error}</div>}
     </div>
   );
 }

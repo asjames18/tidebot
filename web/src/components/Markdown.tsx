@@ -1,11 +1,13 @@
-import { memo, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { copyText } from '../lib/clipboard';
 
 function PreBlock({ node: _n, children, ...props }: any) {
   const preRef = useRef<HTMLPreElement>(null);
+  const timerRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
+  useEffect(() => () => { if (timerRef.current) window.clearTimeout(timerRef.current); }, []);
   const copy = () => {
     const text = preRef.current?.innerText ?? '';
     if (!text) return;
@@ -15,7 +17,8 @@ function PreBlock({ node: _n, children, ...props }: any) {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(12); } catch { /* ignore haptics unsupported */ }
       }
-      setTimeout(() => setCopied(false), 1600);
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      timerRef.current = window.setTimeout(() => { setCopied(false); timerRef.current = null; }, 1600);
     });
   };
   return (
@@ -24,7 +27,7 @@ function PreBlock({ node: _n, children, ...props }: any) {
       <button
         type="button"
         onClick={copy}
-        aria-label="Copy code"
+        aria-label={copied ? 'Copied code' : 'Copy code'}
         className={`md-copy-btn${copied ? ' is-copied' : ''}`}
       >
         {copied ? '✓ Copied' : 'Copy'}
@@ -54,7 +57,7 @@ const components: Components = {
     );
   },
   table: ({ node: _n, ...props }) => (
-    <div className="md-table"><table {...props} /></div>
+    <div className="md-table" role="region" aria-label="Scrollable table" tabIndex={0}><table {...props} /></div>
   ),
   pre: PreBlock,
 };
