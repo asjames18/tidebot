@@ -37,6 +37,7 @@ export function AppSettings() {
   const open = useConfigUI((s) => s.openAppSettings);
   const navRef = useRef<HTMLElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
+  const mainTouchStartYRef = useRef<number | null>(null);
   const swipeRef = useRef<{ x: number; y: number; locked: boolean | null } | null>(null);
   const [dragX, setDragX] = useState(0);
 
@@ -140,7 +141,28 @@ export function AppSettings() {
           </button>
         ))}
       </aside>
-      <div ref={mainRef} className="app-settings__main">
+      <div
+        ref={mainRef}
+        className="app-settings__main"
+        onTouchStart={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (target?.closest('textarea')) { mainTouchStartYRef.current = null; return; }
+          mainTouchStartYRef.current = e.touches[0]?.clientY ?? null;
+        }}
+        onTouchMove={(e) => {
+          if (mainTouchStartYRef.current === null || window.innerWidth > 900) return;
+          const y = e.touches[0]?.clientY;
+          if (y !== undefined && Math.abs(y - mainTouchStartYRef.current) > 18) {
+            mainTouchStartYRef.current = null;
+            const active = document.activeElement;
+            if (active instanceof HTMLElement && mainRef.current?.contains(active) && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+              active.blur();
+            }
+          }
+        }}
+        onTouchEnd={() => { mainTouchStartYRef.current = null; }}
+        onTouchCancel={() => { mainTouchStartYRef.current = null; }}
+      >
         <button
           type="button"
           className="app-settings__close icon-btn"
@@ -642,6 +664,10 @@ function ModelsSection() {
           <span className="cfg-section__label">3. OpenRouter Model Catalog ({totalCount || curatedModels.length + remoteModels.length} available)</span>
           <input
             type="search"
+            enterKeyHint="search"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             className="cfg-input byom-search"
             placeholder="Filter models (e.g. claude, gemini, deepseek, gpt-4.1, llama)…"
             value={search}
