@@ -20,8 +20,14 @@ export function CreateGroupModal() {
   const close = useCallback(() => setModal(null), [setModal]);
   const canCreate = name.trim().length > 0 && picked.length >= 2 && !busy;
   const allPicked = bots.length > 0 && picked.length === bots.length;
+  const blurInputOnMobile = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) {
+      document.activeElement.blur();
+    }
+  };
   const toggle = (id: string) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    blurInputOnMobile();
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   };
 
@@ -48,7 +54,17 @@ export function CreateGroupModal() {
       <form onSubmit={(e) => { e.preventDefault(); create(); }}>
         <div className="modal__header">
           <div className="modal__title">New Multi-Operator War Room</div>
-          <button type="button" className="modal__close" onClick={close} aria-label="Close"><Icon name="close" size={14} opacity={0.68} /></button>
+          <button
+            type="button"
+            className="modal__close"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              close();
+            }}
+            aria-label="Close"
+          >
+            <Icon name="close" size={14} opacity={0.68} />
+          </button>
         </div>
         <div
           ref={bodyRef}
@@ -69,7 +85,21 @@ export function CreateGroupModal() {
           onTouchEnd={() => { bodyTouchStartYRef.current = null; }}
           onTouchCancel={() => { bodyTouchStartYRef.current = null; }}
         >
-          <input className="text-input create-modal__name" enterKeyHint="done" placeholder="War room name (e.g. Product Launch, Security Triage)" value={name} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="War room name" />
+          <input
+            className="text-input create-modal__name"
+            enterKeyHint="done"
+            placeholder="War room name (e.g. Product Launch, Security Triage)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && window.innerWidth <= 900 && picked.length < 2) {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
+            autoFocus={typeof window === 'undefined' || window.innerWidth > 900}
+            aria-label="War room name"
+          />
           <div className="section-label section-label--row" style={{ marginTop: 14 }}>
             <span>Select at least 2 Operators ({picked.length} selected)</span>
             {bots.length >= 2 && (
@@ -78,6 +108,7 @@ export function CreateGroupModal() {
                 className="link-btn link-btn--small"
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  blurInputOnMobile();
                   setPicked(allPicked ? [] : bots.map((b) => b.id));
                 }}
               >

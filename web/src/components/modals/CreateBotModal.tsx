@@ -90,8 +90,15 @@ export function CreateBotModal() {
   const close = useCallback(() => setModal(null), [setModal]);
   const canCreate = name.trim().length > 0 && !busy;
 
+  const blurInputOnMobile = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) {
+      document.activeElement.blur();
+    }
+  };
+
   const applyTemplate = (t: BotTemplate, el?: HTMLElement | null) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    blurInputOnMobile();
     setActiveTemplate(t.id);
     setName(t.name);
     setLabel(t.label);
@@ -134,7 +141,17 @@ export function CreateBotModal() {
       <form onSubmit={(e) => { e.preventDefault(); create(); }}>
         <div className="modal__header">
           <div className="modal__title">Create New Bot</div>
-          <button type="button" className="modal__close" onClick={close} aria-label="Close"><Icon name="close" size={14} opacity={0.68} /></button>
+          <button
+            type="button"
+            className="modal__close"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              close();
+            }}
+            aria-label="Close"
+          >
+            <Icon name="close" size={14} opacity={0.68} />
+          </button>
         </div>
         <div
           ref={bodyRef}
@@ -218,6 +235,7 @@ export function CreateBotModal() {
                     className="shape-cell"
                     onClick={() => {
                       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                      blurInputOnMobile();
                       setShape(s);
                     }}
                   >
@@ -240,6 +258,7 @@ export function CreateBotModal() {
                     className="swatch-cell"
                     onClick={() => {
                       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                      blurInputOnMobile();
                       setColor(c);
                     }}
                   >
@@ -257,6 +276,7 @@ export function CreateBotModal() {
               className={`mode-pick__opt${mode === 'personal' ? ' is-active' : ''}`}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                blurInputOnMobile();
                 setMode('personal');
               }}
             >
@@ -270,6 +290,7 @@ export function CreateBotModal() {
               className={`mode-pick__opt${mode === 'teammate' ? ' is-active' : ''}`}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                blurInputOnMobile();
                 setMode('teammate');
               }}
             >
