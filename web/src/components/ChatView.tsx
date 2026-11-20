@@ -21,7 +21,6 @@ export function ChatView() {
   const curatedModels = useConfigUI((s) => s.curatedModels);
   const [menu, setMenu] = useState(false);
   const [modelMenu, setModelMenu] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [confirmFresh, setConfirmFresh] = useState(false);
   const confirmTimer = useRef<number | null>(null);
   const rows = useMemo(() => sortedRows(transcript), [transcript]);
@@ -43,7 +42,7 @@ export function ChatView() {
     );
   }
 
-  const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2200); };
+  const flash = (t: string) => useStore.getState().notify(t);
 
   const startNewChat = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
@@ -69,7 +68,8 @@ export function ChatView() {
   const pickBotModel = async (modelId: string) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     try {
-      await configApi.updateBot(bot.id, { model: modelId });
+      const { bot: updated } = await configApi.updateBot(bot.id, { model: modelId });
+      useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
       flash(modelId ? `Switched ${bot.name} to ${modelId}` : `Using default model (${llmConfig?.defaultModel})`);
     } catch (e: any) {
       flash(e?.message ?? 'Could not update model');
@@ -284,20 +284,6 @@ export function ChatView() {
           </button>
         </div>
       </header>
-      {toast && (
-        <div
-          className="toast"
-          role="status"
-          onClick={() => {
-            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
-            setToast(null);
-          }}
-          title="Tap to dismiss"
-          style={{ cursor: 'pointer' }}
-        >
-          {toast}
-        </div>
-      )}
     </main>
   );
 }
