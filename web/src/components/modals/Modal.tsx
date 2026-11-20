@@ -7,6 +7,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), in
 export function Modal({ onClose, children, className, label, top }: { onClose: () => void; children: ReactNode; className?: string; label: string; top?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const dragLocked = useRef<boolean | null>(null);
   const closedRef = useRef(false);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -17,23 +19,46 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
     onClose();
   };
 
-  const onHandleTouchStart = (e: React.TouchEvent) => {
+  const onSheetTouchStart = (e: React.TouchEvent) => {
+    if (window.innerWidth > 900 || e.touches.length !== 1) return;
+    const target = e.target as HTMLElement | null;
+    if (!target?.closest('.sheet-handle-wrap, .modal__header, .apps-modal__titlerow')) return;
+    if (target.closest('input, textarea, select')) return;
     touchStartY.current = e.touches[0].clientY;
-    setDragging(true);
+    touchStartX.current = e.touches[0].clientX;
+    dragLocked.current = target.closest('.sheet-handle-wrap') ? true : null;
+    if (dragLocked.current) setDragging(true);
   };
 
-  const onHandleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const deltaY = Math.max(0, e.touches[0].clientY - touchStartY.current);
-    setDragY(deltaY);
+  const onSheetTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current === null || touchStartX.current === null) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    if (dragLocked.current === null) {
+      if (Math.abs(dy) < 10 && Math.abs(dx) < 10) return;
+      if (dy > 0 && dy > Math.abs(dx) * 1.2) {
+        dragLocked.current = true;
+        setDragging(true);
+      } else {
+        touchStartY.current = null;
+        touchStartX.current = null;
+        return;
+      }
+    }
+    if (dragLocked.current) {
+      setDragY(Math.max(0, dy));
+    }
   };
 
-  const onHandleTouchEnd = (e: React.TouchEvent) => {
+  const onSheetTouchEnd = (e: React.TouchEvent) => {
     if (touchStartY.current === null) return;
+    const wasLocked = dragLocked.current === true;
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
     touchStartY.current = null;
+    touchStartX.current = null;
+    dragLocked.current = null;
     setDragging(false);
-    if (deltaY > 56) {
+    if (wasLocked && deltaY > 56) {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(8); } catch {}
       }
@@ -43,8 +68,10 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
     }
   };
 
-  const onHandleTouchCancel = () => {
+  const onSheetTouchCancel = () => {
     touchStartY.current = null;
+    touchStartX.current = null;
+    dragLocked.current = null;
     setDragging(false);
     setDragY(0);
   };
@@ -71,7 +98,8 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
     };
     window.addEventListener('keydown', k);
     const t = setTimeout(() => {
-      const el = ref.current?.querySelector<HTMLElement>('[autofocus], input, textarea, button');
+      const mobile = window.innerWidth <= 900;
+      const el = ref.current?.querySelector<HTMLElement>(mobile ? '[autofocus], button' : '[autofocus], input, textarea, button');
       el?.focus();
     });
     return () => { window.removeEventListener('keydown', k); clearTimeout(t); prev?.focus?.(); };
@@ -85,19 +113,16 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
         role="dialog"
         aria-modal="true"
         aria-label={label}
+        onTouchStart={onSheetTouchStart}
+        onTouchMove={onSheetTouchMove}
+        onTouchEnd={onSheetTouchEnd}
+        onTouchCancel={onSheetTouchCancel}
         style={{
           ...(top !== undefined ? { marginTop: top } : undefined),
           ...(dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: dragging ? 'none' : 'transform 180ms ease-out' } : undefined),
         }}
       >
-        <div
-          className="sheet-handle-wrap"
-          onTouchStart={onHandleTouchStart}
-          onTouchMove={onHandleTouchMove}
-          onTouchEnd={onHandleTouchEnd}
-          onTouchCancel={onHandleTouchCancel}
-          aria-hidden="true"
-        >
+        <div className="sheet-handle-wrap" aria-hidden="true">
           <div className="sheet-handle" />
         </div>
         {children}
