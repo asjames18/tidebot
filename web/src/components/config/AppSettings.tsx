@@ -876,9 +876,6 @@ function ComputerSection() {
                   disabled={!running}
                   title={running ? 'Closes everything open on this screen' : 'Wake the computer first'}
                   onConfirm={async () => {
-                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                      try { navigator.vibrate(12); } catch {}
-                    }
                     try { await configApi.resetScreen(s.botId); setNote(null); load(); } catch (e) { setNote((e as Error).message); }
                   }}
                 >
@@ -905,6 +902,7 @@ function humanizeTool(slug: string): { app: string; action: string } {
 
 function PermissionsSection() {
   const [policies, setPolicies] = useState<{ tool: string; mode: string }[] | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const load = useCallback(() => { configApi.policies().then((r) => setPolicies(r.policies)).catch(() => setPolicies([])); }, []);
   useEffect(() => { load(); }, [load]);
   return (
@@ -916,6 +914,7 @@ function PermissionsSection() {
             <div className="cfg-empty cfg-empty--flat">Nothing here yet. When you choose “Always allow” on an approval, it shows up here.</div>
           ) : policies.map((p) => {
             const h = humanizeTool(p.tool);
+            const busy = removing === p.tool;
             return (
               <div key={p.tool} className="cfg-row">
                 <div className="cfg-row__text">
@@ -925,14 +924,17 @@ function PermissionsSection() {
                 <button
                   type="button"
                   className="cfg-btn cfg-btn--secondary"
+                  disabled={busy}
                   onClick={() => {
+                    if (busy) return;
                     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                       try { navigator.vibrate(8); } catch {}
                     }
-                    configApi.deletePolicy(p.tool).then(load).catch(() => {});
+                    setRemoving(p.tool);
+                    configApi.deletePolicy(p.tool).then(load).catch(() => {}).finally(() => setRemoving(null));
                   }}
                 >
-                  Ask again
+                  {busy ? 'Removing…' : 'Ask again'}
                 </button>
               </div>
             );
