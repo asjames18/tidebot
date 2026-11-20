@@ -163,19 +163,25 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [promoting, setPromoting] = useState(false);
   const [note, setNote] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null);
+  const noteTimerRef = useRef<number | null>(null);
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const curatedModels = useConfigUI((s) => s.curatedModels);
   useEffect(() => { setDraft(draftOf(bot)); }, [bot.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { if (noteTimerRef.current) window.clearTimeout(noteTimerRef.current); }, []);
 
   const base = draftOf(bot);
   const changed = (Object.keys(draft) as (keyof Draft)[]).filter((k) => draft[k] !== base[k]);
   const dirty = changed.length > 0;
   const nameOk = draft.name.trim().length > 0;
   const put = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
-  const flash = (text: string, tone: 'ok' | 'error' = 'ok') => { setNote({ text, tone }); setTimeout(() => setNote(null), 2400); };
+  const flash = (text: string, tone: 'ok' | 'error' = 'ok') => {
+    setNote({ text, tone });
+    if (noteTimerRef.current) window.clearTimeout(noteTimerRef.current);
+    noteTimerRef.current = window.setTimeout(() => { setNote(null); noteTimerRef.current = null; }, 2400);
+  };
 
   const save = async () => {
-    if (!dirty || !nameOk) return;
+    if (!dirty || !nameOk || saving) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(12); } catch {}
     }
@@ -205,6 +211,9 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
               className="cfg-btn cfg-btn--secondary"
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                  document.activeElement.blur();
+                }
                 setPicker(!picker);
               }}
               aria-expanded={picker}
@@ -244,6 +253,12 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
               value={draft.model}
               placeholder={`Default (${llmConfig?.defaultModel ?? 'anthropic/claude-3.7-sonnet'})`}
               onChange={(e) => put('model', e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && window.innerWidth <= 900) {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
+              }}
             />
             <select
               className="text-input"
