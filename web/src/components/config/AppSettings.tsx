@@ -529,6 +529,10 @@ function ModelsSection() {
               <input
                 type="password"
                 className="cfg-input"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                autoComplete="off"
                 placeholder={llmConfig?.hasOpenrouterKey ? 'Paste new key to replace saved key (sk-or-v1-...)' : 'sk-or-v1-...'}
                 value={openrouterKey}
                 onChange={(e) => setOpenrouterKey(e.target.value)}
@@ -544,8 +548,12 @@ function ModelsSection() {
               <div className="cfg-field">
                 <label className="cfg-field__label">OpenAI-Compatible Base URL</label>
                 <input
-                  type="text"
+                  type="url"
+                  inputMode="url"
                   className="cfg-input"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="e.g. http://localhost:11434/v1 or https://api.openai.com/v1"
                   value={customBaseUrl}
                   onChange={(e) => setCustomBaseUrl(e.target.value)}
@@ -561,6 +569,10 @@ function ModelsSection() {
                 <input
                   type="password"
                   className="cfg-input"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  autoComplete="off"
                   placeholder="sk-..."
                   value={customApiKey}
                   onChange={(e) => setCustomApiKey(e.target.value)}
@@ -580,6 +592,10 @@ function ModelsSection() {
               <input
                 type="password"
                 className="cfg-input"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                autoComplete="off"
                 placeholder={llmConfig?.hasXaiKey ? 'Paste new xAI key to replace saved key' : 'xai-...'}
                 value={xaiKey}
                 onChange={(e) => setXaiKey(e.target.value)}
@@ -592,6 +608,9 @@ function ModelsSection() {
             <input
               type="text"
               className="cfg-input"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder="e.g. anthropic/claude-3.7-sonnet"
               value={defaultModel}
               onChange={(e) => setDefaultModel(e.target.value)}
