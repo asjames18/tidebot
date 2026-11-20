@@ -120,6 +120,7 @@ export function CreateBotModal() {
       });
       const st = useStore.getState();
       st.set({ bots: st.bots.some((b) => b.id === bot.id) ? st.bots : [...st.bots, bot] });
+      useConfigUI.getState().setView('chat');
       st.selectBot(bot.id);
       close();
     } catch (e) {

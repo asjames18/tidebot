@@ -158,6 +158,11 @@ export function LibraryTab({ bot }: { bot: Bot }) {
             <input
               type="text"
               className="cfg-input"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
+              aria-label="New file name"
               placeholder="filename.md"
               value={newFilename}
               onChange={(e) => setNewFilename(e.target.value)}
@@ -165,6 +170,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
             <textarea
               className="cfg-textarea"
               rows={5}
+              aria-label="File contents"
               placeholder="Write file contents…"
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
