@@ -121,6 +121,15 @@ export function ChatView() {
     }
   };
 
+  const blurComposerOnMobile = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active.classList.contains('composer__input')) {
+        active.blur();
+      }
+    }
+  };
+
   return (
     <main className="chat" style={botVars(bot.avatarColor)}>
       <Transcript bot={bot} rows={rows} live={live} loaded={!!transcript?.loaded} />
@@ -132,6 +141,7 @@ export function ChatView() {
           className="icon-btn icon-btn--bordered mobile-nav-btn"
           onClick={() => {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            blurComposerOnMobile();
             set({ mobileSidebarOpen: true, sidebarCollapsed: false });
           }}
           aria-label="Open operators list"
@@ -145,7 +155,9 @@ export function ChatView() {
               className="chat__pill"
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                setMenu(!menu);
+                blurComposerOnMobile();
+                setModelMenu(false);
+                setMenu((v) => !v);
               }}
               aria-haspopup="menu"
               aria-expanded={menu}
@@ -184,7 +196,9 @@ export function ChatView() {
               className={`chat__model-pill${llmConfig?.isConfigured ? ' is-live' : ''}`}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                setModelMenu(!modelMenu);
+                blurComposerOnMobile();
+                setMenu(false);
+                setModelMenu((v) => !v);
               }}
               aria-haspopup="menu"
               aria-expanded={modelMenu}
@@ -261,6 +275,7 @@ export function ChatView() {
               className="icon-btn icon-btn--bordered"
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                blurComposerOnMobile();
                 set({ detailsOpen: true });
               }}
               aria-label="Show details"
