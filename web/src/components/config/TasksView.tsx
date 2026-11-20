@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Bot, Task } from '@shared/types';
 import { BotAvatarFor } from '../../avatar/BotAvatar';
 import { api } from '../../lib/api';
@@ -139,6 +139,13 @@ export function TasksView() {
   const [newTitle, setNewTitle] = useState('');
   const [targetBotId, setTargetBotId] = useState<string>('');
   const [adding, setAdding] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [filter]);
 
   const nonRoomBots = useMemo(() => bots.filter((b) => b.kind !== 'room'), [bots]);
   const effectiveBotId = targetBotId || (nonRoomBots.some((b) => b.id === selectedId) ? selectedId! : nonRoomBots[0]?.id ?? '');
@@ -217,7 +224,21 @@ export function TasksView() {
           ))}
         </div>
       </header>
-      <div className="tasks-view__scroll">
+      <div
+        ref={scrollRef}
+        className="tasks-view__scroll"
+        onTouchStart={(e) => { touchStartYRef.current = e.touches[0]?.clientY ?? null; }}
+        onTouchMove={(e) => {
+          if (touchStartYRef.current === null || window.innerWidth > 900) return;
+          const y = e.touches[0]?.clientY;
+          if (y !== undefined && Math.abs(y - touchStartYRef.current) > 14) {
+            touchStartYRef.current = null;
+            if (document.activeElement === inputRef.current) inputRef.current?.blur();
+          }
+        }}
+        onTouchEnd={() => { touchStartYRef.current = null; }}
+        onTouchCancel={() => { touchStartYRef.current = null; }}
+      >
         <div className="tasks-view__inner">
           <div className="tasks-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
             <div className="cfg-card" style={{ padding: '12px 14px' }}>
@@ -237,7 +258,9 @@ export function TasksView() {
           {nonRoomBots.length > 0 && (
             <form onSubmit={handleAdd} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               <input
+                ref={inputRef}
                 className="text-input"
+                enterKeyHint="done"
                 placeholder="Assign a new task to an Operator…"
                 value={newTitle}
                 maxLength={200}
@@ -334,6 +357,9 @@ export function BotTasks({ bot }: { bot: Bot }) {
             className="link-btn link-btn--small"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+                useStore.getState().set({ detailsOpen: false });
+              }
               useConfigUI.getState().setView('tasks');
             }}
           >
@@ -343,6 +369,7 @@ export function BotTasks({ bot }: { bot: Bot }) {
         <form className="bot-tasks__form" onSubmit={add}>
           <input
             className="text-input bot-tasks__input"
+            enterKeyHint="done"
             placeholder={`Add task for ${bot.name}…`}
             value={newTitle}
             maxLength={200}
