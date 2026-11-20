@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
+import { copyText } from '../lib/clipboard';
 import { configApi } from '../lib/configApi';
 import { botVars } from '../lib/colors';
 import { displayName, sortedRows, useSelectedBot, useStore } from '../store';
@@ -106,19 +107,18 @@ export function ChatView() {
       }
     }
 
-    try {
-      await navigator.clipboard.writeText(md);
+    if (await copyText(md)) {
       flash('Copied conversation as Markdown');
-    } catch {
-      const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${bot.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-chat.md`;
-      a.click();
-      URL.revokeObjectURL(url);
-      flash('Downloaded conversation as Markdown');
+      return;
     }
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${bot.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-chat.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    flash('Downloaded conversation as Markdown');
   };
 
   const blurComposerOnMobile = () => {
