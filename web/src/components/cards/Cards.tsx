@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CardBody, Row } from '@shared/types';
 import { api, openPopup } from '../../lib/api';
 import { copyText } from '../../lib/clipboard';
@@ -11,12 +11,16 @@ type Card<K extends CardBody['card']> = Extract<CardBody, { card: K }>;
 function useBusy() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const busyRef = useRef(false);
   const run = async (key: string, fn: () => Promise<unknown>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
     setBusy(key); setError(null);
-    try { await fn(); } catch (e) { setError((e as Error).message || 'Something went wrong'); } finally { setBusy(null); }
+    try { await fn(); } catch (e) { setError((e as Error).message || 'Something went wrong'); }
+    finally { busyRef.current = false; setBusy(null); }
   };
   return { busy, error, run };
 }
@@ -52,7 +56,7 @@ export function ApprovalCard({ body }: { body: Card<'approval'> }) {
             <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('always')}>{busy === 'always' ? 'Saving…' : 'Always allow'}</button>
             <button type="button" className="btn btn--primary" disabled={!!busy} onClick={() => decide('allow')}>{busy === 'allow' ? 'Allowing…' : 'Allow'}</button>
           </div>
-          {error && <div className="card__error">{error}</div>}
+          {error && <div className="card__error" role="alert">{error}</div>}
         </>
       ) : (
         <div className={`card__outcome is-${body.status}`}>
@@ -79,16 +83,17 @@ export function QuestionCard({ row, body }: { row: Row; body: Card<'question'> }
       <div className="question-card__options">
         {body.options.map((opt, i) => {
           const chosen = body.answer === opt;
+          const isSending = busy === String(i);
           return (
             <button
               key={i}
               type="button"
-              className={`question-option${chosen ? ' is-chosen' : ''}`}
+              className={`question-option${chosen || isSending ? ' is-chosen' : ''}`}
               disabled={!pending || !!busy}
               onClick={() => run(String(i), () => api.answer(row.botId, row.seq, opt))}
             >
               <span className="question-option__key">{letters[i] ?? i + 1}</span>
-              <span className="question-option__label">{opt}</span>
+              <span className="question-option__label">{isSending ? `${opt} · Sending…` : opt}</span>
               {chosen && <Icon name="check" size={12} opacity={0.6} style={{ marginLeft: 'auto', marginTop: 6 }} />}
             </button>
           );
@@ -96,10 +101,10 @@ export function QuestionCard({ row, body }: { row: Row; body: Card<'question'> }
       </div>
       {pending && (
         <div className="question-card__foot">
-          <button type="button" className="link-btn" disabled={!!busy} onClick={() => run('dismiss', () => api.dismiss(row.botId, row.seq))}>Skip</button>
+          <button type="button" className="link-btn" disabled={!!busy} onClick={() => run('dismiss', () => api.dismiss(row.botId, row.seq))}>{busy === 'dismiss' ? 'Skipping…' : 'Skip'}</button>
         </div>
       )}
-      {error && <div className="card__error">{error}</div>}
+      {error && <div className="card__error" role="alert">{error}</div>}
     </div>
   );
 }
@@ -139,7 +144,7 @@ export function ConnectCard({ row, body }: { row: Row; body: Card<'connect'> }) 
             <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => run('skip', () => api.dismiss(row.botId, row.seq))}>{busy === 'skip' ? 'Skipping…' : 'Skip'}</button>
             <button type="button" className="btn btn--primary" disabled={!!busy} onClick={connect}>{busy === 'connect' ? 'Opening…' : waiting ? 'Waiting for sign-in…' : 'Connect'}</button>
           </div>
-          {error && <div className="card__error">{error}</div>}
+          {error && <div className="card__error" role="alert">{error}</div>}
         </>
       ) : (
         <div className={`card__outcome is-${body.status}`}>
@@ -202,7 +207,7 @@ export function DraftCard({ body }: { body: Card<'draft'> }) {
           {body.status === 'sent' ? 'Sent' : 'Discarded'}
         </div>
       )}
-      {error && <div className="card__error" style={{ padding: '0 16px 12px' }}>{error}</div>}
+      {error && <div className="card__error" role="alert" style={{ padding: '0 16px 12px' }}>{error}</div>}
     </div>
   );
 }
