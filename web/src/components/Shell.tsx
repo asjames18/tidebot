@@ -38,7 +38,7 @@ export function Shell() {
       if (st.mobileSidebarOpen || st.detailsOpen || st.modal || st.viewerOpen || cfg.botSettings || cfg.appSettings) return;
       const t = e.touches[0];
       const target = e.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry')) return;
+      if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry, .toast--item')) return;
       if (t.clientX <= 28) {
         edgeTouch.current = { x: t.clientX, y: t.clientY, side: 'left' };
       } else if (t.clientX >= window.innerWidth - 28 && st.selectedBotId && cfg.view === 'chat') {
@@ -55,6 +55,8 @@ export function Shell() {
       const dx = t.clientX - start.x;
       const dy = t.clientY - start.y;
       if (Math.abs(dx) < 52 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
       if (start.side === 'left' && dx > 52) {
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
         useStore.getState().set({ mobileSidebarOpen: true, sidebarCollapsed: false });
@@ -128,7 +130,7 @@ export function Shell() {
   return (
     <div className={`app${collapsed ? ' is-sidebar-collapsed' : ''}${detailsOpen && hasBot && view === 'chat' ? ' has-details' : ''}`}>
       <Sidebar />
-      {(mobileSidebarOpen || detailsOpen) && (
+      {(mobileSidebarOpen || (detailsOpen && hasBot && view === 'chat')) && (
         <div
           className="mobile-scrim"
           onClick={(e) => {
