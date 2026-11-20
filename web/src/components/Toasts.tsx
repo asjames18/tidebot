@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 
 function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismiss: (id: number) => void }) {
@@ -78,7 +78,22 @@ function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismis
 /** Global transient notifications (errors and confirmations), stacked top-center. Tap or swipe to dismiss immediately. */
 export function Toasts() {
   const toasts = useStore((s) => s.toasts);
-  if (!toasts.length) return null;
+  const sseConnected = useStore((s) => s.sseConnected);
+  const everConnectedRef = useRef(false);
+  const [reconnecting, setReconnecting] = useState(false);
+
+  useEffect(() => {
+    if (sseConnected) {
+      everConnectedRef.current = true;
+      setReconnecting(false);
+      return;
+    }
+    if (!everConnectedRef.current) return;
+    const t = window.setTimeout(() => setReconnecting(true), 1500);
+    return () => window.clearTimeout(t);
+  }, [sseConnected]);
+
+  if (!toasts.length && !reconnecting) return null;
   const dismiss = (id: number) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(6); } catch {}
@@ -87,6 +102,12 @@ export function Toasts() {
   };
   return (
     <div className="toasts" aria-live="polite">
+      {reconnecting && (
+        <div className="toast" role="status" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span className="status-dot is-attention" aria-hidden="true" style={{ position: 'static', flexShrink: 0 }} />
+          <span>Reconnecting…</span>
+        </div>
+      )}
       {toasts.map((t) => (
         <ToastItem key={t.id} id={t.id} text={t.text} onDismiss={dismiss} />
       ))}
