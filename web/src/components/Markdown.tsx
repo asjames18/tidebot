@@ -8,13 +8,31 @@ function PreBlock({ node: _n, children, ...props }: any) {
   const copy = () => {
     const text = preRef.current?.innerText ?? '';
     if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
+    const onDone = () => {
       setCopied(true);
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(12); } catch { /* ignore haptics unsupported */ }
       }
       setTimeout(() => setCopied(false), 1600);
-    }).catch(() => {});
+    };
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        onDone();
+      } catch { /* ignore */ }
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(onDone).catch(fallback);
+    } else {
+      fallback();
+    }
   };
   return (
     <div className="md-pre-wrap" style={{ position: 'relative' }}>

@@ -9,11 +9,15 @@ import { elapsed } from '../lib/time';
 /** The single live "activity line": avatar mark + shimmering phrase + model tag + elapsed time + quick stop. */
 export function ActivityLine({ bot, live, rows }: { bot: Bot; live: LiveState; rows: Row[] }) {
   const [now, setNow] = useState(Date.now());
+  const [stopping, setStopping] = useState(false);
   const llmConfig = useConfigUI((s) => s.llmConfig);
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+  useEffect(() => {
+    if (!live.isRunning) setStopping(false);
+  }, [live.isRunning, bot.id]);
   const since = live.startedAt ?? live.activity?.since ?? live.awaiting?.since ?? now;
   const tick = Math.floor((now - (live.activity?.since ?? since)) / 6000);
   const phrase = activityPhrase(live, rows, tick);
@@ -37,13 +41,16 @@ export function ActivityLine({ bot, live, rows }: { bot: Bot; live: LiveState; r
           type="button"
           className="bubble__copy-btn"
           style={{ marginLeft: 6 }}
+          disabled={stopping}
           onClick={() => {
+            if (stopping) return;
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-            api.interrupt(bot.id).catch(() => {});
+            setStopping(true);
+            api.interrupt(bot.id).catch(() => setStopping(false));
           }}
           title="Stop operator turn"
         >
-          Stop
+          {stopping ? 'Stopping…' : 'Stop'}
         </button>
       )}
     </div>
