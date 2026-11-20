@@ -279,9 +279,6 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
               className="cfg-btn cfg-btn--secondary"
               confirmLabel="Start fresh"
               onConfirm={async () => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                  try { navigator.vibrate(10); } catch {}
-                }
                 await configApi.fresh(bot.id);
                 flash('Started a new conversation');
               }}
@@ -324,9 +321,6 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
               disabled={bot.isPrimary}
               confirmLabel={`Delete ${bot.name}`}
               onConfirm={async () => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                  try { navigator.vibrate(15); } catch {}
-                }
                 try {
                   await configApi.deleteBot(bot.id);
                   onClose();
@@ -633,10 +627,8 @@ function SkillsTab({ bot, skills, onChange }: { bot: Bot; skills: Skill[] | unde
                 <ConfirmButton
                   className="cfg-icon-btn"
                   title="Delete"
+                  ariaLabel={`Delete ${s.name}`}
                   onConfirm={async () => {
-                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                      try { navigator.vibrate(12); } catch {}
-                    }
                     await configApi.deleteSkill(s.id);
                     onChange();
                   }}
@@ -827,7 +819,7 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
                 </div>
               </div>
               <div className="cfg-item__actions">
-                <ConfirmButton className="cfg-icon-btn" confirmLabel="Forget?" onConfirm={() => remove(m)} title="Forget">
+                <ConfirmButton className="cfg-icon-btn" confirmLabel="Forget?" onConfirm={() => remove(m)} title="Forget" ariaLabel="Forget this memory">
                   <Glyph name="trash" size={14} />
                 </ConfirmButton>
               </div>
@@ -1071,6 +1063,7 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
         <ConfirmButton
           className="cfg-icon-btn"
           title="Delete"
+          ariaLabel={`Delete ${r.name}`}
           onConfirm={() => configApi.deleteRoutine(r.id).then(() => { onFlash('Deleted'); onRefresh(); })}
         >
           <Glyph name="trash" size={14} />

@@ -54,7 +54,7 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
 }
 
 /** Button that asks "Sure?" in place before running a destructive action. */
-export function ConfirmButton({ children, confirmLabel = 'Delete', onConfirm, className = 'cfg-btn cfg-btn--ghost-danger', disabled, title }: { children: ReactNode; confirmLabel?: string; onConfirm: () => Promise<unknown> | void; className?: string; disabled?: boolean; title?: string }) {
+export function ConfirmButton({ children, confirmLabel = 'Delete', onConfirm, className = 'cfg-btn cfg-btn--ghost-danger', disabled, title, ariaLabel }: { children: ReactNode; confirmLabel?: string; onConfirm: () => Promise<unknown> | void; className?: string; disabled?: boolean; title?: string; ariaLabel?: string }) {
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -69,6 +69,7 @@ export function ConfirmButton({ children, confirmLabel = 'Delete', onConfirm, cl
         className={className}
         disabled={disabled}
         title={title}
+        aria-label={ariaLabel}
         onClick={() => {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
           setAsking(true);
@@ -83,6 +84,7 @@ export function ConfirmButton({ children, confirmLabel = 'Delete', onConfirm, cl
       type="button"
       className="cfg-btn cfg-btn--danger"
       disabled={busy}
+      aria-label={ariaLabel ? `Confirm ${ariaLabel}` : undefined}
       onClick={async () => {
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
         setBusy(true);
