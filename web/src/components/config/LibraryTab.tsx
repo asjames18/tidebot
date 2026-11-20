@@ -6,7 +6,7 @@ import { useStore } from '../../store';
 import { Icon } from '../Icon';
 import { Markdown } from '../Markdown';
 import { Glyph } from './glyphs';
-import { formatBytes } from './ui';
+import { ConfirmButton, formatBytes } from './ui';
 
 /** Files the bot saved under its workspace or /root/grokbot/files/<botId>. */
 export function LibraryTab({ bot }: { bot: Bot }) {
@@ -187,11 +187,11 @@ export function LibraryTab({ bot }: { bot: Bot }) {
 
         {preview && (
           <div className="panel-card" style={{ padding: 10, gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <strong style={{ fontSize: 12.5, color: 'var(--color-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
+              <strong style={{ fontSize: 12.5, color: 'var(--color-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: '1 1 0' }}>
                 {preview.name}
               </strong>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 <button
                   type="button"
                   className="link-btn link-btn--small"
@@ -235,7 +235,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
                   onChange={(e) => setPreview({ ...preview, content: e.target.value })}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-                  <button type="button" className="cfg-btn cfg-btn--danger" onClick={() => void removeFile(preview.rel)}>Delete</button>
+                  <ConfirmButton confirmLabel="Confirm delete" onConfirm={() => removeFile(preview.rel)}>Delete</ConfirmButton>
                   <button type="button" className="cfg-btn cfg-btn--primary" onClick={() => void savePreviewEdit()}>Save Changes</button>
                 </div>
               </>

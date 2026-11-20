@@ -46,7 +46,7 @@ export function CreateGroupModal() {
           <button type="button" className="modal__close" onClick={close} aria-label="Close"><Icon name="close" size={14} opacity={0.68} /></button>
         </div>
         <div className="create-modal__body" style={{ alignItems: 'stretch' }}>
-          <input className="text-input create-modal__name" placeholder="War room name (e.g. Product Launch, Security Triage)" value={name} onChange={(e) => setName(e.target.value)} autoFocus aria-label="War room name" />
+          <input className="text-input create-modal__name" placeholder="War room name (e.g. Product Launch, Security Triage)" value={name} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="War room name" />
           <div className="section-label" style={{ marginTop: 14 }}>Select at least 2 Operators ({picked.length} selected)</div>
           <div className="group-pick">
             {bots.map((b) => (

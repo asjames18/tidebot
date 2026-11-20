@@ -151,7 +151,7 @@ export function CreateBotModal() {
             value={name}
             maxLength={60}
             onChange={(e) => setName(e.target.value)}
-            autoFocus
+            autoFocus={typeof window === 'undefined' || window.innerWidth > 900}
             aria-label="Bot name"
           />
           <input
