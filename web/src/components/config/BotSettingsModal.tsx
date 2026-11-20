@@ -405,6 +405,7 @@ function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: s
   if (!loaded) return null;
 
   const saveCheckins = async (nextEnabled = enabled, nextTimesStr = timesStr, nextTz = timezone) => {
+    if (saving) return;
     setSaving(true);
     try {
       const times = nextTimesStr.split(',').map((t) => t.trim()).filter(Boolean);
@@ -421,6 +422,7 @@ function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: s
   };
 
   const triggerNow = async () => {
+    if (running) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
@@ -451,19 +453,14 @@ function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: s
               type="button"
               className="cfg-btn cfg-btn--secondary"
               disabled={running}
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-                triggerNow();
-              }}
+              onClick={() => void triggerNow()}
             >
               {running ? 'Checking…' : 'Check in now'}
             </button>
             <Switch
               on={enabled}
+              disabled={saving}
               onChange={(v) => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                  try { navigator.vibrate(10); } catch {}
-                }
                 setEnabled(v);
                 void saveCheckins(v, timesStr, timezone);
               }}
@@ -475,12 +472,12 @@ function CheckinsSection({ botName, onFlash }: { botName: string; onFlash: (t: s
           <div className="cfg-row" style={{ flexWrap: 'wrap', gap: 10 }}>
             <div style={{ flex: '1 1 180px' }}>
               <div className="cfg-field__label" style={{ marginBottom: 4 }}>Times (24h HH:MM)</div>
-              <input className="text-input" value={timesStr} onChange={(e) => setTimesStr(e.target.value)} placeholder="09:00, 16:30" aria-label="Check-in times" />
+              <input className="text-input" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={timesStr} onChange={(e) => setTimesStr(e.target.value)} placeholder="09:00, 16:30" aria-label="Check-in times" />
             </div>
             <div style={{ flex: '1 1 180px' }}>
               <div className="cfg-field__label" style={{ marginBottom: 4 }}>Timezone</div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <input className="text-input" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="America/New_York" aria-label="Check-in timezone" />
+                <input className="text-input" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="done" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="America/New_York" aria-label="Check-in timezone" />
                 {timezone !== localTz && (
                   <button
                     type="button"
