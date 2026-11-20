@@ -20,9 +20,12 @@ export function ComputerViewer() {
   const [mode, setMode] = useState<Mode>('watch');
   const [conn, setConn] = useState<Conn>('connecting');
   const [attempt, setAttempt] = useState(0);
+  const topSwipeY = useRef<number | null>(null);
+  const [dragY, setDragY] = useState(0);
   const running = computer?.status === 'running';
   const close = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    setDragY(0);
     set({ viewerOpen: false });
   };
 
@@ -69,12 +72,42 @@ export function ComputerViewer() {
   const busy = computer?.status === 'starting' || computer?.status === 'resuming' || computer?.status === 'creating';
 
   return (
-    <div className="viewer" role="dialog" aria-modal="true" aria-label={`${bot.name}'s computer`} style={botVars(bot.avatarColor)}>
+    <div
+      className="viewer"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${bot.name}'s computer`}
+      style={{
+        ...botVars(bot.avatarColor),
+        ...(dragY > 0 ? { transform: `translate3d(0, ${dragY}px, 0)`, transition: 'none' } : undefined),
+      }}
+    >
       <div
         className="viewer__scrim"
         onClick={mode === 'watch' ? (e) => { e.stopPropagation(); close(); } : undefined}
       />
-      <div className="viewer__top">
+      <div
+        className="viewer__top"
+        onTouchStart={(e) => {
+          if (mode !== 'watch' || window.innerWidth > 900 || e.touches.length !== 1) return;
+          topSwipeY.current = e.touches[0].clientY;
+        }}
+        onTouchMove={(e) => {
+          if (topSwipeY.current === null) return;
+          const dy = Math.max(0, e.touches[0].clientY - topSwipeY.current);
+          if (dy > 6) setDragY(dy);
+        }}
+        onTouchEnd={() => {
+          if (topSwipeY.current === null) return;
+          topSwipeY.current = null;
+          if (dragY > 64) close();
+          else setDragY(0);
+        }}
+        onTouchCancel={() => {
+          topSwipeY.current = null;
+          setDragY(0);
+        }}
+      >
         <div className="viewer__title">
           <BotAvatarFor bot={bot} size={24} />
           <span>{bot.name}'s computer</span>
