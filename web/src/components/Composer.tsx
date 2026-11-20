@@ -213,11 +213,17 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           <button
             type="button"
             className={`composer-quick-chip${bot.effort === 'low' ? ' is-active' : ''}`}
+            aria-pressed={bot.effort === 'low'}
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              const prev = bot.effort;
+              useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: 'low' } : x)) }));
+              useStore.getState().notify(`${bot.name}: Fast mode`);
               configApi.updateBot(bot.id, { effort: 'low' }).then(({ bot: updated }) => {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
-              }).catch(() => {});
+              }).catch(() => {
+                useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: prev } : x)) }));
+              });
             }}
             title="Fast Mode: Low reasoning latency"
           >
@@ -226,11 +232,17 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           <button
             type="button"
             className={`composer-quick-chip${bot.effort === 'high' ? ' is-active' : ''}`}
+            aria-pressed={bot.effort === 'high'}
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              const prev = bot.effort;
+              useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: 'high' } : x)) }));
+              useStore.getState().notify(`${bot.name}: Deep reasoning mode`);
               configApi.updateBot(bot.id, { effort: 'high' }).then(({ bot: updated }) => {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
-              }).catch(() => {});
+              }).catch(() => {
+                useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: prev } : x)) }));
+              });
             }}
             title="Deep Reasoning Mode"
           >
@@ -241,6 +253,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             className="composer-quick-chip composer-quick-chip--free"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              if (window.innerWidth <= 900) ref.current?.blur();
               useConfigUI.getState().openAppSettings('models');
             }}
             title="OpenRouter Free Models Catalog"
@@ -252,6 +265,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             className="composer-quick-chip"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              if (window.innerWidth <= 900) ref.current?.blur();
               useConfigUI.getState().setView('tasks');
             }}
             title="Switch to Tasks View"
@@ -263,6 +277,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             className="composer-quick-chip"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              if (window.innerWidth <= 900) ref.current?.blur();
               setModal('apps');
             }}
             title="Open Apps Marketplace"
