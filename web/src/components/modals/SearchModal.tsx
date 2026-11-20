@@ -204,8 +204,12 @@ export function SearchModal() {
           run: () => {
             close();
             api.cloneBot(selectedBot.id).then(({ bot }) => {
+              useConfigUI.getState().setView('chat');
               useStore.getState().loadBots().then(() => useStore.getState().selectBot(bot.id));
-            }).catch(() => {});
+              useStore.getState().notify(`Cloned ${selectedBot.name} → ${bot.name}`);
+            }).catch(() => {
+              useStore.getState().notify(`Could not clone ${selectedBot.name}`);
+            });
           },
         },
         {
@@ -229,6 +233,8 @@ export function SearchModal() {
           const styles: ShaderStyle[] = ['aurora', 'plasma', 'obsidian', 'vortex', 'grid'];
           const cur = llmConfig?.shaderStyle ?? 'aurora';
           const next = styles[(styles.indexOf(cur) + 1) % styles.length];
+          if (llmConfig) setLlmConfig({ ...llmConfig, shaderStyle: next });
+          useStore.getState().notify(`Shader: ${next.toUpperCase()}`);
           configApi.saveLlmConfig({ shaderStyle: next }).then(setLlmConfig).catch(() => {});
           close();
         },
@@ -283,10 +289,14 @@ export function SearchModal() {
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, Math.max(0, items.length - 1))); }
             else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
-            else if (e.key === 'Enter' && items[active]) {
+            else if (e.key === 'Enter') {
               e.preventDefault();
-              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-              items[active].run();
+              if (items[active]) {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                items[active].run();
+              } else if (window.innerWidth <= 900) {
+                inputRef.current?.blur();
+              }
             }
           }}
         />
