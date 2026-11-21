@@ -397,6 +397,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             aria-pressed={dictation.state === 'recording'}
             title={dictation.state === 'recording' ? 'Release or click to stop · Esc cancels' : dictation.state === 'transcribing' ? 'Transcribing…' : 'Hold to dictate, or click to start'}
             disabled={dictation.state === 'transcribing'}
+            style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
             onPointerDown={dictation.onPointerDown}
             onPointerUp={dictation.onPointerUp}
             onPointerCancel={dictation.onPointerUp}
@@ -422,9 +423,10 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             <button
               type="button"
               className="composer__cta"
+              disabled={stopping}
               onClick={stop}
-              aria-label="Stop"
-              title="Stop"
+              aria-label={stopping ? 'Stopping' : 'Stop'}
+              title={stopping ? 'Stopping…' : 'Stop'}
             >
               <Icon name="stop" size={14} />
             </button>
@@ -468,7 +470,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             className="composer-telemetry__chip"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-              const cur = bot.effort ?? 'low';
+              const cur = bot.effort ?? 'medium';
               const next = EFFORT_CYCLE[(EFFORT_CYCLE.indexOf(cur) + 1) % EFFORT_CYCLE.length];
               useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: next } : x)) }));
               useStore.getState().notify(`${bot.name}: ${next.toUpperCase()} effort`);
@@ -476,6 +478,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
               }).catch(() => {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: cur } : x)) }));
+                useStore.getState().notify('Could not update reasoning effort');
               });
             }}
             title="Click to cycle reasoning effort (Low = Fastest)"
