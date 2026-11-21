@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ShaderStyle } from '@shared/types';
 
 const VERT_SRC = `
@@ -127,6 +127,7 @@ export function ShaderCanvas({
   opacity?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [restoreTick, setRestoreTick] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -172,15 +173,12 @@ export function ShaderCanvas({
     let raf = 0;
     let lastFrame = 0;
     let visible = true;
+    let contextLost = false;
     const start = performance.now();
     const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-    const io = !reducedMotion && typeof IntersectionObserver !== 'undefined'
-      ? new IntersectionObserver(([entry]) => { visible = entry?.isIntersecting ?? true; })
-      : null;
-    io?.observe(canvas);
-
     const drawFrame = (elapsedSec: number) => {
+      if (contextLost || gl.isContextLost()) return;
       const scale = typeof window !== 'undefined' && window.innerWidth <= 900 ? 0.5 : 0.6;
       const w = Math.max(1, Math.floor(canvas.clientWidth * scale));
       const h = Math.max(1, Math.floor(canvas.clientHeight * scale));
@@ -194,27 +192,71 @@ export function ShaderCanvas({
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
 
-    if (reducedMotion) {
-      drawFrame(4.0);
-    } else {
-      const render = (nowMs: number) => {
-        raf = requestAnimationFrame(render);
-        if (!visible || document.hidden) return;
-        if (nowMs - lastFrame < 33) return; // 30fps cap for cool, quiet GPU usage
-        lastFrame = nowMs;
-        drawFrame((nowMs - start) * 0.001);
-      };
-      raf = requestAnimationFrame(render);
-    }
-    return () => {
-      cancelAnimationFrame(raf);
-      io?.disconnect();
-      gl.deleteBuffer(buf);
-      gl.deleteProgram(prog);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
+    const stopLoop = () => {
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
     };
-  }, [style]);
+
+    const render = (nowMs: number) => {
+      raf = 0;
+      if (!visible || document.hidden || contextLost) return;
+      raf = requestAnimationFrame(render);
+      if (nowMs - lastFrame < 33) return; // 30fps cap for cool, quiet GPU usage
+      lastFrame = nowMs;
+      drawFrame((nowMs - start) * 0.001);
+    };
+
+    const startLoop = () => {
+      if (reducedMotion || raf || !visible || document.hidden || contextLost) return;
+      raf = requestAnimationFrame(render);
+    };
+
+    const io = !reducedMotion && typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver(([entry]) => {
+          visible = entry?.isIntersecting ?? true;
+          if (visible) startLoop(); else stopLoop();
+        })
+      : null;
+    io?.observe(canvas);
+
+    const onVisibility = () => {
+      if (document.hidden) stopLoop();
+      else if (reducedMotion) drawFrame(4.0);
+      else startLoop();
+    };
+    const onResize = () => { if (reducedMotion) drawFrame(4.0); };
+    const onContextLost = (e: Event) => {
+      e.preventDefault();
+      contextLost = true;
+      stopLoop();
+    };
+    const onContextRestored = () => {
+      contextLost = false;
+      setRestoreTick((n) => n + 1);
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    if (reducedMotion) window.addEventListener('resize', onResize);
+    canvas.addEventListener('webglcontextlost', onContextLost);
+    canvas.addEventListener('webglcontextrestored', onContextRestored);
+
+    if (reducedMotion) drawFrame(4.0);
+    else startLoop();
+
+    return () => {
+      stopLoop();
+      io?.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (reducedMotion) window.removeEventListener('resize', onResize);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      canvas.removeEventListener('webglcontextrestored', onContextRestored);
+      if (!gl.isContextLost()) {
+        gl.deleteBuffer(buf);
+        gl.deleteProgram(prog);
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
+      }
+    };
+  }, [style, restoreTick]);
 
   return (
     <canvas
