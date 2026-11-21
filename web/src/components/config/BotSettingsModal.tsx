@@ -1114,6 +1114,9 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
   const [prompt, setPrompt] = useState(routine?.prompt ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const schedRef = useRef<HTMLInputElement>(null);
+  const tzRef = useRef<HTMLInputElement>(null);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
   const isEvent = schedule.startsWith('event:');
   const can = name.trim() && schedule.trim() && prompt.trim() && !busy;
 
@@ -1128,9 +1131,15 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
     try {
       if (routine) {
         await configApi.updateRoutine(routine.id, { name: name.trim(), schedule: schedule.trim(), timezone: timezone.trim() || 'UTC', prompt: prompt.trim() });
+        if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+          document.activeElement.blur();
+        }
         onDone('Routine updated');
       } else {
         await configApi.createRoutine(botId, { name: name.trim(), schedule: schedule.trim(), timezone: timezone.trim() || 'UTC', prompt: prompt.trim() });
+        if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+          document.activeElement.blur();
+        }
         onDone('Routine created');
       }
     } catch (err) {
@@ -1141,7 +1150,22 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
 
   return (
     <form className="cfg-editor" onSubmit={save}>
-      <input className="text-input" enterKeyHint="next" placeholder="Routine name, e.g. Morning briefing" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="Routine name" />
+      <input
+        className="text-input"
+        enterKeyHint="next"
+        placeholder="Routine name, e.g. Morning briefing"
+        value={name}
+        maxLength={80}
+        onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !prompt.trim()) {
+            e.preventDefault();
+            (isEvent ? promptRef.current : schedRef.current)?.focus();
+          }
+        }}
+        autoFocus={typeof window === 'undefined' || window.innerWidth > 900}
+        aria-label="Routine name"
+      />
       {!isEvent && (
         <div className="cfg-chips-wrap">
           {CRON_PRESETS.map((p) => (
@@ -1155,6 +1179,7 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
                   try { navigator.vibrate(8); } catch {}
                 }
                 if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
+                if (error) setError(null);
                 setSchedule(p.cron);
               }}
             >
@@ -1164,10 +1189,54 @@ function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Ro
         </div>
       )}
       <div className="cfg-routine-fields">
-        <input className="text-input" enterKeyHint="next" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Cron schedule (e.g. 0 9 * * 1-5)" value={schedule} disabled={isEvent} onChange={(e) => setSchedule(e.target.value)} aria-label="Cron schedule" />
-        <input className="text-input" enterKeyHint="next" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Timezone (e.g. America/New_York)" value={timezone} disabled={isEvent} onChange={(e) => setTimezone(e.target.value)} aria-label="Routine timezone" />
+        <input
+          ref={schedRef}
+          className="text-input"
+          enterKeyHint="next"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder="Cron schedule (e.g. 0 9 * * 1-5)"
+          value={schedule}
+          disabled={isEvent}
+          onChange={(e) => { setSchedule(e.target.value); if (error) setError(null); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !prompt.trim()) {
+              e.preventDefault();
+              tzRef.current?.focus();
+            }
+          }}
+          aria-label="Cron schedule"
+        />
+        <input
+          ref={tzRef}
+          className="text-input"
+          enterKeyHint="next"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder="Timezone (e.g. America/New_York)"
+          value={timezone}
+          disabled={isEvent}
+          onChange={(e) => { setTimezone(e.target.value); if (error) setError(null); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !prompt.trim()) {
+              e.preventDefault();
+              promptRef.current?.focus();
+            }
+          }}
+          aria-label="Routine timezone"
+        />
       </div>
-      <textarea className="text-input cfg-textarea" rows={4} placeholder="What should this Bot do each time the routine runs?" value={prompt} onChange={(e) => setPrompt(e.target.value)} aria-label="Routine instructions" />
+      <textarea
+        ref={promptRef}
+        className="text-input cfg-textarea"
+        rows={4}
+        placeholder="What should this Bot do each time the routine runs?"
+        value={prompt}
+        onChange={(e) => { setPrompt(e.target.value); if (error) setError(null); }}
+        aria-label="Routine instructions"
+      />
       {error && <div className="cfg-error" role="alert">{error}</div>}
       <div className="cfg-editor__actions">
         <button
@@ -1196,7 +1265,7 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
     setToggling(true);
     setEnabled(v);
     try { await configApi.setRoutine(r.id, v); onFlash(v ? 'Resumed' : 'Paused'); onRefresh(); }
-    catch { setEnabled(!v); }
+    catch { setEnabled(!v); onFlash('Could not update routine'); }
     finally { setToggling(false); }
   };
   return (
@@ -1246,7 +1315,7 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
           className="cfg-icon-btn"
           title="Delete"
           ariaLabel={`Delete ${r.name}`}
-          onConfirm={() => configApi.deleteRoutine(r.id).then(() => { onFlash('Deleted'); onRefresh(); })}
+          onConfirm={() => configApi.deleteRoutine(r.id).then(() => { onFlash('Deleted'); onRefresh(); }).catch((e) => onFlash((e as Error).message))}
         >
           <Glyph name="trash" size={14} />
         </ConfirmButton>
