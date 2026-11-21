@@ -776,6 +776,8 @@ function SkillEditor({ botId, skill, onDone }: { botId: string; skill?: Skill; o
   const [body, setBody] = useState(skill?.body ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const descRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const can = name.trim() && body.trim() && !busy;
   const save = async () => {
     if (!can) return;
@@ -786,14 +788,55 @@ function SkillEditor({ botId, skill, onDone }: { botId: string; skill?: Skill; o
     try {
       if (skill) await configApi.updateSkill(skill.id, { name, description, body });
       else await configApi.createSkill(botId, { name, description, body });
+      if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        document.activeElement.blur();
+      }
       onDone();
     } catch (e) { setError((e as Error).message); setBusy(false); }
   };
   return (
     <form className="cfg-editor" onSubmit={(e) => { e.preventDefault(); save(); }}>
-      <input className="text-input" enterKeyHint="next" placeholder="Skill name, e.g. Weekly report" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={typeof window === 'undefined' || window.innerWidth > 900} aria-label="Skill name" />
-      <input className="text-input" enterKeyHint="next" placeholder="When to use it (optional)" value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} aria-label="Skill description" />
-      <textarea className="text-input cfg-textarea cfg-textarea--tall" rows={8} placeholder={'Write the steps to follow:\n1. …\n2. …'} value={body} onChange={(e) => setBody(e.target.value)} aria-label="Skill steps" />
+      <input
+        className="text-input"
+        enterKeyHint="next"
+        placeholder="Skill name, e.g. Weekly report"
+        value={name}
+        maxLength={80}
+        onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !body.trim()) {
+            e.preventDefault();
+            descRef.current?.focus();
+          }
+        }}
+        autoFocus={typeof window === 'undefined' || window.innerWidth > 900}
+        aria-label="Skill name"
+      />
+      <input
+        ref={descRef}
+        className="text-input"
+        enterKeyHint="next"
+        placeholder="When to use it (optional)"
+        value={description}
+        maxLength={300}
+        onChange={(e) => { setDescription(e.target.value); if (error) setError(null); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !body.trim()) {
+            e.preventDefault();
+            bodyRef.current?.focus();
+          }
+        }}
+        aria-label="Skill description"
+      />
+      <textarea
+        ref={bodyRef}
+        className="text-input cfg-textarea cfg-textarea--tall"
+        rows={8}
+        placeholder={'Write the steps to follow:\n1. …\n2. …'}
+        value={body}
+        onChange={(e) => { setBody(e.target.value); if (error) setError(null); }}
+        aria-label="Skill steps"
+      />
       {error && <div className="cfg-error" role="alert">{error}</div>}
       <div className="cfg-editor__actions">
         <button
@@ -831,7 +874,13 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
   const memories = useMemo(() => (data?.memories ?? []).filter((m) => !hidden.has(m.id) && (!q || m.text.toLowerCase().includes(q.toLowerCase()))), [data, hidden, q]);
   const remove = async (m: Memory) => {
     setHidden((h) => new Set(h).add(m.id));
-    try { await configApi.deleteMemory(m.id); onChange(); } catch { setHidden((h) => { const n = new Set(h); n.delete(m.id); return n; }); }
+    try {
+      await configApi.deleteMemory(m.id);
+      onChange();
+    } catch {
+      setHidden((h) => { const n = new Set(h); n.delete(m.id); return n; });
+      say('Could not delete memory');
+    }
   };
   const addMemory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -844,6 +893,9 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
     try {
       await configApi.addMemory(bot.id, clean);
       setNewText('');
+      if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && document.activeElement.tagName === 'INPUT') {
+        document.activeElement.blur();
+      }
       onChange();
       say('Memory saved');
     } catch (err) {
@@ -853,6 +905,7 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
     }
   };
   const runConsolidate = async () => {
+    if (maintBusy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
@@ -868,6 +921,7 @@ function MemoriesTab({ bot, data, onChange }: { bot: Bot; data: BotSettingsBundl
     }
   };
   const runCompact = async () => {
+    if (maintBusy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
