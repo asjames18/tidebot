@@ -28,6 +28,7 @@ export function CreateGroupModal() {
   const toggle = (id: string) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     blurInputOnMobile();
+    if (error) setError(null);
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   };
 
@@ -88,9 +89,11 @@ export function CreateGroupModal() {
           <input
             className="text-input create-modal__name"
             enterKeyHint="done"
+            autoCapitalize="words"
+            maxLength={60}
             placeholder="War room name (e.g. Product Launch, Security Triage)"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && window.innerWidth <= 900 && picked.length < 2) {
                 e.preventDefault();
@@ -109,6 +112,7 @@ export function CreateGroupModal() {
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
                   blurInputOnMobile();
+                  if (error) setError(null);
                   setPicked(allPicked ? [] : bots.map((b) => b.id));
                 }}
               >
@@ -116,6 +120,21 @@ export function CreateGroupModal() {
               </button>
             )}
           </div>
+          {bots.length < 2 && (
+            <div className="empty-state" style={{ padding: '12px 0', textAlign: 'left' }}>
+              You need at least 2 operators to start a war room.{' '}
+              <button
+                type="button"
+                className="link-btn link-btn--small"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  setModal('create');
+                }}
+              >
+                Create an Operator
+              </button>
+            </div>
+          )}
           <div className="group-pick">
             {bots.map((b) => (
               <button key={b.id} type="button" role="checkbox" aria-checked={picked.includes(b.id)} className={`group-pick__opt${picked.includes(b.id) ? ' is-active' : ''}`} onClick={() => toggle(b.id)}>
@@ -125,7 +144,7 @@ export function CreateGroupModal() {
               </button>
             ))}
           </div>
-          {error && <div className="card__error">{error}</div>}
+          {error && <div className="card__error" role="alert">{error}</div>}
         </div>
         <div className="modal__footer">
           <button

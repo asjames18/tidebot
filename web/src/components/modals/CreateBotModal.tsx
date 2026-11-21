@@ -91,8 +91,11 @@ export function CreateBotModal() {
   const canCreate = name.trim().length > 0 && !busy;
 
   const blurInputOnMobile = () => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) {
-      document.activeElement.blur();
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const active = document.activeElement;
+      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) {
+        active.blur();
+      }
     }
   };
 
@@ -107,6 +110,7 @@ export function CreateBotModal() {
     setShape(t.shape);
     setColor(t.color);
     setMode(t.mode);
+    setError(null);
     el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   };
 
@@ -192,21 +196,23 @@ export function CreateBotModal() {
           </div>
           <input
             className="text-input create-modal__name"
-            enterKeyHint="next"
+            enterKeyHint="done"
+            autoCapitalize="words"
             placeholder="Give your Bot a name"
             value={name}
             maxLength={60}
-            onChange={(e) => { setActiveTemplate(null); setName(e.target.value); }}
+            onChange={(e) => { setActiveTemplate(null); setName(e.target.value); if (error) setError(null); }}
             autoFocus={typeof window === 'undefined' || window.innerWidth > 900}
             aria-label="Bot name"
           />
           <input
             className="text-input create-modal__name"
-            enterKeyHint="next"
+            enterKeyHint="done"
+            autoCapitalize="sentences"
             placeholder="Role or label (optional, e.g. Research)"
             value={label}
             maxLength={60}
-            onChange={(e) => setLabel(e.target.value)}
+            onChange={(e) => { setLabel(e.target.value); if (error) setError(null); }}
             aria-label="Bot label"
             style={{ marginTop: -4 }}
           />
@@ -298,7 +304,7 @@ export function CreateBotModal() {
               <span className="mode-pick__sub">Works with your whole team</span>
             </button>
           </div>
-          {error && <div className="card__error">{error}</div>}
+          {error && <div className="card__error" role="alert">{error}</div>}
         </div>
         <div className="modal__footer">
           <button
