@@ -72,7 +72,10 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
   const copyMsg = () => {
     if (!b.text) return;
     void copyText(b.text).then((ok) => {
-      if (!ok) return;
+      if (!ok) {
+        useStore.getState().notify('Could not copy message');
+        return;
+      }
       setCopied(true);
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(12); } catch {}
@@ -281,6 +284,7 @@ const RENDER_WINDOW = 80;
 export function Transcript({ bot, rows, live, loaded }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
+  const jumpingUntilRef = useRef(0);
   const touchStartYRef = useRef<number | null>(null);
   const [showJump, setShowJump] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -322,6 +326,8 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
   const onScroll = () => {
     const el = scrollRef.current!;
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (Date.now() < jumpingUntilRef.current && dist >= 40) return;
+    if (dist < 40) jumpingUntilRef.current = 0;
     stick.current = dist < 40;
     setShowJump(dist > 200);
   };
@@ -352,6 +358,7 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
+    jumpingUntilRef.current = Date.now() + 500;
     stick.current = true;
     setShowJump(false);
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
@@ -432,6 +439,8 @@ function EmptyChat({ bot }: { bot: Bot }) {
   const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
   const shaderStyle = llmConfig?.shaderStyle || 'aurora';
 
+  useEffect(() => { setSendingIdx(null); }, [bot.id]);
+
   const quickPrompts = [
     `Search the web for the latest AI engineering news and summarize top 3 items`,
     `Set up a weekday 8:30 AM routine to brief me on my priorities`,
@@ -481,6 +490,9 @@ function EmptyChat({ bot }: { bot: Bot }) {
                 onClick={() => {
                   if (sendingIdx !== null) return;
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && document.activeElement.classList.contains('composer__input')) {
+                    document.activeElement.blur();
+                  }
                   setSendingIdx(i);
                   api.send(bot.id, p)
                     .catch(() => useStore.getState().notify('Message failed to send'))
