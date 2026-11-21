@@ -61,14 +61,23 @@ export function useDictation(onText: (text: string) => void, onError: (msg: stri
     sr.onerror = (e: any) => {
       if (e.error === 'aborted' || s.cancelled) return;
       speech.current = null;
+      toggleMode.current = false;
       setState('idle');
-      cb.current.onError(e.error === 'not-allowed' ? 'Microphone access was denied.' : 'Dictation failed — try again.');
+      const msg =
+        e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'Microphone access was denied.'
+        : e.error === 'no-speech' ? 'No speech detected — try again.'
+        : e.error === 'audio-capture' ? 'No microphone found.'
+        : 'Dictation failed — try again.';
+      cb.current.onError(msg);
     };
     sr.onend = () => {
       if (speech.current !== s) return;
       speech.current = null;
       toggleMode.current = false;
       setState('idle');
+      if (!s.cancelled && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(10); } catch {}
+      }
       const text = s.text.trim();
       if (!s.cancelled && text && Date.now() - s.downAt >= 250) cb.current.onText(text);
     };
@@ -128,7 +137,7 @@ export function useDictation(onText: (text: string) => void, onError: (msg: stri
 
   // Pointer handlers: press-and-hold records until release; a quick tap toggles recording on, tap again stops.
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || !e.isPrimary) return;
     e.preventDefault();
     try { (e.currentTarget as Element).setPointerCapture(e.pointerId); } catch { /* ignore */ }
     if ((rec.current || speech.current) && toggleMode.current) { finish(); return; }
@@ -154,12 +163,17 @@ export function useDictation(onText: (text: string) => void, onError: (msg: stri
     else { toggleMode.current = true; void begin(); }
   }, [begin, finish]);
 
-  // Esc cancels; unmount stops.
+  // Esc cancels; backgrounding on mobile stops and releases the mic; unmount cancels.
   useEffect(() => {
     if (state !== 'recording') return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') finish(true); };
+    const onHidden = () => { if (document.visibilityState === 'hidden') finish(); };
     window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
+    document.addEventListener('visibilitychange', onHidden);
+    return () => {
+      window.removeEventListener('keydown', k);
+      document.removeEventListener('visibilitychange', onHidden);
+    };
   }, [state, finish]);
   useEffect(() => () => finish(true), [finish]);
 
