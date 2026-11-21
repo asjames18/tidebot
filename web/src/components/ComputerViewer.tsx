@@ -27,6 +27,19 @@ export function ComputerViewer() {
   const running = computer?.status === 'running';
   const busy = computer?.status === 'starting' || computer?.status === 'resuming' || computer?.status === 'creating';
 
+  const blurMobileKeyboard = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'CANVAS')) {
+        ae.blur();
+      }
+    }
+  };
+
+  useEffect(() => {
+    blurMobileKeyboard();
+  }, []);
+
   useEffect(() => {
     if (running || busy) setWaking(false);
   }, [running, busy]);
@@ -48,6 +61,7 @@ export function ComputerViewer() {
   }, [running, conn]);
   const close = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    blurMobileKeyboard();
     setDragY(0);
     set({ viewerOpen: false });
   };
@@ -113,11 +127,18 @@ export function ComputerViewer() {
         style={mode === 'watch' ? { touchAction: 'none' } : undefined}
         onTouchStart={(e) => {
           if (mode !== 'watch' || window.innerWidth > 900 || e.touches.length !== 1) return;
+          if ((e.target as HTMLElement | null)?.closest('button')) return;
           topSwipeX.current = e.touches[0].clientX;
           topSwipeY.current = e.touches[0].clientY;
         }}
         onTouchMove={(e) => {
           if (topSwipeY.current === null || topSwipeX.current === null) return;
+          if (e.touches.length !== 1 || !e.touches[0]) {
+            topSwipeY.current = null;
+            topSwipeX.current = null;
+            setDragY(0);
+            return;
+          }
           const dx = Math.abs(e.touches[0].clientX - topSwipeX.current);
           const dy = e.touches[0].clientY - topSwipeY.current;
           if (dx > Math.abs(dy) && dragY === 0) {
@@ -153,7 +174,7 @@ export function ComputerViewer() {
           <>
             <div ref={screenRef} className={`viewer__screen${mode === 'control' ? ' is-control' : ''}`} />
             {conn !== 'connected' && (
-              <div className="viewer__overlay">
+              <div className="viewer__overlay" role={conn === 'connecting' ? 'status' : 'alert'}>
                 {conn === 'connecting' ? 'Connecting to the screen…' : (
                   <>
                     <span>{conn === 'error' ? 'Couldn’t reach the screen.' : 'Disconnected.'}</span>
@@ -223,6 +244,8 @@ export function ComputerViewer() {
                 className="btn btn--light"
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  try { rfbRef.current?.blur(); } catch {}
+                  blurMobileKeyboard();
                   setMode('watch');
                 }}
               >
