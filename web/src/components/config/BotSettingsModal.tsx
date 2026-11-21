@@ -49,6 +49,10 @@ export function BotSettingsModal() {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) ae.blur();
+    }
     close();
   }, [close]);
 
@@ -57,6 +61,10 @@ export function BotSettingsModal() {
     configApi.settings(target.botId).then((d) => { setData(d); setLoadError(null); }).catch((e) => setLoadError(e.message));
   }, [target?.botId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    setData(null);
+    setLoadError(null);
+  }, [target?.botId]);
   useEffect(() => { reload(); }, [reload, memVersion]);
   useEffect(() => { if (target) useStore.getState().loadRoutines(target.botId).catch(() => {}); }, [target?.botId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -84,15 +92,7 @@ export function BotSettingsModal() {
           <BotAvatarFor bot={bot} size={24} />
           <span className="modal__title">{bot.name}</span>
         </div>
-        <button
-          type="button"
-          className="modal__close"
-          onClick={() => {
-            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-            onClose();
-          }}
-          aria-label="Close"
-        >
+        <button type="button" className="modal__close" onClick={onClose} aria-label="Close">
           <Icon name="close" size={14} opacity={0.68} />
         </button>
       </div>

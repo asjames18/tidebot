@@ -83,6 +83,8 @@ export function Sidebar() {
   useEffect(() => {
     if (!mobileOpen) {
       setAccountMenu(false);
+      setDragging(false);
+      setDragX(0);
       return;
     }
     const selectedEl = scrollRef.current?.querySelector<HTMLElement>('.bot-row.is-selected, .pinned__tile.is-selected');
@@ -90,7 +92,7 @@ export function Sidebar() {
   }, [mobileOpen]);
 
   const onTouchStart = (e: React.TouchEvent) => {
-    if (!mobileOpen) return;
+    if (!mobileOpen || e.touches.length !== 1) return;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     swipeLocked.current = null;
@@ -102,7 +104,10 @@ export function Sidebar() {
     if (!swipeLocked.current) {
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
       swipeLocked.current = Math.abs(dx) > Math.abs(dy) * 1.2 && dx < 0 ? 'x' : 'y';
-      if (swipeLocked.current === 'x') setDragging(true);
+      if (swipeLocked.current === 'x') {
+        setAccountMenu(false);
+        setDragging(true);
+      }
     }
     if (swipeLocked.current === 'x') {
       setDragX(Math.min(0, dx));
@@ -135,6 +140,7 @@ export function Sidebar() {
   return (
     <aside
       className={`sidebar${collapsed ? ' is-collapsed' : ''}${mobileOpen ? ' is-mobile-open' : ''}`}
+      aria-label="Operators navigation"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
