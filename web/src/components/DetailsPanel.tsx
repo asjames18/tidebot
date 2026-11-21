@@ -53,7 +53,10 @@ function RoutineRow({ r }: { r: Routine }) {
     if (busy) return;
     setBusy(true);
     setEnabled(v);
-    try { await api.setRoutine(r.id, v); } catch { setEnabled(!v); }
+    try { await api.setRoutine(r.id, v); } catch {
+      setEnabled(!v);
+      useStore.getState().notify('Could not update routine — check connection');
+    }
     finally { setBusy(false); }
   };
   return (
@@ -143,7 +146,10 @@ function ComputerCard({ bot }: { bot: Bot }) {
             if (waking) return;
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
             setWaking(true);
-            api.ensureComputer().catch(() => setWaking(false));
+            api.ensureComputer().catch(() => {
+              setWaking(false);
+              useStore.getState().notify('Could not wake computer — check connection');
+            });
           }}
         >
           <Icon name="monitor" size={14} opacity={0.56} /> {waking ? 'Waking…' : 'Wake computer'}

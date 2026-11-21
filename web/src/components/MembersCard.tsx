@@ -21,9 +21,23 @@ export function MembersCard({ room }: { room: Bot }) {
   }, [confirmRemoveId]);
 
   const load = useCallback(() => {
-    api.roomMembers(room.id).then((r) => setMembers(r.members)).catch((e) => setError((e as Error).message));
+    setError(null);
+    return api.roomMembers(room.id)
+      .then((r) => setMembers(r.members))
+      .catch((e) => setError((e as Error).message));
   }, [room.id]);
-  useEffect(load, [load]);
+
+  useEffect(() => {
+    let alive = true;
+    setMembers(null);
+    setAdding(false);
+    setConfirmRemoveId(null);
+    setError(null);
+    api.roomMembers(room.id)
+      .then((r) => { if (alive) setMembers(r.members); })
+      .catch((e) => { if (alive) setError((e as Error).message); });
+    return () => { alive = false; };
+  }, [room.id]);
 
   const save = async (ids: string[]) => {
     if (saving) return;
@@ -38,7 +52,23 @@ export function MembersCard({ room }: { room: Bot }) {
 
   return (
     <div className="panel-card members">
-      {members === null ? <div className="panel-empty">Loading…</div> : members.length === 0 ? (
+      {members === null ? (
+        error ? (
+          <div className="panel-empty" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <span>Could not load members.</span>
+            <button
+              type="button"
+              className="cfg-btn cfg-btn--secondary"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                void load();
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : <div className="panel-empty">Loading…</div>
+      ) : members.length === 0 ? (
         <div className="panel-empty">No Bots in this group yet.</div>
       ) : members.map((m) => {
         const bot = bots.find((b) => b.id === m.id);
@@ -124,7 +154,7 @@ export function MembersCard({ room }: { room: Bot }) {
           <Icon name="plus" size={12} opacity={0.56} /> {saving ? 'Updating…' : 'Add a Bot'}
         </button>
       )}
-      {error && <div className="card__error">{error}</div>}
+      {error && <div className="card__error" role="alert">{error}</div>}
       <div className="members__hint">@mention a Bot to ask just them; otherwise the group answers.</div>
     </div>
   );
