@@ -13,8 +13,9 @@
   /* Sidebar becomes an off-canvas drawer. */
   .sidebar,
   .sidebar.is-collapsed {
-    position: fixed; top: 0; bottom: 0; left: 0; z-index: 120;
+    position: fixed; top: 0; bottom: auto; left: 0; z-index: 120;
     width: min(320px, 86vw); height: var(--app-h, 100dvh);
+    padding-left: env(safe-area-inset-left);
     transform: translateX(-105%);
     transition: transform 220ms var(--ease-out);
     overscroll-behavior: contain;
@@ -90,8 +91,10 @@
     flex-shrink: 0;
   }
   .mobile-scrim {
-    display: block; position: fixed; inset: 0; z-index: 110;
+    display: block; position: fixed; top: 0; left: 0; right: 0; bottom: auto;
+    height: var(--app-h, 100dvh); z-index: 110;
     background: rgba(0, 0, 0, 0.5);
+    -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
     touch-action: none;
   }
@@ -109,8 +112,9 @@
 
   /* Details panel becomes a right-side drawer instead of squeezing the chat. */
   .details {
-    position: fixed; top: 0; bottom: 0; right: 0; z-index: 115;
+    position: fixed; top: 0; bottom: auto; right: 0; z-index: 115;
     width: min(340px, 94vw); height: var(--app-h, 100dvh);
+    padding-right: env(safe-area-inset-right);
     overscroll-behavior: contain;
     touch-action: pan-y;
     box-shadow: var(--shadow-composer);
