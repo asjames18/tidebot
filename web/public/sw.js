@@ -1,6 +1,6 @@
 // TideBot service worker: app-shell cache for fast standalone launches.
 // API and preview traffic always go to the network; navigations fall back to the cached shell offline.
-const CACHE = 'tidebot-shell-v1';
+const CACHE = 'tidebot-shell-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/favicon.svg'];
 
 self.addEventListener('install', (e) => {
@@ -17,18 +17,43 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
+  if (e.request.method !== 'GET' || url.pathname.startsWith('/api/') || url.origin !== location.origin) return;
   if (e.request.mode === 'navigate') {
-    e.respondWith(fetch(e.request).catch(() => caches.match('/')));
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            void caches.open(CACHE).then((c) => c.put('/', copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match('/')),
+    );
+    return;
+  }
+  if (url.pathname.startsWith('/assets/')) {
+    e.respondWith(
+      caches.match(e.request).then((hit) => hit ?? fetch(e.request).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          void caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      })),
+    );
     return;
   }
   e.respondWith(
-    caches.match(e.request).then((hit) => hit ?? fetch(e.request).then((res) => {
-      if (res.ok && url.origin === location.origin) {
-        const copy = res.clone();
-        void caches.open(CACHE).then((c) => c.put(e.request, copy));
-      }
-      return res;
-    })),
+    caches.match(e.request).then((hit) => {
+      const fresh = fetch(e.request).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          void caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      }).catch(() => hit);
+      return hit ?? fresh;
+    }),
   );
 });
