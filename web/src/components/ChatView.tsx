@@ -20,6 +20,7 @@ export function ChatView() {
   const set = useStore((s) => s.set);
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const curatedModels = useConfigUI((s) => s.curatedModels);
+  const loadModels = useConfigUI((s) => s.loadModels);
   const [menu, setMenu] = useState(false);
   const [modelMenu, setModelMenu] = useState(false);
   const [confirmFresh, setConfirmFresh] = useState(false);
@@ -115,6 +116,9 @@ export function ChatView() {
 
   const shareTranscript = async () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+    setMenu(false);
+    setModelMenu(false);
+    blurComposerOnMobile();
     const msgs = rows.filter((r) => r.body.type === 'message' && !r.body.streaming);
     if (!msgs.length) {
       flash('No messages to export yet');
@@ -177,6 +181,8 @@ export function ChatView() {
           className="icon-btn icon-btn--bordered mobile-nav-btn"
           onClick={() => {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            setMenu(false);
+            setModelMenu(false);
             blurComposerOnMobile();
             set({ mobileSidebarOpen: true, sidebarCollapsed: false });
           }}
@@ -226,6 +232,8 @@ export function ChatView() {
                     label: freshBusy ? 'Starting new chat…' : 'New conversation',
                     onSelect: () => {
                       if (freshBusy) return;
+                      if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
+                      setConfirmFresh(false);
                       if (!rows.length) {
                         flash(`Already in a fresh chat with ${displayName(bot)}`);
                         return;
@@ -251,10 +259,12 @@ export function ChatView() {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
                 blurComposerOnMobile();
                 setMenu(false);
+                if (!curatedModels.length) void loadModels();
                 setModelMenu((v) => !v);
               }}
               aria-haspopup="menu"
               aria-expanded={modelMenu}
+              aria-label={`Model: ${shortModel}`}
               title={`Active Model: ${activeModel} (click to switch)`}
             >
               <span className={`chat__model-dot${llmConfig?.isConfigured ? ' is-ok' : ''}`} />
@@ -322,6 +332,8 @@ export function ChatView() {
             className="icon-btn icon-btn--bordered mobile-only-btn"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              setMenu(false);
+              setModelMenu(false);
               blurComposerOnMobile();
               useStore.getState().setModal('search');
             }}
@@ -336,6 +348,8 @@ export function ChatView() {
               className="icon-btn icon-btn--bordered"
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                setMenu(false);
+                setModelMenu(false);
                 blurComposerOnMobile();
                 set({ detailsOpen: true });
               }}
