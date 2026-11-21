@@ -41,10 +41,20 @@ export function AppSettings() {
   const swipeRef = useRef<{ x: number; y: number; locked: boolean | null } | null>(null);
   const [dragX, setDragX] = useState(0);
 
+  const blurActiveOnMobile = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) {
+        ae.blur();
+      }
+    }
+  };
+
   const handleClose = useCallback(() => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
+    blurActiveOnMobile();
     setDragX(0);
     close();
   }, [close]);
@@ -53,10 +63,7 @@ export function AppSettings() {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
-    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
-      const ae = document.activeElement;
-      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
-    }
+    blurActiveOnMobile();
     open(id);
   };
 
@@ -81,7 +88,7 @@ export function AppSettings() {
   }, [section, close]);
 
   const onTouchStart = (e: React.TouchEvent) => {
-    if (window.innerWidth > 900) return;
+    if (window.innerWidth > 900 || e.touches.length !== 1) return;
     const target = e.target as HTMLElement | null;
     if (target?.closest('.app-settings__nav, .byom-filter-tabs')) return;
     const t = e.touches[0];
@@ -99,6 +106,7 @@ export function AppSettings() {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       s.locked = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.2;
       if (!s.locked) { swipeRef.current = null; return; }
+      blurActiveOnMobile();
     }
     if (s.locked && dx > 0) setDragX(dx);
   };
@@ -969,7 +977,10 @@ function PermissionsSection() {
                       try { navigator.vibrate(8); } catch {}
                     }
                     setRemoving(p.tool);
-                    configApi.deletePolicy(p.tool).then(load).catch(() => {}).finally(() => setRemoving(null));
+                    configApi.deletePolicy(p.tool)
+                      .then(load)
+                      .catch(() => useStore.getState().notify('Could not update permission — check connection'))
+                      .finally(() => setRemoving(null));
                   }}
                 >
                   {busy ? 'Removing…' : 'Ask again'}
