@@ -265,6 +265,7 @@ function GeneralSection() {
       setLlmConfig(updated);
     } catch {
       if (prev) setLlmConfig(prev);
+      useStore.getState().notify('Could not save shader style — check connection');
     }
   };
 
@@ -393,6 +394,17 @@ function ModelsSection() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const customApiKeyRef = useRef<HTMLInputElement>(null);
+  const defaultModelRef = useRef<HTMLInputElement>(null);
+
+  const blurMobileKeyboard = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) {
+        ae.blur();
+      }
+    }
+  };
 
   useEffect(() => {
     if (!curatedModels.length) void loadModels();
@@ -407,9 +419,11 @@ function ModelsSection() {
   }, [llmConfig]);
 
   const save = async (overrideModel?: string) => {
+    if (saving) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(12); } catch {}
     }
+    blurMobileKeyboard();
     setSaving(true);
     setStatusMsg(null);
     try {
@@ -436,9 +450,11 @@ function ModelsSection() {
   };
 
   const testConn = async () => {
+    if (testing || saving) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
+    blurMobileKeyboard();
     setTesting(true);
     setStatusMsg(null);
     try {
@@ -514,8 +530,9 @@ function ModelsSection() {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
-              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
+              blurMobileKeyboard();
               setProvider('openrouter');
+              setStatusMsg(null);
               if (defaultModel === 'grok-4.7') setDefaultModel('anthropic/claude-3.7-sonnet');
             }}
           >
@@ -536,8 +553,9 @@ function ModelsSection() {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
-              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
+              blurMobileKeyboard();
               setProvider('custom');
+              setStatusMsg(null);
             }}
           >
             <div className="byom-provider-card__top">
@@ -557,8 +575,9 @@ function ModelsSection() {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate(8); } catch {}
               }
-              if (window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
+              blurMobileKeyboard();
               setProvider('xai');
+              setStatusMsg(null);
               if (defaultModel.includes('/')) setDefaultModel('grok-4.7');
             }}
           >
@@ -591,9 +610,16 @@ function ModelsSection() {
                 autoCorrect="off"
                 spellCheck={false}
                 autoComplete="off"
+                enterKeyHint="next"
                 placeholder={llmConfig?.hasOpenrouterKey ? 'Paste new key to replace saved key (sk-or-v1-...)' : 'sk-or-v1-...'}
                 value={openrouterKey}
-                onChange={(e) => setOpenrouterKey(e.target.value)}
+                onChange={(e) => { setOpenrouterKey(e.target.value); if (statusMsg) setStatusMsg(null); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    defaultModelRef.current?.focus();
+                  }
+                }}
               />
               <div className="cfg-field__hint">
                 Get an API key at <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">openrouter.ai/keys</a>. Stored locally in your TideBot SQLite database (or set <code className="cfg-code">OPENROUTER_API_KEY</code> in <code className="cfg-code">.env</code>).
@@ -612,9 +638,16 @@ function ModelsSection() {
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
+                  enterKeyHint="next"
                   placeholder="e.g. http://localhost:11434/v1 or https://api.openai.com/v1"
                   value={customBaseUrl}
-                  onChange={(e) => setCustomBaseUrl(e.target.value)}
+                  onChange={(e) => { setCustomBaseUrl(e.target.value); if (statusMsg) setStatusMsg(null); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      customApiKeyRef.current?.focus();
+                    }
+                  }}
                 />
               </div>
               <div className="cfg-field">
@@ -625,15 +658,23 @@ function ModelsSection() {
                   )}
                 </label>
                 <input
+                  ref={customApiKeyRef}
                   type="password"
                   className="cfg-input"
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
                   autoComplete="off"
+                  enterKeyHint="next"
                   placeholder="sk-..."
                   value={customApiKey}
-                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  onChange={(e) => { setCustomApiKey(e.target.value); if (statusMsg) setStatusMsg(null); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      defaultModelRef.current?.focus();
+                    }
+                  }}
                 />
               </div>
             </>
@@ -654,9 +695,16 @@ function ModelsSection() {
                 autoCorrect="off"
                 spellCheck={false}
                 autoComplete="off"
+                enterKeyHint="next"
                 placeholder={llmConfig?.hasXaiKey ? 'Paste new xAI key to replace saved key' : 'xai-...'}
                 value={xaiKey}
-                onChange={(e) => setXaiKey(e.target.value)}
+                onChange={(e) => { setXaiKey(e.target.value); if (statusMsg) setStatusMsg(null); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    defaultModelRef.current?.focus();
+                  }
+                }}
               />
             </div>
           )}
@@ -664,14 +712,22 @@ function ModelsSection() {
           <div className="cfg-field" style={{ marginTop: 14 }}>
             <label className="cfg-field__label">Global Default Model ID</label>
             <input
+              ref={defaultModelRef}
               type="text"
               className="cfg-input"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
+              enterKeyHint="done"
               placeholder="e.g. anthropic/claude-3.7-sonnet"
               value={defaultModel}
-              onChange={(e) => setDefaultModel(e.target.value)}
+              onChange={(e) => { setDefaultModel(e.target.value); if (statusMsg) setStatusMsg(null); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void save();
+                }
+              }}
             />
             <div className="cfg-field__hint">
               Every operator uses this model unless you assign a specific model override in that operator’s settings or chat header.
@@ -679,10 +735,10 @@ function ModelsSection() {
           </div>
 
           <div className="byom-actions">
-            <button type="button" className="cfg-btn cfg-btn--primary" disabled={saving} onClick={() => void save()}>
+            <button type="button" className="cfg-btn cfg-btn--primary" disabled={saving || testing} onClick={() => void save()}>
               {saving ? 'Saving…' : 'Save Configuration'}
             </button>
-            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={testing} onClick={() => void testConn()}>
+            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={testing || saving} onClick={() => void testConn()}>
               {testing ? 'Pinging Model…' : 'Test Connection'}
             </button>
           </div>
@@ -1015,11 +1071,21 @@ function AppsSection() {
     useStore.getState().setModal('apps');
   };
 
+  const blurMobileKeyboard = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) {
+        ae.blur();
+      }
+    }
+  };
+
   const saveComposioKey = async () => {
-    if (!composioKey.trim() || savingKey) return;
+    if (!composioKey.trim() || savingKey || testingKey) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(12); } catch {}
     }
+    blurMobileKeyboard();
     setSavingKey(true);
     setKeyNote(null);
     try {
@@ -1037,14 +1103,19 @@ function AppsSection() {
   };
 
   const testComposio = async () => {
-    if (testingKey) return;
+    if (testingKey || savingKey) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
+    blurMobileKeyboard();
     setTestingKey(true);
     setKeyNote(null);
     try {
-      if (composioKey.trim()) await saveComposioKey();
+      if (composioKey.trim()) {
+        const updated = await configApi.saveLlmConfig({ composioKey: composioKey.trim() });
+        setLlmConfig(updated);
+        setComposioKey('');
+      }
       const res = await configApi.testComposio();
       if (res.ok) {
         setKeyNote({ ok: true, text: `Composio connected (${res.count} app toolkits ready in ${res.latencyMs}ms)` });
@@ -1085,7 +1156,7 @@ function AppsSection() {
               enterKeyHint="done"
               placeholder={llmConfig?.hasComposioKey ? 'Paste new key to replace saved COMPOSIO_API_KEY (ak_...)' : 'ak_...'}
               value={composioKey}
-              onChange={(e) => setComposioKey(e.target.value)}
+              onChange={(e) => { setComposioKey(e.target.value); if (keyNote) setKeyNote(null); }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -1100,11 +1171,11 @@ function AppsSection() {
           </div>
           <div className="byom-actions">
             {composioKey.trim() && (
-              <button type="button" className="cfg-btn cfg-btn--primary" disabled={savingKey} onClick={() => void saveComposioKey()}>
+              <button type="button" className="cfg-btn cfg-btn--primary" disabled={savingKey || testingKey} onClick={() => void saveComposioKey()}>
                 {savingKey ? 'Saving…' : 'Save Key'}
               </button>
             )}
-            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={testingKey} onClick={() => void testComposio()}>
+            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={testingKey || savingKey} onClick={() => void testComposio()}>
               {testingKey ? 'Verifying…' : 'Test Composio Catalog'}
             </button>
             <button type="button" className="cfg-btn cfg-btn--primary" onClick={openApps}>
