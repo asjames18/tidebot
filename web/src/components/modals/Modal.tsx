@@ -6,6 +6,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), in
 /** 50% black scrim + centered dialog. Escape and scrim click close. Focus is trapped inside and restored on close. */
 export function Modal({ onClose, children, className, label, top }: { onClose: () => void; children: ReactNode; className?: string; label: string; top?: number }) {
   const ref = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const touchStartY = useRef<number | null>(null);
   const touchStartX = useRef<number | null>(null);
   const dragLocked = useRef<boolean | null>(null);
@@ -16,7 +18,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
   const safeClose = () => {
     if (closedRef.current) return;
     closedRef.current = true;
-    onClose();
+    onCloseRef.current();
   };
 
   const blurActiveOnMobile = () => {
@@ -32,7 +34,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
     if (window.innerWidth > 900 || e.touches.length !== 1) return;
     const target = e.target as HTMLElement | null;
     if (!target?.closest('.sheet-handle-wrap, .modal__header, .apps-modal__titlerow, .search-modal__field')) return;
-    if (target.closest('input, textarea, select')) return;
+    if (target.closest('input, textarea, select, button, a')) return;
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
     dragLocked.current = target.closest('.sheet-handle-wrap') ? true : null;
@@ -44,6 +46,10 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
 
   const onSheetTouchMove = (e: React.TouchEvent) => {
     if (touchStartY.current === null || touchStartX.current === null) return;
+    if (e.touches.length !== 1 || !e.touches[0]) {
+      onSheetTouchCancel();
+      return;
+    }
     const dy = e.touches[0].clientY - touchStartY.current;
     const dx = e.touches[0].clientX - touchStartX.current;
     if (dragLocked.current === null) {
@@ -93,6 +99,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
+    blurActiveOnMobile();
     safeClose();
   };
 
@@ -121,7 +128,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
       const isMobileInput = window.innerWidth <= 900 && prev && (prev.tagName === 'INPUT' || prev.tagName === 'TEXTAREA' || prev.tagName === 'SELECT');
       if (!isMobileInput && prev?.isConnected) prev.focus?.();
     };
-  }, [onClose]);
+  }, []);
   return createPortal(
     <div className="modal-root">
       <div className="modal-scrim" onClick={(e) => { e.stopPropagation(); handleScrim(); }} />
@@ -137,7 +144,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
         onTouchCancel={onSheetTouchCancel}
         style={{
           ...(top !== undefined ? { marginTop: top } : undefined),
-          ...(dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: dragging ? 'none' : 'transform 180ms ease-out' } : undefined),
+          ...(dragY > 0 ? { transform: `translate3d(0, ${dragY}px, 0)`, transition: dragging ? 'none' : 'transform 180ms ease-out' } : undefined),
         }}
       >
         <div className="sheet-handle-wrap" aria-hidden="true" style={{ touchAction: 'none' }}>
