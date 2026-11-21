@@ -39,7 +39,7 @@ export function Shell() {
       if (st.mobileSidebarOpen || st.detailsOpen || st.modal || st.viewerOpen || cfg.botSettings || cfg.appSettings) return;
       const t = e.touches[0];
       const target = e.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry, .toast--item, .empty-quick-prompts, .tasks-filters, .voice-bar')) return;
+      if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry, .toast--item, .empty-quick-prompts, .tasks-filters, .vcall')) return;
       if (t.clientX <= 28) {
         edgeTouch.current = { x: t.clientX, y: t.clientY, side: 'left' };
       } else if (t.clientX >= window.innerWidth - 28 && st.selectedBotId && cfg.view === 'chat') {

@@ -30,6 +30,22 @@ export function ComputerViewer() {
   useEffect(() => {
     if (running || busy) setWaking(false);
   }, [running, busy]);
+
+  useEffect(() => {
+    setMode('watch');
+    setDragY(0);
+  }, [bot?.id]);
+
+  // Mobile resume: automatically reconnect noVNC when returning from background sleep.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && running && (conn === 'disconnected' || conn === 'error')) {
+        setAttempt((n) => n + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [running, conn]);
   const close = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     setDragY(0);
@@ -169,13 +185,16 @@ export function ComputerViewer() {
                   if (waking) return;
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
                   setWaking(true);
-                  api.ensureComputer().catch(() => setWaking(false));
+                  api.ensureComputer().catch(() => {
+                    setWaking(false);
+                    useStore.getState().notify('Could not wake computer — check connection');
+                  });
                 }}
               >
                 {waking ? 'Waking…' : 'Wake computer'}
               </button>
             )}
-            {computer?.error && <span className="viewer__err">{computer.error}</span>}
+            {computer?.error && <span className="viewer__err" role="alert">{computer.error}</span>}
           </div>
         )}
       </div>

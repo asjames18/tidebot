@@ -140,7 +140,7 @@ export function VoiceCallBar() {
               <button
                 type="button"
                 className="cfg-btn cfg-btn--secondary"
-                style={{ height: 32, padding: '0 10px', fontSize: 12 }}
+                style={{ minHeight: 40, padding: '0 12px', fontSize: 13 }}
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
                   startCall(bot.id);
