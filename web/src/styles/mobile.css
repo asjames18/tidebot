@@ -457,7 +457,7 @@
     opacity: 0.9;
     transform: scaleX(1.08);
   }
-  .modal-root { overscroll-behavior: contain; }
+  .modal-root { overscroll-behavior: contain; height: var(--app-h, 100dvh); bottom: auto; }
   .modal-backdrop { touch-action: none; }
   .modal {
     width: calc(100vw - 20px);
@@ -1317,7 +1317,8 @@ button, a, summary, [role="button"] { touch-action: manipulation; }
   }
 
   /* Settings: nav becomes a top bar with horizontal scrolling tabs. */
-  .app-settings { flex-direction: column; }
+  .app-settings { flex-direction: column; height: var(--app-h, 100dvh); bottom: auto; }
+  .viewer { height: var(--app-h, 100dvh); bottom: auto; }
   .app-settings__nav {
     width: 100%; flex-direction: row; align-items: center; flex-wrap: nowrap;
     overflow-x: auto; overflow-y: hidden; padding: calc(10px + env(safe-area-inset-top)) 10px 10px;
