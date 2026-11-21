@@ -165,6 +165,7 @@ export function DetailsPanel() {
   const set = useStore((s) => s.set);
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const [tab, setTab] = useState<'activity' | 'tasks' | 'library'>('activity');
+  const [slackBusy, setSlackBusy] = useState(false);
   const [hideSuggested, setHideSuggested] = useState(() => { try { return localStorage.getItem('grokbot.hideSuggested') === '1'; } catch { return false; } });
   const scrollRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
@@ -181,13 +182,36 @@ export function DetailsPanel() {
 
   const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
 
+  const blurActiveOnMobile = () => {
+    if (window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) {
+        ae.blur();
+      }
+    }
+  };
+
   const addSlack = async () => {
+    if (slackBusy) return;
+    setSlackBusy(true);
     const popup = openPopup('about:blank');
-    try { const { redirectUrl } = await api.connect('slack'); if (popup) popup.location.href = redirectUrl; } catch { popup?.close(); }
+    try {
+      const { redirectUrl } = await api.connect('slack');
+      if (popup && !popup.closed) {
+        popup.location.href = redirectUrl;
+      } else {
+        window.open(redirectUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (e: any) {
+      popup?.close();
+      useStore.getState().notify(e?.message ?? 'Could not connect Slack');
+    } finally {
+      setSlackBusy(false);
+    }
   };
 
   const onTouchStart = (e: React.TouchEvent) => {
-    if (window.innerWidth > 900) return;
+    if (window.innerWidth > 900 || e.touches.length !== 1) return;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     swipeLocked.current = null;
@@ -199,7 +223,10 @@ export function DetailsPanel() {
     if (!swipeLocked.current) {
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
       swipeLocked.current = Math.abs(dx) > Math.abs(dy) * 1.2 && dx > 0 ? 'x' : 'y';
-      if (swipeLocked.current === 'x') setDragging(true);
+      if (swipeLocked.current === 'x') {
+        blurActiveOnMobile();
+        setDragging(true);
+      }
     }
     if (swipeLocked.current === 'x') {
       setDragX(Math.max(0, dx));
@@ -285,6 +312,7 @@ export function DetailsPanel() {
               className={tab === 'activity' ? 'is-active' : ''}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                blurActiveOnMobile();
                 setTab('activity');
               }}
             >
@@ -297,6 +325,7 @@ export function DetailsPanel() {
               className={tab === 'tasks' ? 'is-active' : ''}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                blurActiveOnMobile();
                 setTab('tasks');
               }}
             >
@@ -309,6 +338,7 @@ export function DetailsPanel() {
               className={tab === 'library' ? 'is-active' : ''}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                blurActiveOnMobile();
                 setTab('library');
               }}
             >
@@ -402,14 +432,16 @@ export function DetailsPanel() {
                   <button
                     type="button"
                     className="panel-row panel-row--link"
+                    disabled={slackBusy}
                     onClick={() => {
+                      if (slackBusy) return;
                       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
                       if (window.innerWidth <= 900) set({ detailsOpen: false });
-                      addSlack();
+                      void addSlack();
                     }}
                   >
                     <span className="panel-row__glyph"><ToolkitLogo name="Slack" logo="/assets/icons/slack.svg" size={16} radius={4} /></span>
-                    <span className="panel-row__title" style={{ flex: 1 }}>Add to Slack</span>
+                    <span className="panel-row__title" style={{ flex: 1 }}>{slackBusy ? 'Connecting Slack…' : 'Add to Slack'}</span>
                     <Icon name="chev_right" size={12} opacity={0.56} />
                   </button>
                 </div>
