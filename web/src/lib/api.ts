@@ -68,8 +68,11 @@ export const api = {
   createRoom: (name: string, botIds: string[]) => req<{ id: string }>('POST', '/rooms', { name, botIds }),
 };
 
-/** Open a Composio redirect in a centered popup. */
+/** Open a Composio redirect in a centered popup (or native browser tab on mobile). */
 export function openPopup(url: string) {
+  if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+    return window.open(url, '_blank');
+  }
   const w = 520, h = 680;
   const left = window.screenX + (window.outerWidth - w) / 2;
   const top = window.screenY + (window.outerHeight - h) / 2;
