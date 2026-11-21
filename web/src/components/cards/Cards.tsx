@@ -18,6 +18,10 @@ function useBusy() {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
+    }
     setBusy(key); setError(null);
     try { await fn(); } catch (e) { setError((e as Error).message || 'Something went wrong'); }
     finally { busyRef.current = false; setBusy(null); }
@@ -124,7 +128,8 @@ export function ConnectCard({ row, body }: { row: Row; body: Card<'connect'> }) 
     const popup = openPopup('about:blank');
     try {
       const { redirectUrl } = await api.connect(body.toolkit, row.botId, row.seq);
-      if (popup) popup.location.href = redirectUrl; else window.open(redirectUrl, '_blank');
+      if (popup && !popup.closed) popup.location.href = redirectUrl;
+      else window.open(redirectUrl, '_blank', 'noopener,noreferrer');
       setWaiting(true);
     } catch (e) { popup?.close(); throw e; }
   });
@@ -169,7 +174,10 @@ export function DraftCard({ body }: { body: Card<'draft'> }) {
   useEffect(() => () => { if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current); }, []);
   const copy = async () => {
     const ok = await copyText(body.text);
-    if (!ok) return;
+    if (!ok) {
+      useStore.getState().notify('Could not copy draft');
+      return;
+    }
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(12); } catch {}
     }
