@@ -68,12 +68,20 @@ export function LibraryTab({ bot }: { bot: Bot }) {
     }
   };
 
+  const blurActiveOnMobile = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
+    }
+  };
+
   const savePreviewEdit = async () => {
     if (!preview || busyFile === preview.name) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
     setBusyFile(preview.name);
     try {
       await configApi.saveFile(bot.id, preview.rel, preview.content);
+      blurActiveOnMobile();
       setPreview({ ...preview, editing: false });
       await load();
     } catch (e) {
@@ -91,6 +99,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
     setLoading(true);
     try {
       await configApi.saveFile(bot.id, rel, newContent);
+      blurActiveOnMobile();
       setCreating(false);
       setNewFilename('notes.md');
       setNewContent('');
@@ -121,11 +130,31 @@ export function LibraryTab({ bot }: { bot: Bot }) {
           <span className="lib-crumbs">
             {crumbs.length ? (
               <>
-                <button type="button" className="link-btn link-btn--small" onClick={() => setPath('')}>Files</button>
+                <button
+                  type="button"
+                  className="link-btn link-btn--small"
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                    setPreview(null);
+                    setPath('');
+                  }}
+                >
+                  Files
+                </button>
                 {crumbs.map((c, i) => (
                   <span key={i} className="lib-crumbs__part">
                     <Icon name="chev_right" size={8} opacity={0.5} />
-                    <button type="button" className="link-btn link-btn--small" onClick={() => setPath(crumbs.slice(0, i + 1).join('/'))}>{c}</button>
+                    <button
+                      type="button"
+                      className="link-btn link-btn--small"
+                      onClick={() => {
+                        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                        setPreview(null);
+                        setPath(crumbs.slice(0, i + 1).join('/'));
+                      }}
+                    >
+                      {c}
+                    </button>
                   </span>
                 ))}
               </>
@@ -216,7 +245,10 @@ export function LibraryTab({ bot }: { bot: Bot }) {
                   className="link-btn link-btn--small"
                   onClick={() => {
                     void copyText(preview.content).then((ok) => {
-                      if (!ok) return;
+                      if (!ok) {
+                        useStore.getState().notify('Could not copy file contents');
+                        return;
+                      }
                       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
                       setCopied(true);
                       if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
@@ -291,13 +323,23 @@ export function LibraryTab({ bot }: { bot: Bot }) {
           {list?.status === 'asleep' ? (
             <div className="lib-empty">
               <div>{bot.name}’s cloud computer is asleep. Local workspace files appear here automatically, or wake the computer to inspect VM files.</div>
-              <button type="button" className="cfg-btn cfg-btn--secondary" onClick={() => load(true)} disabled={loading}>{loading ? 'Waking…' : 'Wake cloud computer'}</button>
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--secondary"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  load(true);
+                }}
+                disabled={loading}
+              >
+                {loading ? 'Waking…' : 'Wake cloud computer'}
+              </button>
             </div>
           ) : !list && loading ? (
             <div className="panel-empty">Looking for files…</div>
-          ) : list?.status === 'error' ? (
+          ) : list?.status === 'error' || (!list && error) ? (
             <div className="lib-empty">
-              <div>Couldn’t load files. {list.error ? <span className="lib-err">{list.error}</span> : null}</div>
+              <div>Couldn’t load files. {(list?.error ?? error) ? <span className="lib-err">{list?.error ?? error}</span> : null}</div>
               <button
                 type="button"
                 className="cfg-btn cfg-btn--secondary"
@@ -317,7 +359,21 @@ export function LibraryTab({ bot }: { bot: Bot }) {
               const rel = path ? `${path}/${f.name}` : f.name;
               return (
                 <div key={f.name} className={`lib-row${f.isDir ? ' is-dir' : ''}`}>
-                  <button type="button" className="lib-row__main" disabled={!f.isDir && busyFile === f.name} onClick={() => (f.isDir ? setPath(rel) : openFile(f))} title={f.isDir ? `Open ${f.name}` : `Preview ${f.name}`}>
+                  <button
+                    type="button"
+                    className="lib-row__main"
+                    disabled={!f.isDir && busyFile === f.name}
+                    onClick={() => {
+                      if (f.isDir) {
+                        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                        setPreview(null);
+                        setPath(rel);
+                      } else {
+                        openFile(f);
+                      }
+                    }}
+                    title={f.isDir ? `Open ${f.name}` : `Preview ${f.name}`}
+                  >
                     <span className="lib-row__icon"><Glyph name={f.isDir ? 'folder' : 'doc'} size={16} opacity={0.6} /></span>
                     <span className="panel-row__text">
                       <span className="panel-row__title">{f.name}</span>
