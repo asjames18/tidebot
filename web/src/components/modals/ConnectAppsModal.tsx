@@ -37,7 +37,8 @@ function AppRow({ app, onChanged }: { app: Toolkit; onChanged: () => void }) {
     const popup = openPopup('about:blank');
     try {
       const { redirectUrl } = await api.connect(app.slug);
-      if (popup) popup.location.href = redirectUrl; else window.open(redirectUrl, '_blank');
+      if (popup && !popup.closed) popup.location.href = redirectUrl;
+      else window.open(redirectUrl, '_blank', 'noopener,noreferrer');
       setState('waiting');
     } catch (e) {
       popup?.close();
@@ -61,7 +62,7 @@ function AppRow({ app, onChanged }: { app: Toolkit; onChanged: () => void }) {
       <ToolkitLogo name={app.name} logo={app.logo} />
       <span className="app-row__text">
         <span className="app-row__name">{app.name}</span>
-        {error ? <span className="app-row__error">{error}</span> : app.description && <span className="app-row__desc">{app.description}</span>}
+        {error ? <span className="app-row__error" role="alert">{error}</span> : app.description && <span className="app-row__desc">{app.description}</span>}
       </span>
       {app.connected ? (
         <button type="button" className={`app-row__connected${state === 'confirm' ? ' is-confirm' : ''}`} onClick={disconnect} onMouseLeave={() => state === 'confirm' && setState('idle')} disabled={state === 'busy'}>
@@ -196,7 +197,22 @@ export function ConnectAppsModal() {
   else if (searching || view.kind === 'category') {
     body = apps.length ? (
       <Section title={searching ? `Results${activeCategory ? ` in ${pillLabel(activeCategory)}` : ''}` : pillLabel(activeCategory!)} apps={apps} onChanged={refresh} />
-    ) : <div className="apps-empty">No apps match “{debounced}”.</div>;
+    ) : (
+      <div className="apps-empty" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <span>{searching ? `No apps match “${debounced}”.` : `No apps in ${pillLabel(activeCategory!)}.`}</span>
+        <button
+          type="button"
+          className="cfg-btn cfg-btn--secondary"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            setSearch('');
+            setView({ kind: 'all' });
+          }}
+        >
+          {searching && activeCategory ? 'Clear search & filter' : searching ? 'Clear search' : 'Show all apps'}
+        </button>
+      </div>
+    );
   } else {
     body = (
       <>
@@ -279,7 +295,7 @@ export function ConnectAppsModal() {
                   }}
                   aria-label="Clear app search"
                   title="Clear"
-                  style={{ border: 0, background: 'transparent', color: 'var(--color-text-tertiary)', padding: '0 4px', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}
+                  style={{ border: 0, background: 'transparent', color: 'var(--color-text-tertiary)', minWidth: 32, minHeight: 32, margin: '-4px -6px -4px 0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}
                 >
                   ✕
                 </button>
@@ -327,32 +343,32 @@ export function ConnectAppsModal() {
                 {p.label}
               </button>
             ))}
-            <span className="cat-pill-anchor">
-              <button
-                type="button"
-                className={`cat-pill${moreActive ? ' is-active' : ''}`}
-                onClick={() => {
-                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                  setMore(!more);
-                }}
-                aria-expanded={more}
-              >
-                {moreActive ? pillLabel(activeCategory!) : 'More'}
-                <Icon name="chev_down" size={10} opacity={0.66} />
-              </button>
-              {more && (
-                <Menu
-                  onClose={() => setMore(false)}
-                  items={moreCategories.map((c) => ({
-                    label: titleCase(c),
-                    onSelect: () => {
-                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                      setView({ kind: 'category', category: c });
-                    },
-                  }))}
-                />
-              )}
-            </span>
+            {moreCategories.length > 0 && (
+              <span className="cat-pill-anchor">
+                <button
+                  type="button"
+                  className={`cat-pill${moreActive ? ' is-active' : ''}`}
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                    if (window.innerWidth <= 900) searchInputRef.current?.blur();
+                    setMore(!more);
+                  }}
+                  aria-expanded={more}
+                >
+                  {moreActive ? pillLabel(activeCategory!) : 'More'}
+                  <Icon name="chev_down" size={10} opacity={0.66} />
+                </button>
+                {more && (
+                  <Menu
+                    onClose={() => setMore(false)}
+                    items={moreCategories.map((c) => ({
+                      label: titleCase(c),
+                      onSelect: () => setView({ kind: 'category', category: c }),
+                    }))}
+                  />
+                )}
+              </span>
+            )}
           </div>
         </div>
       </div>
