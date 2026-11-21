@@ -43,8 +43,15 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
   const [error, setError] = useState<string | null>(null);
   const inCall = useVoice((s) => isCallActive(s) && s.botId === bot.id);
 
-  useEffect(() => { voiceApi.options().then(setOpts).catch(() => {}); }, []);
-  useEffect(() => setError(null), [bot.id]);
+  useEffect(() => {
+    let alive = true;
+    voiceApi.options().then((o) => { if (alive) setOpts(o); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  useEffect(() => {
+    setError(null);
+    setPreviewing(false);
+  }, [bot.id]);
 
   const save = async (patch: Partial<Pick<Bot, 'voice' | 'voiceSpeed' | 'voiceLanguage'>>) => {
     const prev = useStore.getState().bots.find((b) => b.id === bot.id);
@@ -96,7 +103,7 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
           if (!inCall && typeof window !== 'undefined' && window.innerWidth <= 900) {
             const ae = document.activeElement;
-            if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
+            if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) ae.blur();
             useStore.getState().set({ detailsOpen: false });
           }
           inCall ? endCall() : startCall(bot.id);
