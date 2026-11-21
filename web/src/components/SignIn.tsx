@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ShaderStyle } from '@shared/types';
 import { BotAvatar } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
@@ -24,6 +24,8 @@ export function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [shader, setShader] = useState<ShaderStyle>('aurora');
   const [busy, setBusy] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(() =>
     new URLSearchParams(location.search).get('login') === 'failed' ? 'Sign-in didn’t finish. Try again.' : null,
   );
@@ -113,21 +115,35 @@ export function SignIn() {
             placeholder="Email (from .env)"
             value={email}
             onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !password) {
+                e.preventDefault();
+                nameRef.current?.focus();
+              }
+            }}
             aria-label="Email"
             autoComplete="email"
           />
           <input
+            ref={nameRef}
             className="text-input"
             autoCapitalize="words"
             enterKeyHint="next"
             placeholder="Name (optional, first sign-in)"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !password) {
+                e.preventDefault();
+                passwordRef.current?.focus();
+              }
+            }}
             aria-label="Name"
             autoComplete="name"
           />
           <div style={{ position: 'relative', width: '100%' }}>
             <input
+              ref={passwordRef}
               className="text-input"
               type={showPassword ? 'text' : 'password'}
               autoCapitalize="none"
@@ -151,10 +167,11 @@ export function SignIn() {
               aria-pressed={showPassword}
               style={{
                 position: 'absolute',
-                right: 6,
+                right: 4,
                 top: '50%',
                 transform: 'translateY(-50%)',
-                minHeight: 36,
+                minWidth: 44,
+                minHeight: 44,
                 padding: '0 10px',
                 border: 0,
                 borderRadius: 8,
