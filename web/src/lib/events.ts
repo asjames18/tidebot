@@ -1,5 +1,6 @@
 import type { ServerEvent } from '@shared/types';
 import { useStore } from '../store';
+import { api } from './api';
 
 /**
  * One EventSource for the whole app. EventSource retries on its own, but a server restart
@@ -62,6 +63,9 @@ export function startEvents(): () => void {
     }
     const awayMs = hiddenAt ? Date.now() - hiddenAt : 0;
     hiddenAt = null;
+    const st = useStore.getState();
+    const openBot = st.selectedBotId ? st.bots.find((b) => b.id === st.selectedBotId) : undefined;
+    if (openBot && openBot.unread > 0) api.markRead(openBot.id).catch(() => {});
     if (!es || es.readyState !== EventSource.OPEN || awayMs > 10_000) {
       wake();
     }

@@ -191,11 +191,18 @@ export const useStore = create<State>((set, get) => ({
     }
   },
 
-  setModal(modal) { set({ modal }); },
+  setModal(modal) {
+    if (modal && typeof window !== 'undefined' && window.innerWidth <= 900) {
+      set({ modal, mobileSidebarOpen: false, detailsOpen: false });
+      return;
+    }
+    set({ modal });
+  },
 
   set(p) {
-    if (p.detailsOpen !== undefined) lsSet(LS_DETAILS, p.detailsOpen ? '1' : '0');
-    if (p.sidebarCollapsed !== undefined) lsSet(LS_SIDEBAR, p.sidebarCollapsed ? '1' : '0');
+    const isDesktop = typeof window === 'undefined' || window.innerWidth > 900;
+    if (isDesktop && p.detailsOpen !== undefined) lsSet(LS_DETAILS, p.detailsOpen ? '1' : '0');
+    if (isDesktop && p.sidebarCollapsed !== undefined) lsSet(LS_SIDEBAR, p.sidebarCollapsed ? '1' : '0');
     set(p);
   },
 }));
