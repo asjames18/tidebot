@@ -20,10 +20,14 @@ export function App() {
     };
     sync();
     vv.addEventListener('resize', sync);
+    vv.addEventListener('scroll', sync);
     window.addEventListener('resize', sync);
+    window.addEventListener('orientationchange', sync);
     return () => {
       vv.removeEventListener('resize', sync);
+      vv.removeEventListener('scroll', sync);
       window.removeEventListener('resize', sync);
+      window.removeEventListener('orientationchange', sync);
       document.documentElement.style.removeProperty('--app-h');
     };
   }, []);

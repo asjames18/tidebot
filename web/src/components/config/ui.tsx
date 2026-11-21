@@ -11,6 +11,7 @@ export function Switch({ on, onChange, label, disabled }: { on: boolean; onChang
       disabled={disabled}
       className={`toggle${on ? ' is-on' : ''}`}
       onClick={() => {
+        if (disabled) return;
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
         onChange(!on);
       }}
@@ -42,10 +43,11 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
           aria-checked={value === o.value}
           className={value === o.value ? 'is-active' : ''}
           onClick={() => {
+            if (o.value === value) return;
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
             if (typeof window !== 'undefined' && window.innerWidth <= 900) {
               const ae = document.activeElement;
-              if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
+              if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) ae.blur();
             }
             onChange(o.value);
           }}
@@ -76,6 +78,10 @@ export function ConfirmButton({ children, confirmLabel = 'Delete', onConfirm, cl
         aria-label={ariaLabel}
         onClick={() => {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+          if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+            const ae = document.activeElement;
+            if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) ae.blur();
+          }
           setAsking(true);
         }}
       >
