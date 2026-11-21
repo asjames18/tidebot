@@ -3,6 +3,7 @@
   width: 440px; max-width: 100%; background: var(--color-bg-pane); border-radius: var(--radius-card);
   border: 1px solid var(--color-border-primary);
   box-shadow: var(--shadow-card); display: flex; flex-direction: column; overflow: clip;
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
 .card__head { display: flex; align-items: flex-start; gap: 10px; padding: 16px 16px 4px; }

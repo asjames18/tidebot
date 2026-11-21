@@ -115,6 +115,7 @@
   display: flex; align-items: center; gap: 6px;
   padding: 4px 8px; border-radius: var(--radius-full);
   background: rgba(10, 14, 24, 0.72); border: 1px solid rgba(148, 163, 184, 0.2);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
 .signin__shader-label {
@@ -137,6 +138,7 @@
   background: rgba(12, 17, 29, 0.82);
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 26px;
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
