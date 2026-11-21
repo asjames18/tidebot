@@ -201,6 +201,9 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
       for (const k of changed) (patch as Record<string, unknown>)[k] = k === 'name' ? draft.name.trim() : draft[k];
       const { bot: next } = await configApi.updateBot(bot.id, patch);
       useStore.setState((s) => ({ bots: s.bots.map((b) => (b.id === next.id ? next : b)) }));
+      if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        document.activeElement.blur();
+      }
       flash('Saved');
     } catch (e) {
       flash((e as Error).message, 'error');
@@ -237,10 +240,40 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
 
       <section className="cfg-section cfg-grid">
         <Field label="Name" htmlFor="cfg-name">
-          <input id="cfg-name" className="text-input" enterKeyHint="next" value={draft.name} maxLength={60} onChange={(e) => put('name', e.target.value)} aria-invalid={!nameOk} />
+          <input
+            id="cfg-name"
+            className="text-input"
+            enterKeyHint="next"
+            autoCapitalize="words"
+            value={draft.name}
+            maxLength={60}
+            onChange={(e) => put('name', e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('cfg-label')?.focus();
+              }
+            }}
+            aria-invalid={!nameOk}
+          />
         </Field>
         <Field label="Label" htmlFor="cfg-label" hint="Shown next to the name, like “Research” or “Inbox”.">
-          <input id="cfg-label" className="text-input" enterKeyHint="next" value={draft.label} maxLength={60} placeholder="Add a label" onChange={(e) => put('label', e.target.value)} />
+          <input
+            id="cfg-label"
+            className="text-input"
+            enterKeyHint="next"
+            autoCapitalize="sentences"
+            value={draft.label}
+            maxLength={60}
+            placeholder="Add a label"
+            onChange={(e) => put('label', e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('cfg-about')?.focus();
+              }
+            }}
+          />
         </Field>
       </section>
 
@@ -301,6 +334,9 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
               try { navigator.vibrate(8); } catch {}
             }
+            if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+              document.activeElement.blur();
+            }
             setDraft(draftOf(bot));
           }}
         >
@@ -323,8 +359,12 @@ function GeneralTab({ bot, onClose }: { bot: Bot; onClose: () => void }) {
               className="cfg-btn cfg-btn--secondary"
               confirmLabel="Start fresh"
               onConfirm={async () => {
-                await configApi.fresh(bot.id);
-                flash('Started a new conversation');
+                try {
+                  await configApi.fresh(bot.id);
+                  flash('Started a new conversation');
+                } catch (e) {
+                  flash((e as Error).message, 'error');
+                }
               }}
             >
               Start new
