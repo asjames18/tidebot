@@ -30,6 +30,8 @@ const SLASH_COMMANDS: { cmd: string; desc: string; template?: string; action?: '
 export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   const [text, setText] = useState(() => drafts.get(bot.id) ?? '');
   const [sending, setSending] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [freshBusy, setFreshBusy] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
@@ -43,12 +45,15 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
     setText(drafts.get(bot.id) ?? '');
     setError(null);
     setMenu(false);
+    setStopping(false);
+    setFreshBusy(false);
     setConfirmFresh(false);
     if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
     if (typeof window === 'undefined' || window.innerWidth > 900) {
       ref.current?.focus();
     }
   }, [bot.id]);
+  useEffect(() => { if (!running) setStopping(false); }, [running]);
   useEffect(() => () => { if (confirmTimer.current) window.clearTimeout(confirmTimer.current); }, []);
   useEffect(() => { drafts.set(bot.id, text); }, [bot.id, text]);
 
@@ -75,23 +80,41 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
       try { navigator.vibrate(10); } catch {}
     }
     setSending(true); setError(null);
+    let sent = false;
     try {
       await api.send(bot.id, t);
       setText('');
       drafts.delete(bot.id);
+      sent = true;
     } catch (e) {
       setError((e as Error).message || 'Message failed to send');
     } finally {
       setSending(false);
-      ref.current?.focus();
+      if (sent && typeof window !== 'undefined' && window.innerWidth <= 900) {
+        ref.current?.blur();
+      } else if (typeof window === 'undefined' || window.innerWidth > 900) {
+        ref.current?.focus();
+      }
     }
   };
 
   const stop = () => {
+    if (stopping) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-    api.interrupt(bot.id).catch((e) => setError(e.message));
+    setStopping(true);
+    api.interrupt(bot.id).catch((e) => {
+      setStopping(false);
+      setError(e.message);
+    });
   };
-  const fresh = () => api.fresh(bot.id).catch((e) => setError(e.message));
+  const fresh = () => {
+    if (freshBusy) return;
+    setFreshBusy(true);
+    api.fresh(bot.id)
+      .then(() => useStore.getState().notify(`Started a new chat with ${displayName(bot)}`))
+      .catch((e) => setError(e.message))
+      .finally(() => setFreshBusy(false));
+  };
 
   const enhance = async () => {
     const raw = text.trim();
@@ -156,7 +179,9 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
       configApi.updateBot(bot.id, { effort }).then(({ bot: updated }) => {
         useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
         useStore.getState().notify(effort === 'low' ? `${bot.name}: Fast mode` : `${bot.name}: Deep reasoning mode`);
-      }).catch(() => {});
+      }).catch(() => {
+        useStore.getState().notify('Could not update reasoning effort');
+      });
     }
   };
 
@@ -199,8 +224,11 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           <button
             type="button"
             className={`composer-quick-chip${confirmFresh ? ' is-active' : ''}`}
+            disabled={freshBusy}
             onClick={() => {
+              if (freshBusy) return;
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+              if (window.innerWidth <= 900) ref.current?.blur();
               if (!confirmFresh) {
                 setConfirmFresh(true);
                 if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
@@ -213,13 +241,14 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             }}
             title={confirmFresh ? 'Tap again to start a fresh chat' : `Start a new chat with ${displayName(bot)}`}
           >
-            <span>{confirmFresh ? '✓ Confirm new chat?' : '✏️ New chat'}</span>
+            <span>{freshBusy ? 'Starting…' : confirmFresh ? '✓ Confirm new chat?' : '✏️ New chat'}</span>
           </button>
           <button
             type="button"
             className={`composer-quick-chip${bot.effort === 'low' ? ' is-active' : ''}`}
             aria-pressed={bot.effort === 'low'}
             onClick={() => {
+              if (bot.effort === 'low') return;
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
               const prev = bot.effort;
               useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: 'low' } : x)) }));
@@ -228,6 +257,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
               }).catch(() => {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: prev } : x)) }));
+                useStore.getState().notify('Could not update reasoning effort');
               });
             }}
             title="Fast Mode: Low reasoning latency"
@@ -239,6 +269,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             className={`composer-quick-chip${bot.effort === 'high' ? ' is-active' : ''}`}
             aria-pressed={bot.effort === 'high'}
             onClick={() => {
+              if (bot.effort === 'high') return;
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
               const prev = bot.effort;
               useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: 'high' } : x)) }));
@@ -247,6 +278,7 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
               }).catch(() => {
                 useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === bot.id ? { ...x, effort: prev } : x)) }));
+                useStore.getState().notify('Could not update reasoning effort');
               });
             }}
             title="Deep Reasoning Mode"
