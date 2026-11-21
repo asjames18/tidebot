@@ -6,24 +6,34 @@ export interface MenuItem { label: string; onSelect: () => void; danger?: boolea
 export function Menu({ items, onClose, align = 'left', placement = 'below', children }: { items: MenuItem[]; onClose: () => void; align?: 'left' | 'right' | 'center'; placement?: 'below' | 'above'; children?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Keep popover menus within viewport bounds on narrow mobile screens.
+  // Keep popover menus within viewport bounds on narrow mobile screens (including rotation / keyboard resize).
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.translate = '';
-    const rect = el.getBoundingClientRect();
-    const pad = 8;
-    const vw = window.visualViewport?.width ?? window.innerWidth;
-    const vh = window.visualViewport?.height ?? window.innerHeight;
-    let dx = 0;
-    let dy = 0;
-    if (rect.right > vw - pad) dx = vw - pad - rect.right;
-    if (rect.left + dx < pad) dx += pad - (rect.left + dx);
-    if (rect.bottom > vh - pad) dy = vh - pad - rect.bottom;
-    if (rect.top + dy < pad) dy += pad - (rect.top + dy);
-    if (dx !== 0 || dy !== 0) {
-      el.style.translate = `${Math.round(dx)}px ${Math.round(dy)}px`;
-    }
+    const clamp = () => {
+      const el = ref.current;
+      if (!el) return;
+      el.style.translate = '';
+      const rect = el.getBoundingClientRect();
+      const pad = 8;
+      const vw = window.visualViewport?.width ?? window.innerWidth;
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      let dx = 0;
+      let dy = 0;
+      if (rect.right > vw - pad) dx = vw - pad - rect.right;
+      if (rect.left + dx < pad) dx += pad - (rect.left + dx);
+      if (rect.bottom > vh - pad) dy = vh - pad - rect.bottom;
+      if (rect.top + dy < pad) dy += pad - (rect.top + dy);
+      if (dx !== 0 || dy !== 0) {
+        el.style.translate = `${Math.round(dx)}px ${Math.round(dy)}px`;
+      }
+    };
+    clamp();
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', clamp);
+    window.addEventListener('resize', clamp);
+    return () => {
+      vv?.removeEventListener('resize', clamp);
+      window.removeEventListener('resize', clamp);
+    };
   }, [items.length, align, placement]);
 
   useEffect(() => {

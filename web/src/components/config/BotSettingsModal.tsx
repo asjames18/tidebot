@@ -84,7 +84,17 @@ export function BotSettingsModal() {
           <BotAvatarFor bot={bot} size={24} />
           <span className="modal__title">{bot.name}</span>
         </div>
-        <button type="button" className="modal__close" onClick={onClose} aria-label="Close"><Icon name="close" size={14} opacity={0.68} /></button>
+        <button
+          type="button"
+          className="modal__close"
+          onClick={() => {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            onClose();
+          }}
+          aria-label="Close"
+        >
+          <Icon name="close" size={14} opacity={0.68} />
+        </button>
       </div>
       <div className="bot-settings__body" style={botVars(bot.avatarColor)}>
         <nav ref={navRef} className="cfg-nav" aria-label="Bot settings sections">

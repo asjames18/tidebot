@@ -19,15 +19,27 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
     onClose();
   };
 
+  const blurActiveOnMobile = () => {
+    if (window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) {
+        ae.blur();
+      }
+    }
+  };
+
   const onSheetTouchStart = (e: React.TouchEvent) => {
     if (window.innerWidth > 900 || e.touches.length !== 1) return;
     const target = e.target as HTMLElement | null;
-    if (!target?.closest('.sheet-handle-wrap, .modal__header, .apps-modal__titlerow')) return;
+    if (!target?.closest('.sheet-handle-wrap, .modal__header, .apps-modal__titlerow, .search-modal__field')) return;
     if (target.closest('input, textarea, select')) return;
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
     dragLocked.current = target.closest('.sheet-handle-wrap') ? true : null;
-    if (dragLocked.current) setDragging(true);
+    if (dragLocked.current) {
+      blurActiveOnMobile();
+      setDragging(true);
+    }
   };
 
   const onSheetTouchMove = (e: React.TouchEvent) => {
@@ -38,6 +50,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
       if (Math.abs(dy) < 10 && Math.abs(dx) < 10) return;
       if (dy > 0 && dy > Math.abs(dx) * 1.2) {
         dragLocked.current = true;
+        blurActiveOnMobile();
         setDragging(true);
       } else {
         touchStartY.current = null;
@@ -105,8 +118,8 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
     return () => {
       window.removeEventListener('keydown', k);
       clearTimeout(t);
-      const isMobileInput = window.innerWidth <= 900 && prev && (prev.tagName === 'INPUT' || prev.tagName === 'TEXTAREA');
-      if (!isMobileInput) prev?.focus?.();
+      const isMobileInput = window.innerWidth <= 900 && prev && (prev.tagName === 'INPUT' || prev.tagName === 'TEXTAREA' || prev.tagName === 'SELECT');
+      if (!isMobileInput && prev?.isConnected) prev.focus?.();
     };
   }, [onClose]);
   return createPortal(
