@@ -49,8 +49,10 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
     setBusy('toggle');
     try {
       const nextState: Task['state'] = t.state === 'done' ? 'working' : 'done';
-      await configApi.updateTask(t.id, { state: nextState }).catch(() => {});
+      await configApi.updateTask(t.id, { state: nextState });
       refreshTaskViews(t.botId);
+    } catch {
+      useStore.getState().notify('Could not update task — check connection');
     } finally {
       setBusy(null);
     }
@@ -66,7 +68,9 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
       }
       useStore.getState().selectBot(bot.id);
       useConfigUI.getState().setView('chat');
-      await api.send(bot.id, `Please execute this task and mark it done when complete: "${t.title}" (task_id: ${t.id})${t.note ? ` — Notes: ${t.note}` : ''}`).catch(() => {});
+      await api.send(bot.id, `Please execute this task and mark it done when complete: "${t.title}" (task_id: ${t.id})${t.note ? ` — Notes: ${t.note}` : ''}`);
+    } catch {
+      useStore.getState().notify('Could not dispatch task — check connection');
     } finally {
       setBusy(null);
     }
@@ -83,8 +87,10 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
     setConfirmDelete(false);
     setBusy('delete');
     try {
-      await configApi.deleteTask(t.id).catch(() => {});
+      await configApi.deleteTask(t.id);
       refreshTaskViews(t.botId);
+    } catch {
+      useStore.getState().notify('Could not delete task — check connection');
     } finally {
       setBusy(null);
     }
@@ -202,7 +208,10 @@ export function TasksView() {
     try {
       await configApi.createTask(effectiveBotId, { title });
       setNewTitle('');
+      if (window.innerWidth <= 900) inputRef.current?.blur();
       refreshTaskViews(effectiveBotId);
+    } catch {
+      useStore.getState().notify('Could not add task — check connection');
     } finally {
       setAdding(false);
     }
@@ -217,6 +226,7 @@ export function TasksView() {
             className="icon-btn icon-btn--bordered mobile-nav-btn mobile-nav-btn--inline"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              if (window.innerWidth <= 900) inputRef.current?.blur();
               useStore.getState().set({ mobileSidebarOpen: true, sidebarCollapsed: false });
             }}
             aria-label="Open operators list"
@@ -228,6 +238,7 @@ export function TasksView() {
             className="cfg-btn cfg-btn--secondary mobile-only-btn tasks-view__back-btn"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              if (window.innerWidth <= 900) inputRef.current?.blur();
               useConfigUI.getState().setView('chat');
             }}
             title="Return to Operator Chat"
@@ -247,6 +258,7 @@ export function TasksView() {
               className={filter === f ? 'is-active' : ''}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                if (window.innerWidth <= 900) inputRef.current?.blur();
                 setFilter(f);
               }}
             >
@@ -361,7 +373,10 @@ export function BotTasks({ bot }: { bot: Bot }) {
   const tasks = useTasks(bot.id);
   const [newTitle, setNewTitle] = useState('');
   const [adding, setAdding] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const sorted = useMemo(() => sortTasks(tasks ?? []), [tasks]);
+
+  useEffect(() => { setNewTitle(''); }, [bot.id]);
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -372,7 +387,10 @@ export function BotTasks({ bot }: { bot: Bot }) {
     try {
       await configApi.createTask(bot.id, { title });
       setNewTitle('');
+      if (window.innerWidth <= 900) inputRef.current?.blur();
       refreshTaskViews(bot.id);
+    } catch {
+      useStore.getState().notify('Could not add task — check connection');
     } finally {
       setAdding(false);
     }
@@ -399,6 +417,7 @@ export function BotTasks({ bot }: { bot: Bot }) {
         </div>
         <form className="bot-tasks__form" onSubmit={add}>
           <input
+            ref={inputRef}
             className="text-input bot-tasks__input"
             enterKeyHint="done"
             placeholder={`Add task for ${bot.name}…`}
