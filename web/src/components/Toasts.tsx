@@ -4,6 +4,7 @@ import { useStore } from '../store';
 function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismiss: (id: number) => void }) {
   const dragRef = useRef<{ x: number; y: number; active: boolean } | null>(null);
   const dismissedRef = useRef(false);
+  const suppressClickRef = useRef(false);
   const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
 
   const dismissOnce = () => {
@@ -15,6 +16,7 @@ function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismis
   const onTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     if (!t) return;
+    suppressClickRef.current = false;
     dragRef.current = { x: t.clientX, y: t.clientY, active: false };
   };
 
@@ -26,6 +28,7 @@ function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismis
     const dy = Math.min(0, t.clientY - start.y); // allow upward flick
     if (!start.active && (Math.abs(dx) > 6 || dy < -6)) {
       start.active = true;
+      suppressClickRef.current = true;
     }
     if (start.active) {
       setOffset({ x: dx, y: dy });
@@ -55,7 +58,13 @@ function ToastItem({ id, text, onDismiss }: { id: number; text: string; onDismis
     <div
       className="toast toast--item"
       role="status"
-      onClick={dismissOnce}
+      onClick={() => {
+        if (suppressClickRef.current) {
+          suppressClickRef.current = false;
+          return;
+        }
+        dismissOnce();
+      }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -81,6 +90,18 @@ export function Toasts() {
   const sseConnected = useStore((s) => s.sseConnected);
   const everConnectedRef = useRef(false);
   const [reconnecting, setReconnecting] = useState(false);
+  const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
+
+  useEffect(() => {
+    const onOnline = () => setOnline(true);
+    const onOffline = () => setOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (sseConnected) {
@@ -93,7 +114,8 @@ export function Toasts() {
     return () => window.clearTimeout(t);
   }, [sseConnected]);
 
-  if (!toasts.length && !reconnecting) return null;
+  const showNetBanner = !online || reconnecting;
+  if (!toasts.length && !showNetBanner) return null;
   const dismiss = (id: number) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(6); } catch {}
@@ -102,10 +124,10 @@ export function Toasts() {
   };
   return (
     <div className="toasts" aria-live="polite">
-      {reconnecting && (
+      {showNetBanner && (
         <div className="toast" role="status" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span className="status-dot is-attention" aria-hidden="true" style={{ position: 'static', flexShrink: 0 }} />
-          <span>Reconnecting…</span>
+          <span>{!online ? 'Offline — waiting for network…' : 'Reconnecting…'}</span>
         </div>
       )}
       {toasts.map((t) => (
