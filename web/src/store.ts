@@ -63,7 +63,7 @@ export const useStore = create<State>((set, get) => ({
   computer: null,
   connectionsVersion: 0,
   sseConnected: false,
-  detailsOpen: lsGet(LS_DETAILS) !== '0',
+  detailsOpen: typeof window !== 'undefined' && window.innerWidth <= 900 ? false : lsGet(LS_DETAILS) !== '0',
   sidebarCollapsed: lsGet(LS_SIDEBAR) === '1',
   mobileSidebarOpen: false,
   modal: null,
@@ -74,7 +74,7 @@ export const useStore = create<State>((set, get) => ({
       try { navigator.vibrate(10); } catch {}
     }
     const id = Date.now() + Math.random();
-    set((s) => ({ toasts: [...s.toasts.slice(-2), { id, text }] }));
+    set((s) => ({ toasts: [...s.toasts.filter((t) => t.text !== text).slice(-2), { id, text }] }));
     setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), 4200);
   },
 
@@ -100,7 +100,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   selectBot(id) {
-    set({ selectedBotId: id, mobileSidebarOpen: false });
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 900;
+    set(isMobile ? { selectedBotId: id, mobileSidebarOpen: false, detailsOpen: false } : { selectedBotId: id, mobileSidebarOpen: false });
     lsSet(LS_SELECTED, id);
     const t = get().transcripts[id];
     if (!t?.loaded) get().loadRows(id).catch(() => get().notify('Could not load this conversation'));
