@@ -25,6 +25,8 @@ export function ChatView() {
   const [confirmFresh, setConfirmFresh] = useState(false);
   const [freshBusy, setFreshBusy] = useState(false);
   const [briefingBusy, setBriefingBusy] = useState(false);
+  const [modelBusy, setModelBusy] = useState(false);
+  const [cloneBusy, setCloneBusy] = useState(false);
   const confirmTimer = useRef<number | null>(null);
   const rows = useMemo(() => sortedRows(transcript), [transcript]);
 
@@ -33,6 +35,9 @@ export function ChatView() {
     setModelMenu(false);
     setConfirmFresh(false);
     setFreshBusy(false);
+    setBriefingBusy(false);
+    setModelBusy(false);
+    setCloneBusy(false);
     if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
   }, [bot?.id]);
 
@@ -43,7 +48,20 @@ export function ChatView() {
   if (!bot) {
     return (
       <main className="chat chat--empty">
-        <div className="empty-chat"><div className="empty-chat__sub">No Operator selected.</div></div>
+        <div className="empty-chat">
+          <div className="empty-chat__sub">No Operator selected.</div>
+          <button
+            type="button"
+            className="btn btn--secondary mobile-only-btn"
+            style={{ marginTop: 12 }}
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              set({ mobileSidebarOpen: true, sidebarCollapsed: false });
+            }}
+          >
+            Open Operators
+          </button>
+        </div>
       </main>
     );
   }
@@ -53,6 +71,8 @@ export function ChatView() {
   const startNewChat = () => {
     if (freshBusy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    setMenu(false);
+    setModelMenu(false);
     blurComposerOnMobile();
     if (!rows.length) {
       flash(`Already in a fresh chat with ${displayName(bot)}`);
@@ -78,13 +98,18 @@ export function ChatView() {
   const shortModel = activeModel.includes('/') ? activeModel.split('/').pop()! : activeModel;
 
   const pickBotModel = async (modelId: string) => {
+    if (modelBusy) return;
+    if ((bot.model || '') === modelId) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+    setModelBusy(true);
     try {
       const { bot: updated } = await configApi.updateBot(bot.id, { model: modelId });
       useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
       flash(modelId ? `Switched ${bot.name} to ${modelId}` : `Using default model (${llmConfig?.defaultModel})`);
     } catch (e: any) {
       flash(e?.message ?? 'Could not update model');
+    } finally {
+      setModelBusy(false);
     }
   };
 
@@ -186,15 +211,32 @@ export function ChatView() {
                   { label: 'Copy conversation (.md)', onSelect: () => void shareTranscript() },
                   { label: 'Download full transcript (.md)', onSelect: () => { window.open(api.exportBotUrl(bot.id), '_blank'); } },
                   ...(bot.kind !== 'room' ? [{
-                    label: `Clone ${bot.name}`,
+                    label: cloneBusy ? `Cloning ${bot.name}…` : `Clone ${bot.name}`,
                     onSelect: () => {
+                      if (cloneBusy) return;
+                      setCloneBusy(true);
                       api.cloneBot(bot.id).then(({ bot: cloned }) => {
                         useStore.getState().loadBots().then(() => useStore.getState().selectBot(cloned.id));
                         flash(`Cloned ${bot.name} → ${cloned.name}`);
-                      }).catch((e) => flash(e.message));
+                      }).catch((e) => flash(e.message))
+                        .finally(() => setCloneBusy(false));
                     },
                   }] : []),
-                  { label: 'New conversation', onSelect: () => api.fresh(bot.id).then(() => flash('Started a new conversation')).catch((e) => flash(e.message)) },
+                  {
+                    label: freshBusy ? 'Starting new chat…' : 'New conversation',
+                    onSelect: () => {
+                      if (freshBusy) return;
+                      if (!rows.length) {
+                        flash(`Already in a fresh chat with ${displayName(bot)}`);
+                        return;
+                      }
+                      setFreshBusy(true);
+                      api.fresh(bot.id)
+                        .then(() => flash(`Started a new chat with ${displayName(bot)}`))
+                        .catch((e) => flash(e.message))
+                        .finally(() => setFreshBusy(false));
+                    },
+                  },
                   { label: 'Operator settings', onSelect: () => useConfigUI.getState().openBotSettings(bot.id) },
                 ]}
               />
