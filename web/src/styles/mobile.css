@@ -188,7 +188,7 @@
     max-width: 100%;
     justify-content: space-between;
     gap: 6px;
-    padding: env(safe-area-inset-top) 10px 0 10px;
+    padding: env(safe-area-inset-top) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
     height: calc(58px + env(safe-area-inset-top));
   }
   .chat__header-center {
@@ -251,7 +251,7 @@
   /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */
 
   /* Chat column: tighter padding, wider bubbles. */
-  .transcript { max-width: 100%; min-width: 0; padding: calc(64px + env(safe-area-inset-top)) 10px 8px; }
+  .transcript { max-width: 100%; min-width: 0; padding: calc(64px + env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left)); }
   .transcript__col { max-width: 100%; min-width: 0; gap: 10px; }
   .bubble-wrap {
     max-width: 100%;
@@ -270,7 +270,7 @@
   .group { max-width: 100%; }
 
   /* Composer: safe-area aware, 16px input prevents iOS focus zoom. */
-  .composer-area { max-width: 100%; min-width: 0; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
+  .composer-area { max-width: 100%; min-width: 0; padding: 8px max(10px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
   .composer-quick-bar {
     display: flex;
     align-items: center;
@@ -1329,7 +1329,7 @@ button, a, summary, [role="button"], [role="tab"], [role="radio"], [role="switch
   .viewer { height: var(--app-h, 100dvh); bottom: auto; }
   .app-settings__nav {
     width: 100%; flex-direction: row; align-items: center; flex-wrap: nowrap;
-    overflow-x: auto; overflow-y: hidden; padding: calc(10px + env(safe-area-inset-top)) 10px 10px;
+    overflow-x: auto; overflow-y: hidden; padding: calc(10px + env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 10px max(10px, env(safe-area-inset-left));
     border-right: 0; border-bottom: 0.5px solid var(--color-border-tertiary);
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
     overscroll-behavior-x: contain;
@@ -1359,7 +1359,7 @@ button, a, summary, [role="button"], [role="tab"], [role="radio"], [role="switch
     align-items: center;
     justify-content: center;
   }
-  .app-settings__page { max-width: 100%; min-width: 0; padding: 20px 14px calc(40px + env(safe-area-inset-bottom)); gap: 20px; }
+  .app-settings__page { max-width: 100%; min-width: 0; padding: 20px max(14px, env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); gap: 20px; }
   .app-settings__head { padding-right: 44px; }
   .app-settings__head h1 {
     font-size: 20px;
@@ -2277,7 +2277,7 @@ button, a, summary, [role="button"], [role="tab"], [role="radio"], [role="switch
     overscroll-behavior: contain;
   }
   .tasks-view__header {
-    padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+    padding: calc(10px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left));
     max-width: 100%;
     min-width: 0;
     flex-wrap: wrap;
@@ -2313,7 +2313,7 @@ button, a, summary, [role="button"], [role="tab"], [role="radio"], [role="switch
     align-items: center;
     justify-content: center;
   }
-  .tasks-view__inner { max-width: 100%; min-width: 0; padding: 14px 12px calc(32px + env(safe-area-inset-bottom)); }
+  .tasks-view__inner { max-width: 100%; min-width: 0; padding: 14px max(12px, env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
   .tasks-view__inner form { max-width: 100%; min-width: 0; flex-wrap: wrap; gap: 8px; }
   .tasks-view__inner form .text-input,
   .tasks-view__inner form select {
@@ -2376,7 +2376,7 @@ button, a, summary, [role="button"], [role="tab"], [role="radio"], [role="switch
   .bot-tasks__submit { min-height: 44px; height: 44px; min-width: 44px; max-width: 100%; padding: 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
 
   /* Computer viewer. */
-  .viewer__top { max-width: 100%; min-width: 0; padding: 0 10px; padding-top: env(safe-area-inset-top); height: auto; min-height: calc(56px + env(safe-area-inset-top)); }
+  .viewer__top { max-width: 100%; min-width: 0; padding: env(safe-area-inset-top) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left)); height: auto; min-height: calc(56px + env(safe-area-inset-top)); }
   .viewer__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .viewer__title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .viewer__stage { max-width: 100%; min-width: 0; padding: 0 6px; }
