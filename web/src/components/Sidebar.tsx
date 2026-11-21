@@ -198,10 +198,21 @@ export function Sidebar() {
         <TasksIsland />
         {primary && (
           <div className="pinned">
-            <button type="button" className={`pinned__tile${selectedBotId === primary.id ? ' is-selected' : ''}`} onClick={() => selectBot(primary.id)} title={displayName(primary)}>
+            <button
+              type="button"
+              className={`pinned__tile${selectedBotId === primary.id ? ' is-selected' : ''}`}
+              onClick={() => selectBot(primary.id)}
+              aria-current={selectedBotId === primary.id || undefined}
+              title={displayName(primary)}
+            >
               <span className="pinned__avatar">
                 <BotAvatarFor bot={primary} size={collapsed ? 44 : 60} star />
-                {live[primary.id]?.isRunning && <span className="status-dot is-working pinned__dot" />}
+                {(live[primary.id]?.awaiting || live[primary.id]?.isRunning || primary.unread > 0) && (
+                  <span
+                    className={`status-dot pinned__dot ${live[primary.id]?.awaiting ? 'is-attention' : live[primary.id]?.isRunning ? 'is-working' : 'is-unread'}`}
+                    aria-label={live[primary.id]?.awaiting ? 'Needs attention' : live[primary.id]?.isRunning ? 'Working' : 'Unread activity'}
+                  />
+                )}
               </span>
               {!collapsed && <span className="pinned__label">{displayName(primary)}</span>}
             </button>

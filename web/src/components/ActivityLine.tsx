@@ -5,6 +5,7 @@ import { useConfigUI } from '../configStore';
 import { api } from '../lib/api';
 import { activityPhrase } from '../lib/phrases';
 import { elapsed } from '../lib/time';
+import { useStore } from '../store';
 
 /** The single live "activity line": avatar mark + shimmering phrase + model tag + elapsed time + quick stop. */
 export function ActivityLine({ bot, live, rows }: { bot: Bot; live: LiveState; rows: Row[] }) {
@@ -16,8 +17,11 @@ export function ActivityLine({ bot, live, rows }: { bot: Bot; live: LiveState; r
     return () => clearInterval(t);
   }, []);
   useEffect(() => {
+    setStopping(false);
+  }, [bot.id]);
+  useEffect(() => {
     if (!live.isRunning) setStopping(false);
-  }, [live.isRunning, bot.id]);
+  }, [live.isRunning]);
   const since = live.startedAt ?? live.activity?.since ?? live.awaiting?.since ?? now;
   const tick = Math.floor((now - (live.activity?.since ?? since)) / 6000);
   const phrase = activityPhrase(live, rows, tick);
@@ -46,8 +50,12 @@ export function ActivityLine({ bot, live, rows }: { bot: Bot; live: LiveState; r
             if (stopping) return;
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
             setStopping(true);
-            api.interrupt(bot.id).catch(() => setStopping(false));
+            api.interrupt(bot.id).catch(() => {
+              setStopping(false);
+              useStore.getState().notify('Could not stop turn — check connection');
+            });
           }}
+          aria-label="Stop operator turn"
           title="Stop operator turn"
         >
           {stopping ? 'Stopping…' : 'Stop'}

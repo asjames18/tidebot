@@ -25,6 +25,7 @@ export function Shell() {
   const hasBot = useStore((s) => !!s.selectedBotId);
   const view = useConfigUI((s) => s.view);
   const edgeTouch = useRef<{ x: number; y: number; side: 'left' | 'right' } | null>(null);
+  const scrimTouch = useRef<{ x: number; y: number } | null>(null);
 
   // Switching views (e.g. to Tasks from the sidebar drawer) closes the mobile drawer.
   useEffect(() => { set({ mobileSidebarOpen: false }); }, [view, set]);
@@ -38,7 +39,7 @@ export function Shell() {
       if (st.mobileSidebarOpen || st.detailsOpen || st.modal || st.viewerOpen || cfg.botSettings || cfg.appSettings) return;
       const t = e.touches[0];
       const target = e.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry, .toast--item')) return;
+      if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry, .toast--item, .empty-quick-prompts, .tasks-filters, .voice-bar')) return;
       if (t.clientX <= 28) {
         edgeTouch.current = { x: t.clientX, y: t.clientY, side: 'left' };
       } else if (t.clientX >= window.innerWidth - 28 && st.selectedBotId && cfg.view === 'chat') {
@@ -133,6 +134,23 @@ export function Shell() {
       {(mobileSidebarOpen || (detailsOpen && hasBot && view === 'chat')) && (
         <div
           className="mobile-scrim"
+          onTouchStart={(e) => {
+            if (e.touches.length !== 1) return;
+            scrimTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          }}
+          onTouchEnd={(e) => {
+            const start = scrimTouch.current;
+            scrimTouch.current = null;
+            if (!start || !e.changedTouches.length) return;
+            const dx = e.changedTouches[0].clientX - start.x;
+            const dy = e.changedTouches[0].clientY - start.y;
+            if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+            if ((mobileSidebarOpen && dx < -36) || (detailsOpen && dx > 36)) {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              set({ mobileSidebarOpen: false, detailsOpen: false });
+            }
+          }}
+          onTouchCancel={() => { scrimTouch.current = null; }}
           onClick={(e) => {
             e.stopPropagation();
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
