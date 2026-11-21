@@ -60,11 +60,26 @@ export const useConfigUI = create<ConfigUI>((set, get) => ({
   curatedModels: [],
   remoteModels: [],
   versions: {},
-  openBotSettings: (botId, tab = 'general') => set({ botSettings: { botId, tab } }),
+  openBotSettings: (botId, tab = 'general') => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      useStore.getState().set({ mobileSidebarOpen: false, detailsOpen: false, modal: null });
+    }
+    set({ botSettings: { botId, tab } });
+  },
   closeBotSettings: () => set({ botSettings: null }),
-  openAppSettings: (section = 'general') => set({ appSettings: section }),
+  openAppSettings: (section = 'general') => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      useStore.getState().set({ mobileSidebarOpen: false, detailsOpen: false, modal: null });
+    }
+    set({ appSettings: section });
+  },
   closeAppSettings: () => set({ appSettings: null }),
-  setView: (view) => set({ view }),
+  setView: (view) => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      useStore.getState().set({ mobileSidebarOpen: false, detailsOpen: false });
+    }
+    set({ view });
+  },
   setTheme: (theme) => {
     try { localStorage.setItem(LS_THEME, theme); } catch { /* ignore */ }
     applyTheme(theme);
