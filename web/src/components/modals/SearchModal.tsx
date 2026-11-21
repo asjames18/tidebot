@@ -23,6 +23,7 @@ export function SearchModal() {
   const setModal = useStore((s) => s.setModal);
   const selectBot = useStore((s) => s.selectBot);
   const curatedModels = useConfigUI((s) => s.curatedModels);
+  const loadModels = useConfigUI((s) => s.loadModels);
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const setLlmConfig = useConfigUI((s) => s.setLlmConfig);
   const [q, setQ] = useState('');
@@ -32,7 +33,16 @@ export function SearchModal() {
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listTouchStartYRef = useRef<number | null>(null);
-  const close = useCallback(() => setModal(null), [setModal]);
+  const close = useCallback(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      inputRef.current?.blur();
+    }
+    setModal(null);
+  }, [setModal]);
+
+  useEffect(() => {
+    if (!curatedModels.length) void loadModels();
+  }, [curatedModels.length, loadModels]);
 
   const byId = useMemo(() => new Map(bots.map((b) => [b.id, b])), [bots]);
 
@@ -238,11 +248,15 @@ export function SearchModal() {
         keywords: 'shader webgl background aurora plasma obsidian vortex grid theme',
         run: () => {
           const styles: ShaderStyle[] = ['aurora', 'plasma', 'obsidian', 'vortex', 'grid'];
-          const cur = llmConfig?.shaderStyle ?? 'aurora';
+          const prev = llmConfig;
+          const cur = prev?.shaderStyle ?? 'aurora';
           const next = styles[(styles.indexOf(cur) + 1) % styles.length];
-          if (llmConfig) setLlmConfig({ ...llmConfig, shaderStyle: next });
+          if (prev) setLlmConfig({ ...prev, shaderStyle: next });
           useStore.getState().notify(`Shader: ${next.toUpperCase()}`);
-          configApi.saveLlmConfig({ shaderStyle: next }).then(setLlmConfig).catch(() => {});
+          configApi.saveLlmConfig({ shaderStyle: next }).then(setLlmConfig).catch(() => {
+            if (prev) setLlmConfig(prev);
+            useStore.getState().notify('Could not save shader style — check connection');
+          });
           close();
         },
       },
