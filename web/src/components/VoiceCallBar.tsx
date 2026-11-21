@@ -37,22 +37,35 @@ export function VoiceCallBar() {
   const logRef = useRef<HTMLDivElement>(null);
   const active = v.status === 'connecting' || v.status === 'live';
 
+  const blurMobileKeyboard = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) {
+        ae.blur();
+      }
+    }
+  };
+
   useEffect(() => {
     if (v.status !== 'live') {
       setExpanded(false);
       return;
     }
+    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [v.status]);
 
   // Drive the speaking animation from the output level without re-rendering React every frame.
+  // Pause rAF while the tab is hidden to save mobile CPU/battery.
   useEffect(() => {
     if (!active) return;
     let raf = 0;
     let out = 0;
     let mic = 0;
     const tick = () => {
+      raf = 0;
+      if (document.hidden) return;
       const l = callLevels();
       out = out * 0.7 + l.out * 0.3;
       mic = mic * 0.7 + Math.min(1, l.mic * 3) * 0.3;
@@ -60,8 +73,19 @@ export function VoiceCallBar() {
       if (el) { el.style.setProperty('--out', out.toFixed(3)); el.style.setProperty('--mic', mic.toFixed(3)); }
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    const syncVis = () => {
+      if (document.hidden) {
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      } else if (!raf) {
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    if (!document.hidden) raf = requestAnimationFrame(tick);
+    document.addEventListener('visibilitychange', syncVis);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', syncVis);
+    };
   }, [active]);
 
   useLayoutEffect(() => {
@@ -101,7 +125,11 @@ export function VoiceCallBar() {
             <span className="vcall__name">{bot.name}</span>
             {v.status === 'live' && v.startedAt && <span className="vcall__time">{fmt(now - v.startedAt)}</span>}
           </div>
-          <div className={`vcall__status${working && !v.speaking && !v.listening ? ' vcall__shimmer' : ''}`} aria-live="polite">
+          <div
+            className={`vcall__status${working && !v.speaking && !v.listening ? ' vcall__shimmer' : ''}`}
+            role={v.status === 'error' ? 'alert' : undefined}
+            aria-live={v.status === 'error' ? 'assertive' : 'polite'}
+          >
             {status}
             {working && <span className="vcall__task" title={task}> · {task}</span>}
           </div>
@@ -113,6 +141,7 @@ export function VoiceCallBar() {
               className={`vcall__btn${v.muted ? ' is-on' : ''}`}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                blurMobileKeyboard();
                 toggleMute();
               }}
               aria-pressed={v.muted}
@@ -128,6 +157,7 @@ export function VoiceCallBar() {
               className="vcall__btn vcall__btn--end"
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(15); } catch {} }
+                blurMobileKeyboard();
                 endCall();
               }}
               aria-label="End call"
@@ -143,6 +173,7 @@ export function VoiceCallBar() {
                 style={{ minHeight: 40, padding: '0 12px', fontSize: 13 }}
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+                  blurMobileKeyboard();
                   startCall(bot.id);
                 }}
               >
@@ -153,6 +184,7 @@ export function VoiceCallBar() {
                 className="vcall__btn"
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  blurMobileKeyboard();
                   useVoice.setState({ status: 'idle', botId: null, error: null });
                 }}
                 aria-label="Dismiss"
@@ -172,6 +204,7 @@ export function VoiceCallBar() {
             <button
               type="button"
               className="vcall__toggle"
+              aria-expanded={true}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
                 setExpanded(false);
@@ -184,8 +217,10 @@ export function VoiceCallBar() {
           <button
             type="button"
             className="vcall__captions"
+            aria-expanded={false}
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              blurMobileKeyboard();
               setExpanded(true);
             }}
             title="Show full transcript"
