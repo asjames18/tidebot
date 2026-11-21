@@ -33,13 +33,14 @@ export function Shell() {
   // Mobile edge-swipe to open the left Operators drawer (from left edge) or right Details drawer (from right edge).
   useEffect(() => {
     const onStart = (e: TouchEvent) => {
-      if (window.innerWidth > 900 || e.touches.length !== 1) return;
+      if (window.innerWidth > 900) return;
+      if (e.touches.length !== 1) { edgeTouch.current = null; return; }
       const st = useStore.getState();
       const cfg = useConfigUI.getState();
       if (st.mobileSidebarOpen || st.detailsOpen || st.modal || st.viewerOpen || cfg.botSettings || cfg.appSettings) return;
       const t = e.touches[0];
       const target = e.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry, .toast--item, .empty-quick-prompts, .tasks-filters, .vcall')) return;
+      if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry, .toast--item, .empty-quick-prompts, .tasks-filters, .vcall, .menu, .slash-palette')) return;
       if (t.clientX <= 28) {
         edgeTouch.current = { x: t.clientX, y: t.clientY, side: 'left' };
       } else if (t.clientX >= window.innerWidth - 28 && st.selectedBotId && cfg.view === 'chat') {
@@ -119,7 +120,15 @@ export function Shell() {
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
       if (key === 'k') { e.preventDefault(); st.setModal(st.modal === 'search' ? null : 'search'); }
-      else if (key === 'b') { e.preventDefault(); st.set({ sidebarCollapsed: !st.sidebarCollapsed }); }
+      else if (key === 'b') {
+        e.preventDefault();
+        if (window.innerWidth <= 900) {
+          const next = !st.mobileSidebarOpen;
+          st.set({ mobileSidebarOpen: next, sidebarCollapsed: false, ...(next ? { detailsOpen: false } : {}) });
+        } else {
+          st.set({ sidebarCollapsed: !st.sidebarCollapsed });
+        }
+      }
       else if (e.shiftKey && key === 'o') { e.preventDefault(); st.setModal(st.modal === 'create' ? null : 'create'); }
       else if (e.shiftKey && (key === ',' || key === '<')) { e.preventDefault(); st.set({ detailsOpen: !st.detailsOpen }); }
       else if (key === ',') { e.preventDefault(); useConfigUI.getState().openAppSettings(); }
@@ -147,6 +156,8 @@ export function Shell() {
             if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
             if ((mobileSidebarOpen && dx < -36) || (detailsOpen && dx > 36)) {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              const ae = document.activeElement;
+              if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
               set({ mobileSidebarOpen: false, detailsOpen: false });
             }
           }}
@@ -154,6 +165,8 @@ export function Shell() {
           onClick={(e) => {
             e.stopPropagation();
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+            const ae = document.activeElement;
+            if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
             set({ mobileSidebarOpen: false, detailsOpen: false });
           }}
           aria-hidden="true"

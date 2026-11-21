@@ -12,10 +12,12 @@ export function Menu({ items, onClose, align = 'left', placement = 'below', chil
       const el = ref.current;
       if (!el) return;
       el.style.translate = '';
-      const rect = el.getBoundingClientRect();
       const pad = 8;
       const vw = window.visualViewport?.width ?? window.innerWidth;
       const vh = window.visualViewport?.height ?? window.innerHeight;
+      el.style.maxHeight = `${Math.max(160, Math.floor(vh - pad * 2))}px`;
+      el.style.overflowY = 'auto';
+      const rect = el.getBoundingClientRect();
       let dx = 0;
       let dy = 0;
       if (rect.right > vw - pad) dx = vw - pad - rect.right;
@@ -29,9 +31,11 @@ export function Menu({ items, onClose, align = 'left', placement = 'below', chil
     clamp();
     const vv = window.visualViewport;
     vv?.addEventListener('resize', clamp);
+    vv?.addEventListener('scroll', clamp);
     window.addEventListener('resize', clamp);
     return () => {
       vv?.removeEventListener('resize', clamp);
+      vv?.removeEventListener('scroll', clamp);
       window.removeEventListener('resize', clamp);
     };
   }, [items.length, align, placement]);
