@@ -692,7 +692,7 @@
   .bot-tasks__submit:active, .task-row .cfg-icon-btn:active,
   .create-modal__template-pill:active, .mode-pick__opt:active,
   .md-copy-btn:active, .vcall__toggle:active,
-  .toast:active, .menu__item:active,
+  .toast--item:active, .menu__item:active,
   .pill-chip:active, .apps-modal__connected:active, .apps-modal__close:active,
   .cfg-row .cfg-btn:active, .card__actions .btn:active,
   .question-card__foot .link-btn:active, .voice-preview:active,
@@ -710,6 +710,10 @@
   .task-row__text[role="button"]:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
+  }
+  button:disabled:active,
+  [aria-disabled="true"]:active {
+    transform: none;
   }
 
   /* Empty-chat hero scales down. */
@@ -849,8 +853,8 @@
 /* ---------- full-overhaul pass: content, surfaces, global behavior ---------- */
 
 html, body { overscroll-behavior: none; }
-button, a, input, select, textarea, label, summary, [role="button"] { -webkit-tap-highlight-color: transparent; }
-button, a, summary, [role="button"] { touch-action: manipulation; }
+button, a, input, select, textarea, label, summary, [role="button"], [role="tab"], [role="radio"], [role="switch"], [role="checkbox"], [role="menuitem"], [role="option"] { -webkit-tap-highlight-color: transparent; }
+button, a, summary, [role="button"], [role="tab"], [role="radio"], [role="switch"], [role="checkbox"], [role="menuitem"], [role="option"] { touch-action: manipulation; }
 
 @media (max-width: 900px) {
   /* Flex children must be allowed to shrink to the viewport, not their content. */
