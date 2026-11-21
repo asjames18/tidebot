@@ -35,6 +35,7 @@ export function CreateGroupModal() {
   const create = async () => {
     if (!canCreate) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
+    blurInputOnMobile();
     setBusy(true); setError(null);
     try {
       const { id } = await api.createRoom(name.trim(), picked);
@@ -88,7 +89,7 @@ export function CreateGroupModal() {
         >
           <input
             className="text-input create-modal__name"
-            enterKeyHint="done"
+            enterKeyHint={picked.length >= 2 ? 'done' : 'next'}
             autoCapitalize="words"
             maxLength={60}
             placeholder="War room name (e.g. Product Launch, Security Triage)"

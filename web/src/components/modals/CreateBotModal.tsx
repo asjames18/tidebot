@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AvatarColor, AvatarShape, Bot } from '@shared/types';
 import { BotAvatar, PICKER_SHAPES } from '../../avatar/BotAvatar';
 import { api } from '../../lib/api';
@@ -73,6 +73,7 @@ const TEMPLATES: BotTemplate[] = [
 export function CreateBotModal() {
   const setModal = useStore((s) => s.setModal);
   const curatedModels = useConfigUI((s) => s.curatedModels);
+  const loadModels = useConfigUI((s) => s.loadModels);
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const [name, setName] = useState('');
   const [label, setLabel] = useState('');
@@ -86,9 +87,14 @@ export function CreateBotModal() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLInputElement>(null);
   const bodyTouchStartYRef = useRef<number | null>(null);
   const close = useCallback(() => setModal(null), [setModal]);
   const canCreate = name.trim().length > 0 && !busy;
+
+  useEffect(() => {
+    if (!curatedModels.length) void loadModels();
+  }, [curatedModels.length, loadModels]);
 
   const blurInputOnMobile = () => {
     if (typeof window !== 'undefined' && window.innerWidth <= 900) {
@@ -117,6 +123,7 @@ export function CreateBotModal() {
   const create = async () => {
     if (!canCreate) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
+    blurInputOnMobile();
     setBusy(true); setError(null);
     try {
       const { bot } = await api.createBot({
@@ -196,16 +203,23 @@ export function CreateBotModal() {
           </div>
           <input
             className="text-input create-modal__name"
-            enterKeyHint="done"
+            enterKeyHint="next"
             autoCapitalize="words"
             placeholder="Give your Bot a name"
             value={name}
             maxLength={60}
             onChange={(e) => { setActiveTemplate(null); setName(e.target.value); if (error) setError(null); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !label.trim()) {
+                e.preventDefault();
+                labelRef.current?.focus();
+              }
+            }}
             autoFocus={typeof window === 'undefined' || window.innerWidth > 900}
             aria-label="Bot name"
           />
           <input
+            ref={labelRef}
             className="text-input create-modal__name"
             enterKeyHint="done"
             autoCapitalize="sentences"
@@ -213,6 +227,12 @@ export function CreateBotModal() {
             value={label}
             maxLength={60}
             onChange={(e) => { setLabel(e.target.value); if (error) setError(null); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && window.innerWidth <= 900) {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
             aria-label="Bot label"
             style={{ marginTop: -4 }}
           />
@@ -313,6 +333,7 @@ export function CreateBotModal() {
             style={{ marginRight: 'auto' }}
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              blurInputOnMobile();
               setModal('group');
             }}
           >
@@ -323,6 +344,7 @@ export function CreateBotModal() {
             className="btn btn--secondary btn--sm"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              blurInputOnMobile();
               close();
             }}
           >
