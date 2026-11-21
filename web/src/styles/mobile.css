@@ -7,8 +7,8 @@
 .sheet-handle { display: none; }
 
 @media (max-width: 900px) {
-  /* Dynamic viewport height so the composer is not hidden behind mobile browser chrome. */
-  .app { height: 100dvh; }
+  /* Visual viewport height so the composer stays pinned above the iOS/Android soft keyboard. */
+  .app { height: var(--app-h, 100dvh); }
 
   /* Sidebar becomes an off-canvas drawer. */
   .sidebar,
