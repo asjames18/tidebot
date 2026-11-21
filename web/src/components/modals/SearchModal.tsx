@@ -27,6 +27,7 @@ export function SearchModal() {
   const setLlmConfig = useConfigUI((s) => s.setLlmConfig);
   const [q, setQ] = useState('');
   const [remote, setRemote] = useState<SearchResults | null>(null);
+  const [searchingRemote, setSearchingRemote] = useState(false);
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,11 +40,16 @@ export function SearchModal() {
     const needle = q.trim();
     if (needle.length < 2) {
       setRemote(null);
+      setSearchingRemote(false);
       return;
     }
     let alive = true;
+    setSearchingRemote(true);
     const t = setTimeout(() => {
-      api.search(needle).then((res) => { if (alive) setRemote(res); }).catch(() => {});
+      api.search(needle)
+        .then((res) => { if (alive) setRemote(res); })
+        .catch(() => {})
+        .finally(() => { if (alive) setSearchingRemote(false); });
     }, 160);
     return () => { alive = false; clearTimeout(t); };
   }, [q]);
@@ -90,6 +96,7 @@ export function SearchModal() {
           key: `model:${m.id}`,
           section: 'Switch Model',
           run: () => {
+            if (isCurrent) { close(); return; }
             configApi.updateBot(selectedBot.id, { model: m.id }).then(({ bot: updated }) => {
               useStore.setState((s) => ({ bots: s.bots.map((x) => (x.id === updated.id ? updated : x)) }));
               useStore.getState().notify(`Switched ${selectedBot.name} to ${m.name}`);
@@ -300,7 +307,7 @@ export function SearchModal() {
             }
           }}
         />
-        {q && (
+        {q ? (
           <button
             type="button"
             className="search-modal__clear"
@@ -311,6 +318,19 @@ export function SearchModal() {
             }}
             aria-label="Clear search input"
             title="Clear"
+          >
+            ✕
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="search-modal__clear mobile-only-btn"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              close();
+            }}
+            aria-label="Close command palette"
+            title="Close"
           >
             ✕
           </button>
@@ -355,7 +375,24 @@ export function SearchModal() {
             </div>
           );
         })}
-        {items.length === 0 && <div className="search-modal__empty">Nothing matches “{q}”</div>}
+        {items.length === 0 && (
+          <div className="search-modal__empty" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <span>{searchingRemote ? 'Searching…' : `Nothing matches “${q}”`}</span>
+            {!searchingRemote && q && (
+              <button
+                type="button"
+                className="cfg-btn cfg-btn--secondary"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+                  setQ('');
+                  inputRef.current?.focus();
+                }}
+              >
+                Clear search
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );
