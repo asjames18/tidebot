@@ -27,7 +27,7 @@ jobs:
             args: --linux
             target_arch: ""
           - name: Windows (x64)
-            os: windows-latest
+            os: windows-2022
             platform: win
             args: --win
             target_arch: ""
