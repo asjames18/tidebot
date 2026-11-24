@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { updateEnvFile } from './lib/envFile.js';
 
 const envFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.env');
 let lastMtimeMs = -1;
@@ -39,23 +40,11 @@ export function reloadEnvFromDisk(): Record<string, string> {
 reloadEnvFromDisk();
 
 export function writeEnvKeyToDisk(key: string, value: string) {
-  if (!/^[A-Z_][A-Z0-9_]*$/.test(key)) throw new Error(`Invalid env key: ${key}`);
-  if (/[\r\n\0]/.test(value)) throw new Error('Env values must not contain newlines');
-  try {
-    const raw = fs.existsSync(envFilePath) ? fs.readFileSync(envFilePath, 'utf8') : '';
-    const lines = raw.split(/\r?\n/);
-    const idx = lines.findIndex((l) => l.startsWith(`${key}=`));
-    if (idx >= 0) lines[idx] = `${key}=${value}`;
-    else lines.push(`${key}=${value}`);
-    fs.writeFileSync(envFilePath, lines.join('\n'), { encoding: 'utf8', mode: 0o600 });
-    try { fs.chmodSync(envFilePath, 0o600); } catch { /* best effort */ }
-    lastMtimeMs = -1;
-    reloadEnvFromDisk();
-  } catch (e) {
-    if (e instanceof Error && e.message.startsWith('Env values')) throw e;
-    diskEnv[key] = value;
-    process.env[key] = value;
-  }
+  // Atomic rewrite (temp file + rename); validation and write errors propagate
+  // so callers report failures instead of silently keeping a stale value.
+  updateEnvFile(envFilePath, key, value);
+  lastMtimeMs = -1;
+  reloadEnvFromDisk();
 }
 
 function opt(name: string, fallback = ''): string {
