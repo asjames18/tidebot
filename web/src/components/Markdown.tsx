@@ -45,9 +45,11 @@ const components: Components = {
     let loopback = false;
     let isNativeScheme = false;
     try {
-      const u = new URL(href ?? '');
+      // Markdown percent-encodes IPv6 authority brackets before rendering.
+      const parsedHref = (href ?? '').replace(/^(https?:\/\/)%5B([0-9a-f:.]+)%5D(?=[:/?#]|$)/i, '$1[$2]');
+      const u = new URL(parsedHref);
       const h = u.hostname;
-      loopback = h === 'localhost' || h === '127.0.0.1' || h === '::1';
+      loopback = h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
       isNativeScheme = u.protocol === 'mailto:' || u.protocol === 'tel:';
     } catch { /* relative links stay links */ }
     if (loopback) return <span className="md-localhost" title="Localhost link from the agent — only reachable on the host machine">{children}</span>;

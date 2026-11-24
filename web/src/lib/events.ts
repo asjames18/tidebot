@@ -76,6 +76,7 @@ export function startEvents(): () => void {
   open();
   return () => {
     stopped = true;
+    useStore.getState().set({ sseConnected: false });
     clearTimeout(timer);
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('online', wake);

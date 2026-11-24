@@ -246,6 +246,7 @@
     display: inline-flex;
     align-items: center;
   }
+  .composer-telemetry__mono { max-width: 36vw; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .composer-telemetry__right { display: none; }
 
   /* Bubble timestamps & action bars are always accessible on touch devices (no hover needed). */

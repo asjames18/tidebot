@@ -175,7 +175,7 @@ export function ShaderCanvas({
     let visible = true;
     let contextLost = false;
     const start = performance.now();
-    const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
     const drawFrame = (elapsedSec: number) => {
       if (contextLost || gl.isContextLost()) return;
@@ -206,11 +206,11 @@ export function ShaderCanvas({
     };
 
     const startLoop = () => {
-      if (reducedMotion || raf || !visible || document.hidden || contextLost) return;
+      if (motion?.matches || raf || !visible || document.hidden || contextLost) return;
       raf = requestAnimationFrame(render);
     };
 
-    const io = !reducedMotion && typeof IntersectionObserver !== 'undefined'
+    const io = typeof IntersectionObserver !== 'undefined'
       ? new IntersectionObserver(([entry]) => {
           visible = entry?.isIntersecting ?? true;
           if (visible) startLoop(); else stopLoop();
@@ -220,10 +220,10 @@ export function ShaderCanvas({
 
     const onVisibility = () => {
       if (document.hidden) stopLoop();
-      else if (reducedMotion) drawFrame(4.0);
+      else if (motion?.matches) { stopLoop(); drawFrame(4.0); }
       else startLoop();
     };
-    const onResize = () => { if (reducedMotion) drawFrame(4.0); };
+    const onResize = () => { if (motion?.matches) drawFrame(4.0); };
     const onContextLost = (e: Event) => {
       e.preventDefault();
       contextLost = true;
@@ -235,18 +235,20 @@ export function ShaderCanvas({
     };
 
     document.addEventListener('visibilitychange', onVisibility);
-    if (reducedMotion) window.addEventListener('resize', onResize);
+    motion?.addEventListener('change', onVisibility);
+    window.addEventListener('resize', onResize);
     canvas.addEventListener('webglcontextlost', onContextLost);
     canvas.addEventListener('webglcontextrestored', onContextRestored);
 
-    if (reducedMotion) drawFrame(4.0);
+    if (motion?.matches) drawFrame(4.0);
     else startLoop();
 
     return () => {
       stopLoop();
       io?.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
-      if (reducedMotion) window.removeEventListener('resize', onResize);
+      motion?.removeEventListener('change', onVisibility);
+      window.removeEventListener('resize', onResize);
       canvas.removeEventListener('webglcontextlost', onContextLost);
       canvas.removeEventListener('webglcontextrestored', onContextRestored);
       if (!gl.isContextLost()) {

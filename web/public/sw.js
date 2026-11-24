@@ -1,6 +1,6 @@
 // TideBot service worker: app-shell cache for fast standalone launches.
 // API and preview traffic always go to the network; navigations fall back to the cached shell offline.
-const CACHE = 'tidebot-shell-v2';
+const CACHE = 'tidebot-shell-v3';
 const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/favicon.svg'];
 
 self.addEventListener('install', (e) => {
@@ -10,7 +10,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('tidebot-shell-') && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -28,13 +28,13 @@ self.addEventListener('fetch', (e) => {
           }
           return res;
         })
-        .catch(() => caches.match('/')),
+        .catch(() => caches.match('/', {cacheName: CACHE})),
     );
     return;
   }
   if (url.pathname.startsWith('/assets/')) {
     e.respondWith(
-      caches.match(e.request).then((hit) => hit ?? fetch(e.request).then((res) => {
+      caches.match(e.request, {cacheName: CACHE}).then((hit) => hit ?? fetch(e.request).then((res) => {
         if (res.ok) {
           const copy = res.clone();
           void caches.open(CACHE).then((c) => c.put(e.request, copy));
@@ -45,7 +45,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   e.respondWith(
-    caches.match(e.request).then((hit) => {
+    caches.match(e.request, {cacheName: CACHE}).then((hit) => {
       const fresh = fetch(e.request).then((res) => {
         if (res.ok) {
           const copy = res.clone();

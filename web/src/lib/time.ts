@@ -6,7 +6,8 @@ export const clock = (ts: number) => new Date(ts).toLocaleTimeString('en-US', { 
 export function dividerLabel(ts: number, now = Date.now()): string {
   const d = new Date(ts);
   const today = new Date(now);
-  const y = new Date(now - 86_400_000);
+  const y = new Date(now);
+  y.setDate(y.getDate() - 1);
   if (sameDay(d, today)) return `Today ${clock(ts)}`;
   if (sameDay(d, y)) return `Yesterday ${clock(ts)}`;
   const opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
@@ -28,6 +29,9 @@ export function relativeShort(ts: number, now = Date.now()): string {
   if (s < 60) return 'now';
   if (s < 3600) return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  if (s < 172800) return 'Yesterday';
-  return `${Math.floor(s / 86400)}d`;
+  // Compare local calendar dates without counting DST-shortened or extended days.
+  const dayNumber = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
+  const days = dayNumber(new Date(now)) - dayNumber(new Date(ts));
+  if (!days) return `${Math.floor(s / 3600)}h`;
+  return days === 1 ? 'Yesterday' : `${days}d`;
 }

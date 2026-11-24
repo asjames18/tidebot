@@ -39,6 +39,6 @@ export function activityPhrase(live: LiveState, rows: Row[], tick: number): stri
     return name ? `Checking with ${name}` : 'Checking with another Bot';
   }
   if (kind === 'connecting_service') return nice(a.detail) ? `Working in ${a.detail}` : 'Working in a connected app';
-  const list = PHRASES[kind] ?? PHRASES.working;
-  return list[tick % list.length];
+  const list = Object.hasOwn(PHRASES, kind) ? PHRASES[kind] : PHRASES.working;
+  return list[Math.max(0, tick) % list.length];
 }

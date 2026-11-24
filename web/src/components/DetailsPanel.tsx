@@ -111,15 +111,13 @@ function ComputerCard({ bot }: { bot: Bot }) {
   }, [running, busy]);
   return (
     <div className="panel-card">
-      <div
+      <button
         className="panel-row panel-row--computer"
-        role="button"
-        tabIndex={0}
+        type="button"
         onClick={() => {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
           set(window.innerWidth <= 900 ? { viewerOpen: true, detailsOpen: false } : { viewerOpen: true });
         }}
-        onKeyDown={(e) => { if (e.key === 'Enter') set({ viewerOpen: true }); }}
       >
         <span className="panel-row__text">
           <span className="panel-row__title">Bot's computer</span>
@@ -136,7 +134,7 @@ function ComputerCard({ bot }: { bot: Bot }) {
             </>
           )}
         </span>
-      </div>
+      </button>
       {!running && !busy && (
         <button
           type="button"

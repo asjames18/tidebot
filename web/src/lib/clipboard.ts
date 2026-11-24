@@ -9,8 +9,11 @@ export async function copyText(text: string): Promise<boolean> {
       // Fall through to execCommand fallback.
     }
   }
+  let ta: HTMLTextAreaElement | undefined;
+  let prior: HTMLElement | null = null;
   try {
-    const ta = document.createElement('textarea');
+    prior = document.activeElement as HTMLElement | null;
+    ta = document.createElement('textarea');
     ta.value = text;
     ta.setAttribute('readonly', '');
     ta.style.position = 'fixed';
@@ -23,10 +26,12 @@ export async function copyText(text: string): Promise<boolean> {
     ta.focus({ preventScroll: true });
     ta.select();
     ta.setSelectionRange(0, text.length);
-    const ok = document.execCommand('copy');
-    ta.remove();
-    return ok;
+    return document.execCommand('copy');
   } catch {
     return false;
+  } finally {
+    const restore = ta && document.activeElement === ta;
+    ta?.remove();
+    if (restore && prior?.isConnected) prior.focus?.({ preventScroll: true });
   }
 }
