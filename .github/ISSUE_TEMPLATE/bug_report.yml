@@ -1,0 +1,73 @@
+name: 🐛 Bug report
+description: Report something that doesn't work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! Please fill in the details below so we can reproduce it quickly.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the server with `npm start`
+        2. Open …
+        3. Click …
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How are you running TideBot?
+      options:
+        - Built from source (npm start / dev servers)
+        - Desktop installer (Windows / macOS / Linux)
+        - Docker / other
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: e.g. Windows 11, macOS 15 (Apple Silicon), Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: TideBot version or commit
+      description: Release version, or `git rev-parse --short HEAD` if built from source
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Model provider (if relevant)
+      options:
+        - OpenRouter
+        - Ollama / local
+        - vLLM / custom OpenAI-compatible
+        - xAI
+        - Not model-related
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs & console output
+      description: |
+        Redact any API keys or tokens before pasting. Never share your `.env`.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and discussions for a duplicate
+          required: true
+        - label: I redacted secrets, API keys and tokens from logs and screenshots
+          required: true
