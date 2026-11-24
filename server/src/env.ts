@@ -4,7 +4,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { updateEnvFile } from './lib/envFile.js';
 
-const envFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.env');
+const envFilePath = process.env.ENV_PATH
+  ? path.resolve(process.env.ENV_PATH)
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.env');
 let lastMtimeMs = -1;
 let diskEnv: Record<string, string> = {};
 

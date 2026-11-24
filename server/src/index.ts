@@ -63,7 +63,9 @@ app.route('/api', api);
 app.route('/api', configApi);
 
 // Serve the built web app in production.
-const webDist = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '../../web/dist');
+const webDist = process.env.WEB_DIST_DIR
+  ? path.resolve(process.env.WEB_DIST_DIR)
+  : path.resolve(fileURLToPath(new URL('.', import.meta.url)), '../../web/dist');
 if (fs.existsSync(webDist)) {
   const indexHtml = fs.readFileSync(path.join(webDist, 'index.html'), 'utf8');
   app.use('/*', async (c, next) => {
