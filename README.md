@@ -6,7 +6,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-38bdf8.svg?style=flat-square" alt="MIT License"></a>
   <a href="https://openrouter.ai"><img src="https://img.shields.io/badge/BYOM-OpenRouter%20%7C%20OpenAI%20%7C%20Ollama-818cf8.svg?style=flat-square" alt="Bring Your Own Model"></a>
   <a href="https://composio.dev"><img src="https://img.shields.io/badge/Integrations-1%2C500%2B%20Composio%20Tools-34d399.svg?style=flat-square" alt="Composio Tools"></a>
-  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-%E2%89%A522.0-f59e0b.svg?style=flat-square" alt="Node.js >= 22"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-%E2%89%A522.22.3-f59e0b.svg?style=flat-square" alt="Node.js >= 22.22.3"></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/UI-Obsidian%20Glass%20%2B%20WebGL-c084fc.svg?style=flat-square" alt="WebGL Shaders"></a>
 </p>
 
@@ -38,7 +38,7 @@
 - **Granular Approval Firewall**: Read-only operations execute seamlessly; state-mutating actions pause the turn and render an interactive **Approval Card** (`Allow Once`, `Always Allow`, `Deny`).
 
 ### 🖥️ Dual Execution Sandbox (Local Workspace + Orgo Cloud Linux VM)
-- **Zero-Config Local Workspace**: Works out of the box without a cloud VM—each Operator gets an isolated local workspace directory (`data/workspaces/<botId>/`) for instant `shell` execution, `save_file`, `read_file`, and `list_files`.
+- **Local workspace**: Each Operator gets a directory (`data/workspaces/<botId>/`) for `save_file`, `read_file`, and `list_files` without a cloud VM. Local `shell` execution also requires Linux with working Bubblewrap (`bwrap`). If Bubblewrap is missing or its isolation check fails, TideBot refuses the command rather than running it unsandboxed.
 - **Full Cloud Linux Desktops (Orgo)**: When `ORGO_API_KEY` is configured, Operators can spin up and control isolated X11 Linux desktops with persistent Chrome profiles, live screenshots, mouse/keyboard automation, and an interactive **noVNC Live Viewer** (`Watch` or `Take Control`).
 
 ### 🎨 Obsidian Glass UI & Real-Time WebGL Shaders
@@ -93,7 +93,7 @@ flowchart TB
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
-- **Node.js 22.0+** and `npm`
+- **Node.js 22.22.3+** and `npm`
 
 ### 2. Clone & Install
 

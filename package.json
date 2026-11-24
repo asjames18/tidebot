@@ -21,12 +21,13 @@
     "web"
   ],
   "scripts": {
+    "test": "npm run build && node --test tests/chat-roundtrip.test.mjs tests/security.test.mjs tests/service-worker.test.mjs tests/clipboard.test.mjs tests/time.test.mjs && tsx --tsconfig web/tsconfig.json --test tests/markdown-links.test.mjs tests/palette.test.mjs tests/events.test.mjs tests/activity-phrase.test.mjs",
     "dev": "npm run dev -w server & npm run dev -w web",
     "build": "npm run build -w web && npm run build -w server",
     "start": "npm run start -w server",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w web"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.22.3"
   }
 }

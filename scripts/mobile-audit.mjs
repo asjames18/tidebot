@@ -9,9 +9,11 @@
  *   AUDIT_URL      Target URL (default: http://127.0.0.1:8787)
  *   AUDIT_OUT_DIR  Directory for screenshots (default: <tmpdir>/tidebot-mobile-audit)
  *   CHROME_PATH    Path to Chrome/Chromium binary (auto-detected if omitted)
+ *   Use only a disposable loopback server with DEV_LOGIN=1 and an empty test database.
  *   CDP_PORT       Remote debugging port (default: 9223)
  */
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -36,7 +38,12 @@ function resolveChrome() {
 }
 
 const PORT = Number(process.env.CDP_PORT || 9223);
-const chrome = spawn(resolveChrome(), [
+const target = new URL(process.env.AUDIT_URL || 'http://127.0.0.1:8787');
+if (!['127.0.0.1', 'localhost', '[::1]'].includes(target.hostname)) throw new Error('Use a disposable loopback test server');
+const executable = resolveChrome();
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-audit-profile-'));
+const chrome = spawn(executable, [
+  `--user-data-dir=${profile}`,
   '--headless=new',
   '--no-sandbox',
   '--disable-gpu',
@@ -45,6 +52,8 @@ const chrome = spawn(resolveChrome(), [
   '--window-size=390,844',
   'about:blank',
 ], { stdio: 'ignore' });
+
+chrome.once('close', () => fs.promises.rm(profile, { recursive: true, force: true, maxRetries: 8, retryDelay: 200 }).catch(() => console.warn('Could not remove temporary audit profile:', profile)));
 
 async function waitForDebugger() {
   for (let i = 0; i < 40; i++) {
@@ -109,12 +118,36 @@ class CDP {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Audit function run inside the page to detect layout/mobile bugs
-const AUDIT_JS = `
+const SCREENS = {
+  "01-signin-390": "form.signin__dev",
+  "01b-signin-360": "form.signin__dev",
+  "02-chat-main": ".composer__input",
+  "03-slash-palette": ".slash-palette",
+  "04-left-sidebar-drawer": ".sidebar.is-mobile-open",
+  "05-right-details-activity": ".details__tabs .is-active|Activity",
+  "06-right-details-library": ".details__tabs .is-active|Library",
+  "07-search-command-palette": ".search-modal",
+  "08-create-bot-modal": ".create-modal",
+  "09-connect-apps-modal": ".apps-modal",
+  "10-bot-settings-general": ".bot-settings .cfg-nav__item.is-active|General",
+  "11-bot-settings-skills": ".bot-settings .cfg-nav__item.is-active|Skills",
+  "12-bot-settings-memories": ".bot-settings .cfg-nav__item.is-active|Memories",
+  "13-bot-settings-routines": ".bot-settings .cfg-nav__item.is-active|Routines",
+  "14-app-settings-models": ".app-settings .cfg-nav__item.is-active|Models",
+  "15-app-settings-general": ".app-settings .cfg-nav__item.is-active|General",
+  "16-app-settings-computer": ".app-settings .cfg-nav__item.is-active|Computer",
+  "17-tasks-view": ".tasks-view"
+};
+const auditScreen = (name) => `
+  const [selector, text] = ${JSON.stringify(SCREENS[name])}.split("|");
+  const marker = document.querySelector(selector);
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const docScrollW = document.documentElement.scrollWidth;
   const bodyScrollW = document.body.scrollWidth;
   const issues = [];
+
+  if (!marker?.getBoundingClientRect().width || (text && !marker.textContent.includes(text))) issues.push({type: "expected-screen-missing", selector, text});
 
   if (docScrollW > vw + 1) {
     issues.push({ type: 'horizontal-overflow', detail: \`document scrollWidth (\${docScrollW}) > viewport (\${vw})\` });
@@ -136,7 +169,11 @@ const AUDIT_JS = `
     const isInteractive = tag === 'button' || tag === 'input' || tag === 'select' || tag === 'textarea' || el.getAttribute('role') === 'button';
     if (isInteractive) {
       // Check if inside a horizontal scroll container
-      const inHScroll = el.closest('.app-settings__nav, .cfg-nav, .cat-pills, .composer-telemetry, .signin__shader-bar');
+      let inHScroll = false;
+      for (let parent = el.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+        const r = parent.getBoundingClientRect();
+        if (/^(auto|scroll)$/.test(getComputedStyle(parent).overflowX) && parent.scrollWidth > parent.clientWidth && r.left >= -2 && r.right <= vw + 2 && rect.width <= parent.clientWidth) { inHScroll = true; break; }
+      }
       if (!inHScroll && (rect.right > vw + 2 || rect.left < -2)) {
         issues.push({
           type: 'clipped-control',
@@ -180,6 +217,7 @@ const AUDIT_JS = `
 `;
 
 async function main() {
+  await once(chrome, 'spawn'); // Reject on launch failure; close cleans the profile.
   const targets = await waitForDebugger();
   const pageTarget = targets.find((t) => t.type === 'page');
   const cdp = new CDP(pageTarget.webSocketDebuggerUrl);
@@ -200,27 +238,30 @@ async function main() {
   // 1. Navigate to app (logged out -> Sign In view)
   await cdp.send('Network.enable');
   await cdp.send('Network.clearBrowserCookies');
-  await cdp.send('Page.navigate', { url: process.env.AUDIT_URL || 'http://127.0.0.1:8787' });
+  await cdp.send('Page.navigate', { url: target.href });
   await sleep(1200);
   await cdp.screenshot('01-signin-390');
-  report['01-signin-390'] = await cdp.eval(AUDIT_JS);
+  report['01-signin-390'] = await cdp.eval(auditScreen('01-signin-390'));
 
   // Also check 360px narrow on SignIn
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 360, height: 740, deviceScaleFactor: 2, mobile: true });
   await sleep(300);
   await cdp.screenshot('01b-signin-360');
-  report['01b-signin-360'] = await cdp.eval(AUDIT_JS);
+  report['01b-signin-360'] = await cdp.eval(auditScreen('01b-signin-360'));
 
   // Restore 390x844 and log in via dev login button
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   await sleep(200);
   await cdp.eval(`
-    const btn = document.querySelector('form.signin__dev button[type="submit"]');
-    if (btn) btn.click();
+    if (!document.querySelector('form.signin__dev')) throw new Error('Expected the sign-in screen');
+    const response = await fetch('/api/auth/dev', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:'mobile-audit@example.invalid'})});
+    if (!response.ok) throw new Error('Test login failed: use a disposable server with DEV_LOGIN=1');
   `);
+  await cdp.send('Page.navigate', {url: target.href});
   await sleep(1500);
+  if (!await cdp.eval(`return !!document.querySelector('.composer__input')`)) throw new Error('Chat composer not reached after test login');
   await cdp.screenshot('02-chat-main');
-  report['02-chat-main'] = await cdp.eval(AUDIT_JS);
+  report['02-chat-main'] = await cdp.eval(auditScreen('02-chat-main'));
 
   // 2. Test Slash Command Palette on mobile
   await cdp.eval(`
@@ -233,7 +274,7 @@ async function main() {
   `);
   await sleep(400);
   await cdp.screenshot('03-slash-palette');
-  report['03-slash-palette'] = await cdp.eval(AUDIT_JS);
+  report['03-slash-palette'] = await cdp.eval(auditScreen('03-slash-palette'));
 
   // Clear slash input
   await cdp.eval(`
@@ -250,7 +291,7 @@ async function main() {
   await cdp.eval(`document.querySelector('.mobile-nav-btn')?.click()`);
   await sleep(450);
   await cdp.screenshot('04-left-sidebar-drawer');
-  report['04-left-sidebar-drawer'] = await cdp.eval(AUDIT_JS);
+  report['04-left-sidebar-drawer'] = await cdp.eval(auditScreen('04-left-sidebar-drawer'));
 
   // Close left drawer
   await cdp.eval(`document.querySelector('.mobile-scrim')?.click()`);
@@ -260,7 +301,7 @@ async function main() {
   await cdp.eval(`document.querySelector('.chat__header-right button[aria-label="Show details"]')?.click()`);
   await sleep(450);
   await cdp.screenshot('05-right-details-activity');
-  report['05-right-details-activity'] = await cdp.eval(AUDIT_JS);
+  report['05-right-details-activity'] = await cdp.eval(auditScreen('05-right-details-activity'));
 
   // Switch to Library tab in Details drawer
   await cdp.eval(`
@@ -269,7 +310,7 @@ async function main() {
   `);
   await sleep(500);
   await cdp.screenshot('06-right-details-library');
-  report['06-right-details-library'] = await cdp.eval(AUDIT_JS);
+  report['06-right-details-library'] = await cdp.eval(auditScreen('06-right-details-library'));
 
   // Close right drawer
   await cdp.eval(`document.querySelector('.details__top button[aria-label="Close details"]')?.click()`);
@@ -279,7 +320,7 @@ async function main() {
   await cdp.eval(`document.querySelector('.chat__header-right button[aria-label="Command palette"]')?.click()`);
   await sleep(450);
   await cdp.screenshot('07-search-command-palette');
-  report['07-search-command-palette'] = await cdp.eval(AUDIT_JS);
+  report['07-search-command-palette'] = await cdp.eval(auditScreen('07-search-command-palette'));
   await cdp.eval(`document.querySelector('.modal-scrim')?.click()`);
   await sleep(300);
 
@@ -289,7 +330,7 @@ async function main() {
   await cdp.eval(`document.querySelector('.sidebar__controls button[aria-label="New Bot"]')?.click()`);
   await sleep(450);
   await cdp.screenshot('08-create-bot-modal');
-  report['08-create-bot-modal'] = await cdp.eval(AUDIT_JS);
+  report['08-create-bot-modal'] = await cdp.eval(auditScreen('08-create-bot-modal'));
   await cdp.eval(`document.querySelector('.modal__close')?.click()`);
   await sleep(300);
 
@@ -300,7 +341,7 @@ async function main() {
   `);
   await sleep(800);
   await cdp.screenshot('09-connect-apps-modal');
-  report['09-connect-apps-modal'] = await cdp.eval(AUDIT_JS);
+  report['09-connect-apps-modal'] = await cdp.eval(auditScreen('09-connect-apps-modal'));
   await cdp.eval(`document.querySelector('.modal__close')?.click()`);
   await sleep(300);
 
@@ -310,22 +351,22 @@ async function main() {
   await cdp.eval(`document.querySelector('.details__gear')?.click()`);
   await sleep(500);
   await cdp.screenshot('10-bot-settings-general');
-  report['10-bot-settings-general'] = await cdp.eval(AUDIT_JS);
+  report['10-bot-settings-general'] = await cdp.eval(auditScreen('10-bot-settings-general'));
 
   await cdp.eval(`Array.from(document.querySelectorAll('.cfg-nav__item')).find(b => b.textContent.includes('Skills'))?.click()`);
   await sleep(400);
   await cdp.screenshot('11-bot-settings-skills');
-  report['11-bot-settings-skills'] = await cdp.eval(AUDIT_JS);
+  report['11-bot-settings-skills'] = await cdp.eval(auditScreen('11-bot-settings-skills'));
 
   await cdp.eval(`Array.from(document.querySelectorAll('.cfg-nav__item')).find(b => b.textContent.includes('Memories'))?.click()`);
   await sleep(400);
   await cdp.screenshot('12-bot-settings-memories');
-  report['12-bot-settings-memories'] = await cdp.eval(AUDIT_JS);
+  report['12-bot-settings-memories'] = await cdp.eval(auditScreen('12-bot-settings-memories'));
 
   await cdp.eval(`Array.from(document.querySelectorAll('.cfg-nav__item')).find(b => b.textContent.includes('Routines'))?.click()`);
   await sleep(400);
   await cdp.screenshot('13-bot-settings-routines');
-  report['13-bot-settings-routines'] = await cdp.eval(AUDIT_JS);
+  report['13-bot-settings-routines'] = await cdp.eval(auditScreen('13-bot-settings-routines'));
 
   await cdp.eval(`document.querySelector('.bot-settings .modal__close')?.click()`);
   await sleep(300);
@@ -334,17 +375,17 @@ async function main() {
   await cdp.eval(`document.querySelector('.composer-telemetry__chip')?.click()`);
   await sleep(500);
   await cdp.screenshot('14-app-settings-models');
-  report['14-app-settings-models'] = await cdp.eval(AUDIT_JS);
+  report['14-app-settings-models'] = await cdp.eval(auditScreen('14-app-settings-models'));
 
   await cdp.eval(`Array.from(document.querySelectorAll('.app-settings__nav .cfg-nav__item')).find(b => b.textContent.includes('General'))?.click()`);
   await sleep(400);
   await cdp.screenshot('15-app-settings-general');
-  report['15-app-settings-general'] = await cdp.eval(AUDIT_JS);
+  report['15-app-settings-general'] = await cdp.eval(auditScreen('15-app-settings-general'));
 
   await cdp.eval(`Array.from(document.querySelectorAll('.app-settings__nav .cfg-nav__item')).find(b => b.textContent.includes('Computer'))?.click()`);
   await sleep(400);
   await cdp.screenshot('16-app-settings-computer');
-  report['16-app-settings-computer'] = await cdp.eval(AUDIT_JS);
+  report['16-app-settings-computer'] = await cdp.eval(auditScreen('16-app-settings-computer'));
 
   await cdp.eval(`document.querySelector('.app-settings__close')?.click()`);
   await sleep(300);
@@ -355,17 +396,17 @@ async function main() {
   await cdp.eval(`document.querySelector('.sidebar-island')?.click()`);
   await sleep(500);
   await cdp.screenshot('17-tasks-view');
-  report['17-tasks-view'] = await cdp.eval(AUDIT_JS);
+  report['17-tasks-view'] = await cdp.eval(auditScreen('17-tasks-view'));
 
   console.log(JSON.stringify(report, null, 2));
   const totalIssues = Object.values(report).reduce((sum, r) => sum + (r?.issues?.length ?? 0), 0);
   cdp.close();
   chrome.kill();
-  if (totalIssues > 0) process.exit(1);
+  if (totalIssues > 0) process.exitCode = 1;
 }
 
 main().catch((err) => {
   console.error(err);
   chrome.kill();
-  process.exit(1);
+  process.exitCode = 1;
 });
