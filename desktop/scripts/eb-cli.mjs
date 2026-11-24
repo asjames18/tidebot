@@ -2,13 +2,14 @@
 /**
  * Runs the local electron-builder CLI with Node directly.
  *
- * Calling electron-builder through `npx` is unreliable on Windows: npm's own
- * argument parsing can consume flags, and the error surfaces as electron-builder
- * treating a stripped flag (".publish.releaseType=prerelease") as a file path.
- * Invoking the CLI's JS entry with process.execPath keeps the argv intact on
- * every platform.
+ * Calling electron-builder through `npx` is unreliable on Windows, and even a
+ * direct `node scripts/eb-cli.mjs ... -c.publish.releaseType=prerelease` step
+ * breaks under PowerShell, which splits that token at the dot and hands the CLI
+ * "-c .publish.releaseType=prerelease" (electron-builder then tries to open it
+ * as a file). So this wrapper takes a shell-safe `--release-type <value>` and
+ * builds the `-c.publish.releaseType=<value>` argument itself, in argv.
  *
- * Usage: node scripts/eb-cli.mjs --win --publish always -c.publish.releaseType=prerelease
+ * Usage: node scripts/eb-cli.mjs --win --publish always --release-type prerelease
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -30,10 +31,35 @@ export function resolveElectronBuilderCli(dir) {
   throw new Error(`electron-builder CLI not found under ${dir}; run npm install there first.`);
 }
 
+/**
+ * Translate wrapper arguments into electron-builder arguments.
+ * `--release-type <value>` (or RELEASE_TYPE in the environment) becomes
+ * `-c.publish.releaseType=<value>`; everything else is forwarded untouched.
+ */
+export function buildElectronBuilderArgs(argv, releaseTypeFromEnv = '') {
+  const forwarded = [];
+  let releaseType = (releaseTypeFromEnv || '').trim();
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--release-type') {
+      releaseType = (argv[i + 1] || '').trim();
+      i++;
+      continue;
+    }
+    if (arg.startsWith('--release-type=')) {
+      releaseType = arg.slice('--release-type='.length).trim();
+      continue;
+    }
+    forwarded.push(arg);
+  }
+  if (releaseType) forwarded.push(`-c.publish.releaseType=${releaseType}`);
+  return forwarded;
+}
+
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (isMain) {
   const cli = resolveElectronBuilderCli(desktopDir);
-  const args = process.argv.slice(2);
+  const args = buildElectronBuilderArgs(process.argv.slice(2), process.env.RELEASE_TYPE);
   console.log(`[eb-cli] node ${path.relative(desktopDir, cli)} ${args.join(' ')}`);
   execFileSync(process.execPath, [cli, ...args], { cwd: desktopDir, stdio: 'inherit' });
 }
