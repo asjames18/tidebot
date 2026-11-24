@@ -342,7 +342,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'publish_preview',
-    description: 'Publish a built page or site from your workspace so the user can open it from any device (including their phone). First create the files (save_file), and for projects run the build locally with shell (e.g. npm run build) and publish the output file/folder. Returns a preview_url to share as a markdown link. NEVER give the user localhost links or start a throwaway web server for them.',
+    description: 'Publish a built page or site from your workspace so the user can open it right where they use TideBot. First create the files (save_file), and for projects run the build locally with shell (e.g. npm run build) and publish the output file/folder. Returns a preview_url to share as a markdown link; it opens only for sessions signed in to this TideBot instance, not from other devices. NEVER give the user localhost links or start a throwaway web server for them.',
     parameters: obj({ path: { type: 'string', description: 'Workspace-relative file (e.g. site/index.html) or folder (its index.html is served)' } }, ['path']),
     activity: 'drafting_file',
     label: 'Publishing preview',
