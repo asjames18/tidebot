@@ -651,6 +651,10 @@ api.post('/apps/:slug/connect', async (c) => {
   return c.json(r);
 });
 
+export function jsonForScript(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+}
+
 api.get('/apps/callback', async (c) => {
   const cookieUserId = userFromCookieHeader(c.req.header('cookie'))?.id;
   let userId = cookieUserId || '';
@@ -665,6 +669,7 @@ api.get('/apps/callback', async (c) => {
     if (uid && sig && expected && sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) userId = uid;
   }
   const slug = c.req.query('slug') ?? '';
+  if (!/^[a-z0-9_-]{1,64}$/i.test(slug)) return c.text('Invalid app.', 400);
   const botId = c.req.query('bot');
   const seq = Number(c.req.query('seq') ?? 0);
   const ok = c.req.query('status') !== 'failed';
@@ -685,7 +690,7 @@ api.get('/apps/callback', async (c) => {
       enqueue(botId, { type: 'system', text: `The user connected ${info?.name ?? slug}. Continue with what you were doing.` });
     }
   }
-  return c.html(`<!doctype html><meta charset="utf-8"><title>Connected · TideBot</title><body style="background:#07090e;color:#f3f5fa;font-family:system-ui;padding:48px;text-align:center"><h2 style="margin:0 0 8px">${ok ? '✓ App Connected to TideBot' : 'Connection Failed'}</h2><p style="color:#99a3b8;font-size:14px">${ok ? 'You can close this window.' : 'Please try connecting again from TideBot.'}</p><script>try{window.opener&&window.opener.postMessage({type:'grokbot-connected',slug:${JSON.stringify(slug)},ok:${ok}},${JSON.stringify(new URL(env.appUrl).origin)})}catch(e){};setTimeout(()=>window.close(),700)</script></body>`);
+  return c.html(`<!doctype html><meta charset="utf-8"><title>Connected · TideBot</title><body style="background:#07090e;color:#f3f5fa;font-family:system-ui;padding:48px;text-align:center"><h2 style="margin:0 0 8px">${ok ? '✓ App Connected to TideBot' : 'Connection Failed'}</h2><p style="color:#99a3b8;font-size:14px">${ok ? 'You can close this window.' : 'Please try connecting again from TideBot.'}</p><script>try{window.opener&&window.opener.postMessage(${jsonForScript({ type: 'grokbot-connected', slug, ok })},${jsonForScript(new URL(env.appUrl).origin)})}catch(e){};setTimeout(()=>window.close(),700)</script></body>`);
 });
 
 api.delete('/apps/:slug', async (c) => {
