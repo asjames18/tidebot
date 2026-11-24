@@ -358,7 +358,7 @@ function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; ap
       apiKey: cfg.customBaseUrl ? apiKey : '',
     };
   }
-  // Default: OpenRouter (uses recognized agentic harness headers so agent-only models like thinkingmachines/inkling-2-small:free are unlocked)
+  // Default: OpenRouter. Attribute requests to this project.
   const baseURL = 'https://openrouter.ai/api/v1';
   const apiKey = cfg.openrouterKey;
   return {
@@ -367,8 +367,8 @@ function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; ap
       baseURL,
       timeout: 360_000,
       defaultHeaders: {
-        'HTTP-Referer': 'https://cline.bot',
-        'X-Title': 'Cline',
+        'HTTP-Referer': 'https://github.com/asjames18/tidebot',
+        'X-Title': 'TideBot',
       },
     }),
     baseURL,
@@ -624,20 +624,22 @@ export async function streamModelTurn(opts: {
     reqBody.tools = chatTools;
   }
 
-  let stream: AsyncIterable<any>;
-  try {
-    stream = (await withRetry(() => client.chat.completions.create(reqBody, { signal: opts.signal }), opts.signal)) as unknown as AsyncIterable<any>;
-  } catch (e: any) {
-    // Fallback if model doesn't support tool calling or rejected a Composio tool schema
-    if ((e?.status === 400 || e?.status === 404) && reqBody.tools?.length) {
-      console.warn('[llm] retrying chat.completions without external tools:', e?.message);
+  const stream = await withRetry(async () => {
+    // Own the retry here: the SDK otherwise retries deterministic llama.cpp 500s.
+    const send = () => client.chat.completions.create(reqBody, { signal: opts.signal, maxRetries: 0 });
+    try {
+      return await send();
+    } catch (e: any) {
+      const rejectedToolStream = cfg.provider === 'custom' && e?.status === 500 &&
+        e.error?.message === 'Cannot use tools with stream';
+      if (opts.signal.aborted || !reqBody.tools?.length ||
+          !(rejectedToolStream || e?.status === 400 || e?.status === 404)) throw e;
+      console.warn('[llm] provider rejected tool request; retrying plain chat');
       delete reqBody.tools;
       delete reqBody.reasoning;
-      stream = (await withRetry(() => client.chat.completions.create(reqBody, { signal: opts.signal }), opts.signal)) as unknown as AsyncIterable<any>;
-    } else {
-      throw e;
+      return send();
     }
-  }
+  }, opts.signal) as unknown as AsyncIterable<any>;
 
   let fullText = '';
   let fullReasoning = '';

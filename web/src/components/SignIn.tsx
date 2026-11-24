@@ -83,15 +83,15 @@ export function SignIn() {
 
       <div className="signin__card">
         <div className="signin__badge-row">
-          <span className="tidebot-pill tideos-pill tideos-pill--glow">TIDEBOT v2.4 · BYOM EDITION</span>
-          <span className="tidebot-pill tideos-pill">OPENROUTER READY</span>
+          <span className="tidebot-pill tideos-pill tideos-pill--glow">TIDEBOT · BYOM EDITION</span>
+          <span className="tidebot-pill tideos-pill">LOCAL MODEL READY</span>
         </div>
         <div className="signin__hero">
           <BotAvatar shape="hex" color="cyan" size={76} ring />
         </div>
         <h1 className="signin__title">TideBot</h1>
         <p className="signin__sub">
-          Autonomous AI operators with dedicated Linux workspaces, persistent memory, and Bring-Your-Own-Model via OpenRouter.
+          Run agents with persistent memory using your own local model or a hosted provider such as OpenRouter.
         </p>
         <a
           className="btn btn--primary signin__google"

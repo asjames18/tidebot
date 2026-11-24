@@ -1,13 +1,13 @@
 # Architecture
 
-grokbot-clone is a web app (`web/`) plus a Node server (`server/`) that runs every Bot's agent loop. The model is Grok 4.7 through the xAI Responses API. Each user's Bots act on one Orgo cloud computer and use apps connected through Composio.
+TideBot has a React app (`web/`) and a Node server (`server/`) that runs each bot’s agent loop. Text chat can use OpenRouter, xAI, or a custom OpenAI-compatible endpoint, including a [local model](local-model.md). Orgo cloud desktops and Composio apps are optional.
 
 ## Components
 
 | Piece | Where | What it does |
 |---|---|---|
 | API + realtime | `server/src/routes*.ts`, `lib/hub.ts` | JSON over HTTP, plus one Server-Sent Events stream per user (`GET /api/events`) carrying row updates, live state, roster changes and computer state |
-| Agent loop | `server/src/agent/loop.ts` | Per-Bot serial queue. Each turn builds the system prompt and history, streams `grok-4.7` with function tools plus server-side `web_search`/`x_search`, runs tool calls, and repeats until the model answers |
+| Agent loop | `server/src/agent/loop.ts` | Per-Bot serial queue. Each turn builds the system prompt and history, streams the configured model via `server/src/agent/llm.ts`, runs tool calls, and repeats until the model answers |
 | Tools | `server/src/agent/tools.ts` | Computer use (`computer_*`, `open_browser`, `shell`, `save_file`), memory (`remember`/`recall`), routines (cron and app events), tasks, `send_to_bot`, subagents, group chats, `ask_user`, `request_app_connection`, `stay_silent`, plus Composio's meta tools for 1,000+ apps |
 | Memory | `server/src/agent/memory.ts`, `agent/prompt.ts` | Compacts long histories with xAI `POST /v1/responses/compact` (falls back to a summary). Consolidates durable facts after a chat goes idle. Keeps a bounded memory section in the prompt |
 | Computers | `server/src/computer.ts`, `orgo.ts`, `idle.ts` | One Orgo Linux VM per user, with one Orgo *screen* (a separate X display with its own desktop) per Bot, up to 4, leased least-recently-used among idle Bots. Auto-suspends after 20 idle minutes and wakes on the next computer action |
@@ -37,9 +37,9 @@ Row kinds:
 ## Approvals
 
 The loop checks policy before executing each tool call:
-- A Bot's own computer and shell run freely.
+- `shell`, `create_routine`, and `create_event_routine` ask by default. A saved block denies the call; a saved always-allow permits it without another prompt. Other built-ins do not require approval from this policy check.
 - Composio tools whose slug reads as read-only (`*_GET`, `*_LIST`, `*_SEARCH`, …) run automatically.
-- Anything else posts an **approval card** and pauses the turn, saving the pending calls in `pending_turns`. The turn resumes when the user answers.
+- A call that needs approval posts an **approval card** and pauses the turn, saving the pending calls in `pending_turns`. The turn resumes when the user answers.
   - **Allow** runs the call once.
   - **Always allow** stores a per-tool policy.
   - **Don't allow** sends the model a refusal telling it not to retry.

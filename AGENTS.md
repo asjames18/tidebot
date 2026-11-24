@@ -40,7 +40,7 @@ npm run dev -w web      # http://localhost:5173 (proxies /api to :8787)
 
 ### 3.2 Multi-Provider BYOM Engine (`server/src/agent/llm.ts`)
 - Supports three provider modes stored in SQLite (`llm_settings` table, `id = 1`) with fallback to `.env`:
-  1. `openrouter`: Uses `https://openrouter.ai/api/v1` via OpenAI Chat Completions streaming. Includes agentic harness headers (`HTTP-Referer: https://cline.bot`, `X-Title: Cline`) so gated agentic models (such as `thinkingmachines/inkling-2-small:free`) work seamlessly.
+  1. `openrouter`: Uses `https://openrouter.ai/api/v1` via OpenAI Chat Completions streaming. Identifies TideBot using its project URL and title; model availability is determined by the provider.
   2. `custom`: Connects to any OpenAI-compatible `/v1/chat/completions` endpoint (Ollama, LM Studio, vLLM, Groq, Together, OpenAI).
   3. `xai`: Uses xAI's native `/v1/responses` API.
 - **Reasoning Traces**: `streamModelTurn()` extracts both `delta.reasoning` / `delta.reasoning_content` and `delta.content`, streaming reasoning tokens via `callbacks.onReasoningDelta` into `MessageBody.reasoning` so reasoning models provide immediate visual feedback in the UI.
@@ -53,7 +53,7 @@ npm run dev -w web      # http://localhost:5173 (proxies /api to :8787)
   - `save_file`, `read_file`, and `list_files` always read/write to `localWorkspaceDir(botId)` immediately (zero latency), and mirror to the Orgo cloud VM only when `ORGO_API_KEY` is configured and the VM is running.
   - When `ORGO_API_KEY` is not set, the 7 X11 GUI-only tools (`ORGO_ONLY_TOOLS`) are pruned from `functionSchemas()` to save prompt tokens.
 - **Approval Firewall (`policyFor`)**:
-  - Built-in tools in `toolMap` are allowed by default.
+  - `shell`, `create_routine`, and `create_event_routine` require approval by default; `policyFor` checks saved policies for those tools. Other built-ins are allowed by this check.
   - External Composio tools are inspected via `innerToolSlugs()`. Read-only slugs (`_GET`, `_LIST`, `_SEARCH`, `_FETCH`, etc.) default to `always_allow`; state-changing slugs default to `needs_approval` and pause the turn (`pending_turns` table) until resolved via `POST /api/approvals/:id`.
 
 ### 3.4 Composio App Integrations (`server/src/composio.ts`)
