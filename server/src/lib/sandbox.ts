@@ -1,9 +1,7 @@
-import { exec, execFile } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
-import path from 'node:path';
 import { promisify } from 'node:util';
 
-const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
 /** Environment for agent shell commands: allowlist only, never the server's secrets. */
@@ -27,61 +25,39 @@ export function findBwrap(): string | null {
   return null;
 }
 
-type BwrapMode = 'full' | 'fs-only' | 'minimal' | 'none';
-const MODE_FLAGS: Record<Exclude<BwrapMode, 'none'>, string[]> = {
-  full: ['--unshare-net', '--unshare-pid', '--proc', '/proc', '--dev', '/dev'],
-  'fs-only': ['--unshare-pid', '--proc', '/proc', '--dev', '/dev'],
-  minimal: [],
-};
-let bwrapMode: BwrapMode | undefined;
-async function probeBwrap(bwrap: string): Promise<BwrapMode> {
-  if (bwrapMode !== undefined) return bwrapMode;
-  for (const mode of ['full', 'fs-only', 'minimal'] as const) {
-    try {
-      await execFileAsync(bwrap, [...MODE_FLAGS[mode], '--ro-bind', '/', '/', '/bin/true'], { timeout: 5_000 });
-      bwrapMode = mode;
-      if (mode !== 'full') console.warn(`[sandbox] bubblewrap running in ${mode} mode here; network/process isolation reduced (approval gating still applies)`);
-      return bwrapMode;
-    } catch { /* try weaker mode */ }
+const isolationFlags = ['--unshare-net', '--unshare-pid', '--proc', '/proc', '--dev', '/dev'];
+// Bubblewrap starts with an empty root. Expose runtime binaries/libraries, not host data.
+function runtimeMounts(): string[] {
+  return ['/bin', '/lib', '/lib64', '/usr/bin', '/usr/lib', '/usr/lib64']
+    .filter(dir => fs.existsSync(dir))
+    .flatMap(dir => ['--ro-bind', dir, dir]);
+}
+let usable: boolean | undefined;
+async function probeBwrap(bwrap: string): Promise<boolean> {
+  if (usable !== undefined) return usable;
+  try {
+    await execFileAsync(bwrap, [...isolationFlags, ...runtimeMounts(), '/bin/true'], { timeout: 5_000 });
+    return usable = true;
+  } catch {
+    return usable = false;
   }
-  bwrapMode = 'none';
-  console.warn('[sandbox] bubblewrap present but unusable here; shell falls back to sanitized-env exec (approval gating still applies)');
-  return bwrapMode;
 }
 
 export interface ShellOutcome { code: number; output: string; sandboxed: boolean }
 
-/**
- * Run a bash command in the bot workspace. With bubblewrap available the
- * command is jailed: read-only root, only its own workspace writable, the
- * data directory (DB, .env neighbours, other bots) hidden, no network and a
- * sanitized environment. Without bubblewrap it falls back to a sanitized-env
- * exec in the workspace (approval gating remains the control there).
- */
+/** Execute only through Bubblewrap with filesystem, network and PID isolation. */
 export async function runShell(command: string, workspace: string, timeoutSec: number): Promise<ShellOutcome> {
-  const found = findBwrap();
-  const mode = found ? await probeBwrap(found) : 'none';
-  const bwrap = found && mode !== 'none' ? found : null;
+  const bwrap = findBwrap();
+  if (!bwrap || !await probeBwrap(bwrap)) {
+    return { code: 1, output: 'Shell disabled: Bubblewrap isolation is unavailable. Command was not run.', sandboxed: false };
+  }
   const timeout = timeoutSec * 1000;
   const maxBuffer = 2 * 1024 * 1024;
-  if (!bwrap) {
-    try {
-      const { stdout, stderr } = await execAsync(command, { cwd: workspace, timeout, maxBuffer, env: shellEnv(workspace) });
-      return { code: 0, output: `${stdout ?? ''}${stderr ? `\n${stderr}` : ''}`, sandboxed: false };
-    } catch (e: any) {
-      return { code: typeof e?.code === 'number' ? e.code : 1, output: `${e?.stdout ?? ''}\n${e?.stderr ?? e?.message ?? ''}`, sandboxed: false };
-    }
-  }
-  const dataDir = path.resolve(workspace, '../..');
-  const repoDir = path.resolve(workspace, '../../..');
-  const hide = [...new Set([dataDir, repoDir])];
-  const args: string[] = [...MODE_FLAGS[mode as Exclude<BwrapMode, 'none'>], '--die-with-parent', '--ro-bind', '/', '/'];
-  for (const dir of hide) args.push('--tmpfs', dir);
-  args.push('--dir', workspace, '--bind', workspace, workspace);
-  if (workspace !== '/tmp' && !workspace.startsWith('/tmp/')) args.push('--tmpfs', '/tmp');
+  const args: string[] = [...isolationFlags, '--die-with-parent', ...runtimeMounts(), '--tmpfs', '/tmp',
+    '--bind', workspace, '/workspace'];
   args.push('--clearenv');
-  for (const [k, v] of Object.entries(shellEnv(workspace))) if (v) args.push('--setenv', k, v);
-  args.push('--chdir', workspace, '/bin/bash', '-c', command);
+  for (const [k, v] of Object.entries(shellEnv('/workspace'))) if (v) args.push('--setenv', k, v);
+  args.push('--chdir', '/workspace', '/bin/bash', '-c', command);
   try {
     const { stdout, stderr } = await execFileAsync(bwrap, args, { timeout, maxBuffer });
     return { code: 0, output: `${stdout ?? ''}${stderr ? `\n${stderr}` : ''}`, sandboxed: true };

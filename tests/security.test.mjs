@@ -1,6 +1,6 @@
 // Focused regression tests for the security audit fixes.
 // Runs against the compiled server: `npm run build -w server` first, then `node --test tests/security.test.mjs`.
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -8,10 +8,15 @@ import path from 'node:path';
 import { isPrivateIp, isLoopbackHost, assertUrlHostAllowedSync, assertPublicUrl } from '../server/dist/lib/ssrf.js';
 import { resolveWithinWorkspace } from '../server/dist/lib/files.js';
 
-process.env.DB_PATH = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-test-')), 'test.db');
+const fixtures = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-security-'));
+process.env.DB_PATH = path.join(fixtures, 'test.db');
+const { db } = await import('../server/dist/db.js');
+after(() => {
+  try { db.close(); } finally { fs.rmSync(fixtures, { recursive: true, force: true }); }
+});
 const { validateRoutineSchedule } = await import('../server/dist/routines.js');
 const { encryptSecret, decryptSecret } = await import('../server/dist/lib/secrets.js');
-const { runShell, findBwrap } = await import('../server/dist/lib/sandbox.js');
+const { runShell } = await import('../server/dist/lib/sandbox.js');
 const { withRetry } = await import('../server/dist/lib/retry.js');
 
 test('private / reserved IPs are blocked, public IPs allowed', () => {
@@ -40,8 +45,8 @@ test('routine schedules must be valid and at least 15 minutes apart', () => {
 });
 
 test('workspace resolution rejects symlink escapes', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-ws-'));
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-out-'));
+  const root = fs.mkdtempSync(path.join(fixtures, 'ws-'));
+  const outside = fs.mkdtempSync(path.join(fixtures, 'out-'));
   fs.writeFileSync(path.join(root, 'ok.txt'), 'hi');
   fs.symlinkSync(path.join(outside, 'secret.txt'), path.join(root, 'link.txt'));
   fs.writeFileSync(path.join(outside, 'secret.txt'), 'secret');
@@ -51,7 +56,7 @@ test('workspace resolution rejects symlink escapes', () => {
 });
 
 test('secrets encrypt at rest and decrypt back; legacy plaintext passes through', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-keys-'));
+  const dir = fs.mkdtempSync(path.join(fixtures, 'keys-'));
   const enc = encryptSecret(dir, 'sk-test-secret-value');
   assert.ok(enc.startsWith('enc:v1:'));
   assert.ok(!enc.includes('sk-test-secret-value'));
@@ -60,16 +65,40 @@ test('secrets encrypt at rest and decrypt back; legacy plaintext passes through'
   assert.equal(fs.statSync(path.join(dir, '.secret-key')).mode & 0o777, 0o600);
 });
 
-test('shell cannot read outside its workspace or see server secrets', async () => {
+test('missing Bubblewrap refuses shell commands without executing them', async (t) => {
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-refusal-'));
+  t.after(() => fs.rmSync(ws, { recursive: true, force: true }));
+  const isolated = await import('../server/dist/lib/sandbox.js?missing');
+  const exists = fs.existsSync;
+  t.mock.method(fs, 'existsSync', p => String(p).endsWith('/bwrap') ? false : exists(p));
+  const result = await isolated.runShell('touch ran', ws, 5);
+  assert.notEqual(result.code, 0);
+  assert.match(result.output, /Command was not run/);
+  assert.equal(exists(path.join(ws, 'ran')), false);
+});
+
+test('shell cannot read outside its workspace or see server secrets', async (t) => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-shell-'));
   const ws = path.join(base, 'data', 'workspaces', 'bot1');
   fs.mkdirSync(ws, { recursive: true });
   fs.writeFileSync(path.join(base, 'data', 'secret.txt'), 'top-secret');
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const key = process.env.OPENROUTER_API_KEY;
+  t.after(() => { if (key === undefined) delete process.env.OPENROUTER_API_KEY; else process.env.OPENROUTER_API_KEY = key; });
   process.env.OPENROUTER_API_KEY = 'sk-should-not-leak';
-  const r = await runShell('echo marker-123; echo "env:$OPENROUTER_API_KEY up:$(cat ../../secret.txt 2>/dev/null)"', ws, 10);
+  fs.writeFileSync(path.join(fixtures, 'outside-marker'), 'unrelated-host-data');
+  const outside = path.join(fixtures, 'outside-marker').replaceAll("'", "'\"'\"'");
+  const r = await runShell(`cat '${outside}' 2>/dev/null; echo marker-123; echo "env:$OPENROUTER_API_KEY up:$(cat ../../secret.txt 2>/dev/null)"`, ws, 10);
+  if (!r.sandboxed) {
+    assert.notEqual(r.code, 0);
+    assert.match(r.output, /Command was not run/);
+    return t.skip('Full Bubblewrap isolation unavailable');
+  }
+  assert.equal(r.code, 0, r.output);
   assert.ok(r.output.includes('marker-123'), r.output);
   assert.ok(!r.output.includes(process.env.OPENROUTER_API_KEY), r.output);
-  if (r.sandboxed) assert.ok(!r.output.includes('top-secret'), r.output);
+  assert.ok(!r.output.includes('top-secret'), r.output);
+  assert.ok(!r.output.includes('unrelated-host-data'), r.output);
 });
 
 test('provider retry recovers from 429 but not from 400', async () => {
