@@ -88,7 +88,7 @@ export const env = {
   get orgoResolution() { return opt('ORGO_RESOLUTION', '1280x800x24'); },
   sessionSecret: sessionSecretInit,
   get devLogin() { return opt('DEV_LOGIN') === '1'; },
-  dbPath: process.env.DB_PATH ?? new URL('../../data/grokbot.db', import.meta.url).pathname,
+  dbPath: process.env.DB_PATH ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../data/grokbot.db'),
   get providers() {
     return {
       openrouter: Boolean(opt('OPENROUTER_API_KEY')),

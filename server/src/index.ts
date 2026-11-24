@@ -5,6 +5,7 @@ import { compress } from 'hono/compress';
 import { secureHeaders } from 'hono/secure-headers';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Server } from 'node:http';
 import { env } from './env.js';
 import { api } from './routes.js';
@@ -62,7 +63,7 @@ app.route('/api', api);
 app.route('/api', configApi);
 
 // Serve the built web app in production.
-const webDist = path.resolve(new URL('.', import.meta.url).pathname, '../../web/dist');
+const webDist = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '../../web/dist');
 if (fs.existsSync(webDist)) {
   const indexHtml = fs.readFileSync(path.join(webDist, 'index.html'), 'utf8');
   app.use('/*', async (c, next) => {
