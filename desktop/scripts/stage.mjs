@@ -3,10 +3,11 @@
  * Stages the compiled TideBot web + server bundles and server production dependencies
  * into desktop/staged/ and rebuilds native addons (better-sqlite3) for Electron's ABI.
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildWindowsCommand } from './cmd.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const desktopDir = path.resolve(__dirname, '..');
@@ -21,6 +22,12 @@ const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
 function run(cmd, args, cwd) {
   console.log(`[stage] ${cmd} ${args.join(' ')} (cwd: ${cwd})`);
+  // Windows cannot spawn .cmd shims without a shell (EINVAL), so go through
+  // cmd.exe with a quoted command line there.
+  if (process.platform === 'win32') {
+    execSync(buildWindowsCommand(cmd, args), { cwd, stdio: 'inherit' });
+    return;
+  }
   execFileSync(cmd, args, { cwd, stdio: 'inherit' });
 }
 
