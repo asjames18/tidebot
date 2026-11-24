@@ -16,6 +16,7 @@
 </p>
 
 <p align="center">
+  <a href="#-download">Download</a> ·
   <a href="#-key-features">Key Features</a> ·
   <a href="#-architecture">Architecture</a> ·
   <a href="#-quick-start">Quick Start</a> ·
@@ -87,6 +88,23 @@ flowchart TB
   Tools --> LocalFS
   Tools -->|"X11 GUI & Chrome"| OrgoVM
 ```
+
+---
+
+## ⬇️ Download
+
+Prebuilt desktop apps with automatic updates — no Node.js required:
+
+| Platform | Download |
+| :--- | :--- |
+| Windows 10/11 | `TideBot-Setup-<latest>.exe` |
+| macOS (Apple Silicon) | `TideBot-<latest>-arm64.dmg` |
+| macOS (Intel) | `TideBot-<latest>.dmg` |
+| Linux | `.AppImage` or `.deb` |
+
+**Grab the latest build from [Releases](https://github.com/asjames18/tidebot/releases/latest).** Installers are published automatically on every push to `main`, and installed apps check for updates and prompt you when a new build is available.
+
+> **Note (unsigned builds):** installers are not yet code-signed. Windows SmartScreen shows a one-time *unknown publisher* warning — click **More info → Run anyway**. On macOS, right-click the app and choose **Open** the first time. Prefer building from source? Follow [Quick Start](#-quick-start) below.
 
 ---
 
@@ -222,16 +240,20 @@ tidebot/
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome!
-1. Fork the repository and create a feature branch (`git checkout -b feat/amazing-capability`).
-2. Run verification before committing:
-   ```bash
-   npm run typecheck && npm run build
-   ```
-3. Ensure no secrets, `.env` files, or SQLite `.db` files are staged.
-4. Open a Pull Request.
+Contributions are welcome — bug reports, docs, new Operator tools, provider integrations, UI polish. Great first contributions: an OpenRouter/Ollama model cookbook entry, a Composio tool example, or a WebGL shader preset.
 
-See [`AGENTS.md`](AGENTS.md) for detailed architectural invariants and coding guidelines.
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, branch naming, and the PR checklist.
+2. Fork the repository and create a feature branch (`git checkout -b feat/amazing-capability`).
+3. Run verification before committing:
+   ```bash
+   npm run typecheck && npm run build && npm test
+   ```
+4. Ensure no secrets, `.env` files, or SQLite `.db` files are staged.
+5. Open a Pull Request describing **what changed and how to verify it**.
+
+- 🏗 Architecture and agent-runtime invariants: [`AGENTS.md`](AGENTS.md)
+- 🐛 Found a security issue? Please report privately per [SECURITY.md](SECURITY.md) — do not open a public issue.
+- 💬 Questions & ideas: [open a Discussion](https://github.com/asjames18/tidebot/discussions).
 
 ---
 
