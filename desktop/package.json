@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "description": "TideBot Desktop for Windows, macOS, and Linux with GitHub auto-updates",
-  "author": "TideBot",
+  "homepage": "https://github.com/asjames18/tidebot",
+  "author": "TideBot <noreply@users.noreply.github.com>",
   "license": "MIT",
   "main": "main.cjs",
   "scripts": {
