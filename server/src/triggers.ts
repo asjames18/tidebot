@@ -14,7 +14,7 @@ let subscribed = false;
 
 export const isEventSchedule = (schedule: string) => schedule.startsWith('event:');
 
-function migrate() {
+export function migrate() {
   for (const col of ['trigger_id TEXT', 'trigger_config TEXT']) {
     try { db.exec(`ALTER TABLE routines ADD COLUMN ${col}`); } catch { /* already there */ }
   }
@@ -109,4 +109,11 @@ export async function deleteEventTrigger(routineId: string) {
   const r = db.prepare('SELECT trigger_id FROM routines WHERE id=?').get(routineId) as any;
   if (!r?.trigger_id) return;
   try { await composio.triggers.delete(r.trigger_id); } catch (e) { console.warn('[triggers] delete failed', routineId, (e as Error).message); }
+}
+
+/** Delete the Composio trigger behind every event routine of a bot (call before the bot row is cascade-deleted). */
+export async function deleteEventTriggersForBot(botId: string, deleteFn: (routineId: string) => Promise<void> = deleteEventTrigger): Promise<string[]> {
+  const rows = db.prepare("SELECT id FROM routines WHERE bot_id=? AND schedule LIKE 'event:%' ORDER BY created_at").all(botId) as any[];
+  for (const r of rows) await deleteFn(r.id);
+  return rows.map((r) => r.id as string);
 }

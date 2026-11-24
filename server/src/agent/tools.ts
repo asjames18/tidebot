@@ -605,7 +605,8 @@ export const TOOLS: ToolDef[] = [
     impl: async (a, ctx) => {
       const { interrupt } = await import('./loop.js');
       interrupt(String(a.subagent_id));
-      return { output: deleteSubagent(ctx.botId, String(a.subagent_id)) ? 'Stopped and removed.' : 'No such subagent.' };
+      const removed = await deleteSubagent(ctx.botId, String(a.subagent_id));
+      return { output: removed ? 'Stopped and removed.' : 'No such subagent.' };
     },
   },
   {

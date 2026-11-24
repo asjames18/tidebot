@@ -15,8 +15,8 @@ import { getPublicLlmConfig } from './agent/llm.js';
 import { computerState, ensureComputer, refreshComputer, suspendComputer } from './computer.js';
 import { orgo } from './orgo.js';
 import { catalog, connectedToolkits, deleteConnection, disconnect, googleProfile, startConnect, startGoogleLogin, toolkitInfo } from './composio.js';
-import { MAX_ROUTINES_PER_BOT, runRoutine, scheduleRoutine, unscheduleRoutine, validateRoutineSchedule } from './routines.js';
-import { deleteEventTrigger, isEventSchedule } from './triggers.js';
+import { MAX_ROUTINES_PER_BOT, runRoutine, scheduleRoutine, routineScheduleChangeError, unscheduleRoutine, validateRoutineSchedule } from './routines.js';
+import { deleteEventTrigger, deleteEventTriggersForBot, isEventSchedule, setEventRoutineEnabled } from './triggers.js';
 import { dispatchRoomMessage } from './agent/rooms.js';
 import { voiceApi } from './voice.js';
 import type { AvatarColor, AvatarShape, RowBody, Toolkit } from './types.js';
@@ -201,10 +201,11 @@ api.patch('/bots/:id', async (c) => {
   return c.json({ bot: getBot(b.id) });
 });
 
-api.delete('/bots/:id', (c) => {
+api.delete('/bots/:id', async (c) => {
   const b = ownBot(c.get('user').id, c.req.param('id'));
   if (!b) return c.json({ error: 'not found' }, 404);
   for (const r of listRoutines(b.id)) unscheduleRoutine(r.id);
+  await deleteEventTriggersForBot(b.id);
   db.prepare('DELETE FROM screens WHERE bot_id=?').run(b.id);
   db.prepare('DELETE FROM bots WHERE id=?').run(b.id);
   hub.emit(c.get('user').id, { type: 'roster' });
@@ -444,6 +445,8 @@ api.patch('/routines/:id', async (c) => {
   const schedule = body.schedule !== undefined ? String(body.schedule).trim() || r.schedule : r.schedule;
   const timezone = body.timezone !== undefined ? String(body.timezone).trim() || r.timezone : r.timezone;
   const enabled = body.enabled !== undefined ? (body.enabled ? 1 : 0) : r.enabled;
+  const scheduleError = routineScheduleChangeError(r.schedule, schedule);
+  if (scheduleError) return c.json({ error: scheduleError }, 400);
   if (!isEventSchedule(schedule)) {
     const invalid = validateRoutineSchedule(schedule, timezone);
     if (invalid) return c.json({ error: invalid }, 400);
@@ -451,6 +454,7 @@ api.patch('/routines/:id', async (c) => {
   db.prepare('UPDATE routines SET name=?, prompt=?, schedule=?, timezone=?, enabled=? WHERE id=?')
     .run(name, prompt, schedule, timezone, enabled, r.id);
   const next = toRoutine(db.prepare('SELECT * FROM routines WHERE id=?').get(r.id));
+  if (isEventSchedule(r.schedule) && !isEventSchedule(next.schedule)) void setEventRoutineEnabled(r.id, false);
   next.enabled ? scheduleRoutine(next) : unscheduleRoutine(r.id);
   hub.emit(c.get('user').id, { type: 'routines', botId: r.bot_id });
   return c.json({ routine: next });

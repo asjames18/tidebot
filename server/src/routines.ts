@@ -32,6 +32,13 @@ export function validateRoutineSchedule(schedule: string, timezone = 'UTC'): str
   return null;
 }
 
+/** Returns an error string when a routine's schedule may not be changed to this value. */
+export function routineScheduleChangeError(oldSchedule: string, nextSchedule: string): string | null {
+  if (isEventSchedule(oldSchedule)) return 'Event routine triggers cannot be edited; delete the routine and create it again';
+  if (isEventSchedule(nextSchedule)) return 'Event routines are created by the create_event_routine tool, not by editing a schedule';
+  return null;
+}
+
 export function scheduleRoutine(r: Pick<Routine, 'id' | 'botId' | 'name' | 'prompt' | 'schedule' | 'timezone'>) {
   if (isEventSchedule(r.schedule)) { void setEventRoutineEnabled(r.id, true); return; }
   const invalid = validateRoutineSchedule(r.schedule, r.timezone || 'UTC');
