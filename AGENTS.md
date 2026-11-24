@@ -35,7 +35,7 @@ npm run dev -w web      # http://localhost:5173 (proxies /api to :8787)
 ### 3.1 Environment & Live Hot-Reloading (`server/src/env.ts`)
 - `env.ts` reads `.env` from the repository root and caches it by file `mtimeMs`.
 - Accessing `env.openrouterKey`, `env.composioKey`, `env.orgoKey`, etc. automatically checks if `.env` was modified on disk and reloads it in-place without restarting the Node process.
-- `writeEnvKeyToDisk(key, value)` updates `.env` in place when keys are saved via the UI.
+- `writeEnvKeyToDisk(key, value)` rewrites `.env` atomically (temp file, fsync, rename) when keys are saved via the UI; write failures propagate so callers can report them.
 - **Security Rule**: Never commit `.env` or `data/` (`*.db`, `workspaces/`).
 
 ### 3.2 Multi-Provider BYOM Engine (`server/src/agent/llm.ts`)
