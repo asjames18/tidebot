@@ -97,4 +97,4 @@ jobs:
         run: >
           node scripts/eb-cli.mjs ${{ matrix.args }}
           --publish always
-          -c.publish.releaseType=${{ steps.ver.outputs.release_type }}
+          --release-type ${{ steps.ver.outputs.release_type }}
