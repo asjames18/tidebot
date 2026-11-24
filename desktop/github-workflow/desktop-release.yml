@@ -95,6 +95,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >
-          npx electron-builder ${{ matrix.args }}
+          node scripts/eb-cli.mjs ${{ matrix.args }}
           --publish always
           -c.publish.releaseType=${{ steps.ver.outputs.release_type }}
