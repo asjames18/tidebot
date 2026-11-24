@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#05070B"/>
+      <stop offset="50%" stop-color="#0B1120"/>
+      <stop offset="100%" stop-color="#070A12"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="22%" cy="30%" r="55%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.30"/>
+      <stop offset="55%" stop-color="#6366F1" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#05070B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="82%" cy="78%" r="50%">
+      <stop offset="0%" stop-color="#34D399" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#05070B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wave" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#34D399"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#A5F3FC"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#glow1)"/>
+  <rect width="1280" height="640" fill="url(#glow2)"/>
+
+  <!-- layered waves along the bottom -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M-40 520 C 220 440, 420 600, 660 520 S 1080 430, 1330 505" stroke="url(#wave)" stroke-opacity="0.55" stroke-width="6"/>
+    <path d="M-40 555 C 240 480, 440 630, 680 555 S 1100 470, 1330 545" stroke="url(#wave)" stroke-opacity="0.35" stroke-width="4"/>
+    <path d="M-40 588 C 260 520, 460 660, 700 588 S 1120 505, 1330 580" stroke="url(#wave)" stroke-opacity="0.20" stroke-width="3"/>
+  </g>
+
+  <!-- node dots on the crest -->
+  <g fill="#67E8F9">
+    <circle cx="660" cy="520" r="7"/>
+    <circle cx="660" cy="520" r="14" fill="none" stroke="#67E8F9" stroke-opacity="0.4" stroke-width="2"/>
+    <circle cx="260" cy="497" r="5" fill-opacity="0.8"/>
+    <circle cx="1060" cy="470" r="5" fill-opacity="0.8"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="640" y="268" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="110" font-weight="800" fill="url(#word)">TideBot</text>
+
+  <!-- tagline -->
+  <text x="640" y="330" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="30" fill="#94A3B8">Open-Source Autonomous Multi-Agent Studio</text>
+
+  <!-- capability pills -->
+  <g font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" text-anchor="middle">
+    <rect x="240" y="386" width="230" height="46" rx="23" fill="#1E293B" fill-opacity="0.85" stroke="#334155"/>
+    <text x="355" y="416" fill="#7DD3FC">Bring Your Own Model</text>
+    <rect x="500" y="386" width="250" height="46" rx="23" fill="#1E293B" fill-opacity="0.85" stroke="#334155"/>
+    <text x="625" y="416" fill="#6EE7B7">1,500+ Integrations</text>
+    <rect x="780" y="386" width="260" height="46" rx="23" fill="#1E293B" fill-opacity="0.85" stroke="#334155"/>
+    <text x="910" y="416" fill="#C4B5FD">Self-Hosted · Desktop</text>
+  </g>
+
+  <!-- mit license chip -->
+  <g font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" text-anchor="middle">
+    <rect x="568" y="72" width="144" height="38" rx="19" fill="none" stroke="#475569"/>
+    <text x="640" y="97" fill="#CBD5E1">MIT Licensed</text>
+  </g>
+</svg>
