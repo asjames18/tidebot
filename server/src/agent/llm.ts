@@ -395,6 +395,22 @@ export function resolveBotModel(botRow: any, cfg = getLlmConfig()): string {
 export function itemsToChatMessages(system: string, items: any[]): any[] {
   const messages: any[] = [{ role: 'system', content: system }];
 
+  // Screenshots attached to tool outputs are queued here and flushed before the
+  // next non-tool message (and at the end of the history), so consecutive
+  // function_call_output items no longer drop earlier images.
+  let pendingImages: { callId: string; urls: string[] } | null = null;
+  const flushPendingImages = () => {
+    if (!pendingImages) return;
+    messages.push({
+      role: 'user',
+      content: [
+        { type: 'text', text: `[Screenshot from tool ${pendingImages.callId}]` },
+        ...pendingImages.urls.map((url) => ({ type: 'image_url', image_url: { url } })),
+      ],
+    });
+    pendingImages = null;
+  };
+
   for (let i = 0; i < items.length; i++) {
     const it = items[i];
     if (!it) continue;
@@ -402,6 +418,8 @@ export function itemsToChatMessages(system: string, items: any[]): any[] {
     if (it.type === 'reasoning' || it.type === 'compaction' || it.type === 'web_search_call' || it.type === 'x_search_call') {
       continue;
     }
+
+    flushPendingImages();
 
     if (it.type === 'function_call') {
       // Group consecutive function_call items into one assistant message with tool_calls
@@ -446,25 +464,18 @@ export function itemsToChatMessages(system: string, items: any[]): any[] {
         textOut = JSON.stringify(it.output ?? '');
       }
 
+      flushPendingImages();
+
       messages.push({
         role: 'tool',
         tool_call_id: it.call_id,
         content: textOut,
       });
 
-      // If this tool output included a screenshot image, attach it in a user content message right after all consecutive tool outputs
+      // Queue this tool output's screenshot; flushed before the next non-tool
+      // message or at the end of the history.
       if (images.length > 0) {
-        // Peek ahead: if next item is also function_call_output, wait or queue; usually screenshot tools run one at a time
-        const nextIsToolOut = items[i + 1]?.type === 'function_call_output';
-        if (!nextIsToolOut) {
-          messages.push({
-            role: 'user',
-            content: [
-              { type: 'text', text: `[Screenshot from tool ${it.call_id}]` },
-              ...images.map((url) => ({ type: 'image_url', image_url: { url } })),
-            ],
-          });
-        }
+        pendingImages = { callId: it.call_id, urls: images };
       }
       continue;
     }
@@ -493,6 +504,8 @@ export function itemsToChatMessages(system: string, items: any[]): any[] {
       }
     }
   }
+
+  flushPendingImages();
 
   return messages;
 }
