@@ -117,9 +117,17 @@ export function listRows(botId: string, opts: { beforeSeq?: number; limit?: numb
 
 export function clearConversation(botId: string) {
   const b = getBotRow(botId);
-  db.prepare('UPDATE bots SET generation = generation + 1, next_seq = 1 WHERE id=?').run(botId);
-  db.prepare('DELETE FROM pending_turns WHERE bot_id=?').run(botId);
-  hub.emit(b.user_id, { type: 'cleared', botId, generation: b.generation + 1 });
+  const generation = b.generation + 1;
+  db.transaction(() => {
+    db.prepare('UPDATE bots SET generation=?, next_seq=1 WHERE id=?').run(generation, botId);
+    db.prepare('DELETE FROM pending_turns WHERE bot_id=?').run(botId);
+    // Purge superseded generations: nothing reads them, and llm_items can hold
+    // large payloads (e.g. base64 screenshots), so keeping them makes the DB
+    // grow unboundedly with unreachable data.
+    db.prepare('DELETE FROM rows WHERE bot_id=? AND generation<?').run(botId, generation);
+    db.prepare('DELETE FROM llm_items WHERE bot_id=? AND generation<?').run(botId, generation);
+  })();
+  hub.emit(b.user_id, { type: 'cleared', botId, generation });
 }
 
 // ---------- LLM history (Responses API input items) ----------
