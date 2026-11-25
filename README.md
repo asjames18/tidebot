@@ -4,6 +4,8 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-38bdf8.svg?style=flat-square" alt="MIT License"></a>
+  <a href="https://github.com/asjames18/tidebot/stargazers"><img src="https://img.shields.io/github/stars/asjames18/tidebot?style=flat-square" alt="GitHub Stars"></a>
+  <a href="https://github.com/asjames18/tidebot/releases"><img src="https://img.shields.io/github/v/release/asjames18/tidebot?include_prereleases&style=flat-square" alt="Latest Release"></a>
   <a href="https://openrouter.ai"><img src="https://img.shields.io/badge/BYOM-OpenRouter%20%7C%20OpenAI%20%7C%20Ollama-818cf8.svg?style=flat-square" alt="Bring Your Own Model"></a>
   <a href="https://composio.dev"><img src="https://img.shields.io/badge/Integrations-1%2C500%2B%20Composio%20Tools-34d399.svg?style=flat-square" alt="Composio Tools"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-%E2%89%A522.22.3-f59e0b.svg?style=flat-square" alt="Node.js >= 22.22.3"></a>
@@ -102,7 +104,7 @@ Prebuilt desktop apps with automatic updates — no Node.js required:
 | macOS (Intel) | `TideBot-<latest>.dmg` |
 | Linux | `.AppImage` or `.deb` |
 
-**Grab the latest build from [Releases](https://github.com/asjames18/tidebot/releases/latest).** Installers are published automatically on every push to `main`, and installed apps check for updates and prompt you when a new build is available.
+**Grab the latest build from [Releases](https://github.com/asjames18/tidebot/releases).** Development builds are published automatically on every push to `main` as prereleases — there is no stable 1.0 release yet. Installed apps check for updates and prompt you when a new build is available.
 
 > **Note (unsigned builds):** installers are not yet code-signed. Windows SmartScreen shows a one-time *unknown publisher* warning — click **More info → Run anyway**. On macOS, right-click the app and choose **Open** the first time. Prefer building from source? Follow [Quick Start](#-quick-start) below.
 
@@ -232,6 +234,12 @@ tidebot/
 │       │   └── modals/             # ⌘K palette, Composio marketplace & Operator modals
 │       ├── avatar/BotAvatar.tsx    # Holographic 3D geometric Operator cores
 │       └── styles/                 # Obsidian Glass dark & Alabaster light CSS tokens
+├── desktop/                   # Electron app (icon ships from web/public/icon-512.png)
+├── website/                    # Static landing page for tidebot.melanatedintech.com
+├── docs/                       # Architecture, local-model, Orgo & Composio guides
+├── tests/                      # Node test suite (run with `npm test`)
+├── scripts/                    # Repo maintenance scripts
+├── assets/                     # README banner, social preview & app icon source
 ├── AGENTS.md                   # Architecture & contributor guide for AI coding agents
 └── .env.example                # Environment variable template
 ```
