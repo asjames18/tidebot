@@ -26,8 +26,32 @@ function maskKey(k: string): string {
   return `${k.slice(0, 6)}••••${k.slice(-4)}`;
 }
 
-export function getLlmConfig(): LlmRuntimeConfig {
+export function getPersonalModel(userId: string) {
+  const row = db.prepare('SELECT openrouter_key, default_model FROM personal_models WHERE user_id=?').get(userId) as { openrouter_key: string; default_model: string } | undefined;
+  return row ? { key: decryptSecret(secretsDir(), row.openrouter_key), model: normalizeOpenRouterModel(row.default_model || env.openrouterModel) } : undefined;
+}
+
+export function publicPersonalModel(userId: string) {
+  const personal = getPersonalModel(userId);
+  return { active: Boolean(personal), hasKey: Boolean(personal?.key), defaultModel: personal?.model ?? normalizeOpenRouterModel(env.openrouterModel) };
+}
+
+export function savePersonalModel(userId: string, key: string | undefined, model: string) {
+  const stored = key === undefined ? null : encryptSecret(secretsDir(), key);
+  db.prepare(`INSERT INTO personal_models (user_id, openrouter_key, default_model) VALUES (?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET openrouter_key=COALESCE(?, personal_models.openrouter_key), default_model=excluded.default_model`)
+    .run(userId, stored ?? '', model, stored);
+  return publicPersonalModel(userId);
+}
+
+export function getLlmConfig(userId?: string): LlmRuntimeConfig {
   const row = db.prepare('SELECT * FROM llm_settings WHERE id = 1').get() as any;
+  const shaderStyle: ShaderStyle = (row?.shader_style as ShaderStyle) || 'aurora';
+  const personal = userId ? getPersonalModel(userId) : undefined;
+  if (personal) return {
+    provider: 'openrouter', openrouterKey: personal.key, xaiKey: '',
+    customBaseUrl: '', customApiKey: '', defaultModel: personal.model, shaderStyle,
+  };
   const openrouterKey = decryptSecret(secretsDir(), (row?.openrouter_key || '').trim()) || (env.openrouterKey || '').trim();
   const xaiKey = decryptSecret(secretsDir(), (row?.xai_key || '').trim()) || (env.xaiKey || '').trim();
   const customBaseUrl = (row?.custom_base_url || env.customBaseUrl || '').trim();
@@ -45,10 +69,9 @@ export function getLlmConfig(): LlmRuntimeConfig {
       ? env.xaiModel || 'grok-4.7'
       : provider === 'custom'
         ? env.customModel || 'gpt-4o'
-        : env.openrouterModel || 'anthropic/claude-3.7-sonnet';
+        : env.openrouterModel;
 
   const defaultModel = (row?.default_model || defaultFallback).trim();
-  const shaderStyle: ShaderStyle = (row?.shader_style as ShaderStyle) || 'aurora';
 
   return {
     provider,
@@ -56,13 +79,13 @@ export function getLlmConfig(): LlmRuntimeConfig {
     xaiKey,
     customBaseUrl,
     customApiKey,
-    defaultModel,
+    defaultModel: provider === 'openrouter' ? normalizeOpenRouterModel(defaultModel) : defaultModel,
     shaderStyle,
   };
 }
 
-export function getPublicLlmConfig(): LlmConfigPublic {
-  const cfg = getLlmConfig();
+export function getPublicLlmConfig(userId?: string, showKeyHints = true): LlmConfigPublic {
+  const cfg = getLlmConfig(userId);
   const isConfigured =
     (cfg.provider === 'openrouter' && Boolean(cfg.openrouterKey)) ||
     (cfg.provider === 'custom' && Boolean(cfg.customBaseUrl)) ||
@@ -74,15 +97,15 @@ export function getPublicLlmConfig(): LlmConfigPublic {
     customBaseUrl: cfg.customBaseUrl,
     shaderStyle: cfg.shaderStyle,
     hasOpenrouterKey: Boolean(cfg.openrouterKey),
-    openrouterKeyHint: maskKey(cfg.openrouterKey),
+    openrouterKeyHint: showKeyHints ? maskKey(cfg.openrouterKey) : '',
     hasCustomKey: Boolean(cfg.customApiKey),
-    customKeyHint: maskKey(cfg.customApiKey),
+    customKeyHint: showKeyHints ? maskKey(cfg.customApiKey) : '',
     hasXaiKey: Boolean(cfg.xaiKey),
-    xaiKeyHint: maskKey(cfg.xaiKey),
+    xaiKeyHint: showKeyHints ? maskKey(cfg.xaiKey) : '',
     hasComposioKey: Boolean(env.composioKey),
-    composioKeyHint: maskKey(env.composioKey),
+    composioKeyHint: showKeyHints ? maskKey(env.composioKey) : '',
     hasOrgoKey: Boolean(env.orgoKey),
-    orgoKeyHint: maskKey(env.orgoKey),
+    orgoKeyHint: showKeyHints ? maskKey(env.orgoKey) : '',
     isConfigured,
   };
 }
@@ -145,14 +168,14 @@ export const CURATED_MODELS: ModelInfo[] = [
     badge: '100% Free · Ultra Fast',
   },
   {
-    id: 'thinkingmachines/inkling-2-small:free',
-    name: 'Inkling 2 Small (Free)',
-    provider: 'Thinking Machines',
-    contextLength: 131072,
+    id: 'openrouter/free',
+    name: 'OpenRouter Free',
+    provider: 'OpenRouter',
+    contextLength: 200000,
     vision: false,
     tools: true,
     featured: true,
-    badge: '100% Free · Deep CoT Agent',
+    badge: 'Routes to available free models',
   },
   {
     id: 'deepseek/deepseek-chat-v3-0324:free',
@@ -338,12 +361,13 @@ export async function fetchModelsCatalog(): Promise<{ curated: ModelInfo[]; remo
   }
 }
 
-function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; apiKey: string } {
+function getClient(cfg: LlmRuntimeConfig, connectionCheck = false): { client: OpenAI; baseURL: string; apiKey: string } {
+  const options = connectionCheck ? { timeout: 15_000, maxRetries: 0 } : { timeout: 360_000 };
   if (cfg.provider === 'xai') {
     const apiKey = cfg.xaiKey;
     const baseURL = 'https://api.x.ai/v1';
     return {
-      client: new OpenAI({ apiKey: apiKey || 'unconfigured', baseURL, timeout: 360_000 }),
+      client: new OpenAI({ apiKey: apiKey || 'unconfigured', baseURL, ...options }),
       baseURL,
       apiKey,
     };
@@ -353,7 +377,7 @@ function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; ap
     const baseURL = cfg.customBaseUrl || 'http://localhost:11434/v1';
     const apiKey = cfg.customApiKey || 'custom-local-key';
     return {
-      client: new OpenAI({ apiKey, baseURL, timeout: 360_000 }),
+      client: new OpenAI({ apiKey, baseURL, ...options }),
       baseURL,
       apiKey: cfg.customBaseUrl ? apiKey : '',
     };
@@ -365,7 +389,7 @@ function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; ap
     client: new OpenAI({
       apiKey: apiKey || 'unconfigured',
       baseURL,
-      timeout: 360_000,
+      ...options,
       defaultHeaders: {
         'HTTP-Referer': 'https://github.com/asjames18/tidebot',
         'X-Title': 'TideBot',
@@ -376,19 +400,19 @@ function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; ap
   };
 }
 
-function normalizeModelId(m: string): string {
-  const clean = m.trim();
-  if (clean === 'thinkingmachines/inkling-small' || clean === 'thinkingmachines/inkling-2-small') {
-    return 'thinkingmachines/inkling-2-small:free';
+function normalizeOpenRouterModel(model: string): string {
+  const clean = model.trim();
+  if (clean === 'thinkingmachines/inkling-small' || clean === 'thinkingmachines/inkling-2-small'
+      || clean === 'thinkingmachines/inkling-2-small:free') {
+    return 'openrouter/free';
   }
   return clean;
 }
 
 /** Resolve the effective model ID for a bot given the current runtime config. */
-export function resolveBotModel(botRow: any, cfg = getLlmConfig()): string {
-  const override = normalizeModelId(String(botRow?.model ?? ''));
-  if (override) return override;
-  return normalizeModelId(cfg.defaultModel);
+export function resolveBotModel(botRow: any, cfg = getLlmConfig(botRow?.user_id)): string {
+  const model = String(botRow?.model ?? '').trim() || cfg.defaultModel;
+  return cfg.provider === 'openrouter' ? normalizeOpenRouterModel(model) : model;
 }
 
 /** Convert stored Responses-API `llm_items` into standard OpenAI Chat Completions `messages`. */
@@ -555,7 +579,7 @@ export async function streamModelTurn(opts: {
   signal: AbortSignal;
   callbacks: StreamTurnCallbacks;
 }): Promise<{ output: any[]; inputTokens?: number; isLocalFallback?: boolean; localReply?: string }> {
-  const cfg = getLlmConfig();
+  const cfg = getLlmConfig(opts.userId);
   const model = resolveBotModel(opts.bot, cfg);
   const { client, apiKey } = getClient(cfg);
 
@@ -721,14 +745,19 @@ export async function streamModelTurn(opts: {
 }
 
 /** Non-streaming helper for memory consolidation, history summarization, and connection testing. */
-export async function completeText(opts: {
+type TextRequest = {
   system: string;
   user: string;
   jsonMode?: boolean;
   maxTokens?: number;
-}): Promise<string> {
-  const cfg = getLlmConfig();
-  const { client, apiKey } = getClient(cfg);
+};
+
+export async function completeText(opts: TextRequest & { userId?: string }): Promise<string> {
+  return requestText(getLlmConfig(opts.userId), opts);
+}
+
+async function requestText(cfg: LlmRuntimeConfig, opts: TextRequest, connectionCheck = false): Promise<string> {
+  const { client, apiKey } = getClient(cfg, connectionCheck);
   if (!apiKey) throw new Error('No LLM API key configured');
 
   if (cfg.provider === 'xai') {
@@ -749,25 +778,39 @@ export async function completeText(opts: {
       { role: 'system', content: opts.system },
       { role: 'user', content: opts.user },
     ],
-    ...(opts.maxTokens ? { max_tokens: opts.maxTokens, reasoning: { effort: 'low' } } : {}),
+    ...(opts.maxTokens ? { max_tokens: opts.maxTokens, ...(connectionCheck ? {} : { reasoning: { effort: 'low' } }) } : {}),
     ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
   } as any);
   const msg = res.choices?.[0]?.message;
   const content = String(msg?.content ?? '').trim();
   if (content) return content;
   const reasoning = String(msg?.reasoning ?? msg?.reasoning_content ?? '').trim();
+  if (connectionCheck && !reasoning) return '';
   return reasoning ? reasoning.slice(-200) : 'Online and ready.';
 }
 
-export async function testLlmConnection(): Promise<{ ok: boolean; model: string; provider: string; latencyMs: number; reply?: string; error?: string }> {
-  const cfg = getLlmConfig();
+export function testLlmConnection(userId?: string) {
+  return checkConnection(getLlmConfig(userId));
+}
+
+export function testOpenRouterKey(userId: string, apiKey: string, model: string) {
+  return checkConnection({
+    ...getLlmConfig(userId),
+    provider: 'openrouter',
+    openrouterKey: apiKey,
+    defaultModel: normalizeOpenRouterModel(model || env.openrouterModel),
+  });
+}
+
+async function checkConnection(cfg: LlmRuntimeConfig): Promise<{ ok: boolean; model: string; provider: string; latencyMs: number; reply?: string; error?: string }> {
   const t0 = Date.now();
   try {
-    const reply = await completeText({
+    const reply = await requestText(cfg, {
       system: 'Reply with a short confirmation (under 12 words) stating you are online.',
       user: 'Ping from TideBot.',
-      maxTokens: 256,
-    });
+      maxTokens: 128,
+    }, true);
+    if (!reply) throw new Error('The provider returned no reply. Try another model.');
     return {
       ok: true,
       model: cfg.defaultModel,
@@ -781,7 +824,8 @@ export async function testLlmConnection(): Promise<{ ok: boolean; model: string;
       model: cfg.defaultModel,
       provider: cfg.provider,
       latencyMs: Date.now() - t0,
-      error: String(e?.message ?? e),
+      error: [cfg.openrouterKey, cfg.xaiKey, cfg.customApiKey].filter(Boolean)
+        .reduce((message, key) => message.replaceAll(key, '[redacted]'), String(e?.message ?? e)).slice(0, 400),
     };
   }
 }

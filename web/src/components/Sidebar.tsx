@@ -5,6 +5,7 @@ import type { Bot } from '@shared/types';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { displayName, useStore } from '../store';
 import { api } from '../lib/api';
+import { hasNativeDesktopWindow } from '../lib/desktop';
 import { Icon } from './Icon';
 import { Menu } from './Menu';
 
@@ -14,6 +15,7 @@ function initials(name: string) {
 }
 
 export function TrafficLights() {
+  if (hasNativeDesktopWindow()) return null;
   return (
     <div className="traffic-lights" aria-hidden>
       <span style={{ background: '#FF5F57' }} />
@@ -148,7 +150,7 @@ export function Sidebar() {
       style={dragX < 0 ? { transform: `translateX(${dragX}px)`, transition: dragging ? 'none' : undefined } : undefined}
     >
       <div className="sidebar__titlebar">
-        <div className="sidebar__brand">
+        <div className={`sidebar__brand${hasNativeDesktopWindow() ? ' sidebar__brand--native' : ''}`}>
           <TrafficLights />
           {!collapsed && <span className="sidebar__brand-mark">TIDE<span>BOT</span></span>}
         </div>

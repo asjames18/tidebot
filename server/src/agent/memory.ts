@@ -14,8 +14,6 @@ import { completeText, getLlmConfig, getPublicLlmConfig } from './llm.js';
  *  (c) a bounded, relevance-ranked memory section for the system prompt.
  */
 
-const getXai = () => new OpenAI({ apiKey: getLlmConfig().xaiKey || env.xaiKey || 'local-unconfigured-key', baseURL: 'https://api.x.ai/v1', timeout: 300_000 });
-
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== '' && Number.isFinite(Number(v)) ? Number(v) : d);
 
 export const memoryConfig = {
@@ -153,18 +151,20 @@ export function renderTranscript(items: any[], maxChars = 200_000): string {
   return out;
 }
 
-async function compactWithXai(old: any[]): Promise<any[]> {
-  const cfg = getLlmConfig();
+async function compactWithXai(userId: string, old: any[]): Promise<any[]> {
+  const cfg = getLlmConfig(userId);
   if (cfg.provider !== 'xai' || !cfg.xaiKey) throw new Error('xAI compact only used when provider is xAI');
-  const res: any = await getXai().post('/responses/compact', { body: { model: env.xaiModel, input: old } });
+  const client = new OpenAI({ apiKey: cfg.xaiKey, baseURL: 'https://api.x.ai/v1', timeout: 300_000 });
+  const res: any = await client.post('/responses/compact', { body: { model: env.xaiModel, input: old } });
   const out = (res?.output ?? []) as any[];
   if (!out.length || !out.some((o) => o?.type === 'compaction' || o?.encrypted_content || o?.role)) throw new Error('compact returned no items');
   return out;
 }
 
-async function compactWithSummary(old: any[]): Promise<any[]> {
+async function compactWithSummary(userId: string, old: any[]): Promise<any[]> {
   const transcript = renderTranscript(old);
   const text = await completeText({
+    userId,
     system: SUMMARY_PROMPT,
     user: transcript,
   });
@@ -200,17 +200,18 @@ export async function maybeCompact(botId: string, items: any[], opts: { force?: 
   if (!opts.force && estimateChars(old) < limit * 0.15) return items; // not worth it
 
   const bot = getBotRow(botId);
+  if (!bot) return items;
   const t0 = Date.now();
   let method = 'xai-compact';
   let replaced: any[];
   try {
     if (memoryConfig.compactMethod === 'summary') throw new Error('xAI compaction disabled by GROKBOT_COMPACT_METHOD=summary');
-    replaced = await compactWithXai(old);
+    replaced = await compactWithXai(bot.user_id, old);
   } catch (e: any) {
     console.warn(`[memory] compact via /responses/compact failed for ${botId}: ${e?.message ?? e}; falling back to a summary`);
     method = 'summary';
     try {
-      replaced = await compactWithSummary(old);
+      replaced = await compactWithSummary(bot.user_id, old);
     } catch (e2: any) {
       console.error(`[memory] summary fallback failed for ${botId}: ${e2?.message ?? e2}`);
       compactCooldown.set(botId, now() + 10 * 60_000);
@@ -274,9 +275,8 @@ export interface ConsolidateResult { added: string[]; skipped: number; considere
 
 /** Extract durable facts from messages newer than the bot's last consolidation. */
 export async function consolidateBot(botId: string, opts: { upTo?: number } = {}): Promise<ConsolidateResult> {
-  if (!getPublicLlmConfig().isConfigured) return { added: [], skipped: 0, considered: 0 };
   const bot = getBotRow(botId);
-  if (!bot) return { added: [], skipped: 0, considered: 0 };
+  if (!bot || !getPublicLlmConfig(bot.user_id).isConfigured) return { added: [], skipped: 0, considered: 0 };
   const job = db.prepare('SELECT last_consolidated_at FROM memory_jobs WHERE bot_id=?').get(botId) as any;
   const since = job?.last_consolidated_at ?? 0;
   const upTo = opts.upTo ?? now();
@@ -298,6 +298,7 @@ export async function consolidateBot(botId: string, opts: { upTo?: number } = {}
 
   const existing = (db.prepare('SELECT text FROM memories WHERE bot_id=? ORDER BY created_at DESC LIMIT 200').all(botId) as any[]).map((m) => m.text as string);
   const rawOut = await completeText({
+    userId: bot.user_id,
     system: `${CONSOLIDATE_PROMPT}\nRespond ONLY with valid JSON of the form {"memories":[{"text":"..."}]}`,
     user: `EXISTING MEMORIES:\n${existing.length ? existing.map((t) => `- ${t}`).join('\n') : '(none)'}\n\nRECENT CONVERSATION:\n${transcript}`,
     jsonMode: true,

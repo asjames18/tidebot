@@ -33,7 +33,7 @@
 
 ### 🧠 Bring Your Own Model (First-Class OpenRouter & Local LLM Support)
 - **Hot-Swappable Model Engine**: Switch between **OpenRouter** (`https://openrouter.ai/api/v1`), **Custom OpenAI-Compatible Endpoints** (Ollama, LM Studio, vLLM, Groq, Together), and **xAI Responses API** directly from the UI without restarting the server.
-- **Per-Operator Model Overrides**: Assign specialized models per Operator (e.g., `anthropic/claude-3.7-sonnet` for coding, `google/gemini-2.5-pro` for 1M-context research, `deepseek/deepseek-r1` or `thinkingmachines/inkling-2-small:free` for chain-of-thought reasoning).
+- **Per-Operator Model Overrides**: Assign specialized models per Operator (e.g., `anthropic/claude-3.7-sonnet` for coding, `google/gemini-2.5-pro` for 1M-context research, `deepseek/deepseek-r1` for reasoning, or `openrouter/free` to route to available free models).
 - **Live Chain-of-Thought Drawer**: Streams `delta.reasoning` in real time into a collapsible **Thought Process** drawer with per-turn latency and model telemetry badges.
 
 ### 🔌 1,500+ Connected Apps via Composio
@@ -128,11 +128,19 @@ cp .env.example .env
 
 Open `.env` and add your API keys (or start the server first and paste your keys into **Settings → Models & OpenRouter** in the web UI):
 
+Changing shared settings in the UI requires signing in as the studio administrator. Set `STUDIO_EMAIL` and `STUDIO_PASSWORD` for local sign-in, or set `STUDIO_ADMIN_EMAIL` to the email of your Google sign-in. If you were signed in before upgrading, sign in again.
+
+In the desktop app, select **Create local account** to choose your own email and password. Desktop accounts are stored in TideBot on that computer and use a personal OpenRouter key configured under **Settings → Models & OpenRouter**.
+
+On the first sign-in without a model, TideBot opens **Settings → Setup**. Use **Connect and test OpenRouter** to verify a key before saving it, or continue without a model to explore the studio. Studio administrators can choose a shared OpenAI-compatible model in **Models & OpenRouter** and configure optional app, cloud desktop, and voice services. A local model must already be running at the address you enter.
+
+To add another user to a shared, self-hosted studio, open **Settings → Account** and create an invite code for their email. They redeem it on the sign-in screen, choose their own password, and add a key under **Settings → Models & OpenRouter**. The code expires after 24 hours and can be used once. Personal accounts use their own OpenRouter key for conversations, routines, and memory processing. Voice through the studio's xAI account is unavailable in personal OpenRouter mode.
+
 | Variable | Required | Description |
 | :--- | :---: | :--- |
 | `LLM_PROVIDER` | No | `openrouter` (default), `custom`, or `xai` |
 | `OPENROUTER_API_KEY` | Recommended | OpenRouter key (`sk-or-v1-...`) for 250+ frontier & free models |
-| `OPENROUTER_MODEL` | No | Default model ID (e.g., `thinkingmachines/inkling-2-small:free` or `anthropic/claude-3.7-sonnet`) |
+| `OPENROUTER_MODEL` | No | Default model ID (e.g., `openrouter/free` or `openrouter/auto`) |
 | `LLM_BASE_URL` | Optional | Custom OpenAI-compatible base URL (e.g., `http://localhost:11434/v1` for Ollama) |
 | `COMPOSIO_API_KEY` | Optional | Composio key (`ak_...`) for 1,500+ OAuth app integrations |
 | `ORGO_API_KEY` | Optional | Orgo key (`sk_live_...`) for cloud Linux desktops (falls back to local workspace if omitted) |

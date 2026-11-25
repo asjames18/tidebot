@@ -35,7 +35,8 @@ function loadSettings() {
   try {
     const raw = fs.readFileSync(settingsPath(), 'utf8');
     const parsed = JSON.parse(raw);
-    return { devUpdates: parsed.devUpdates !== false };
+    const port = Number.isInteger(parsed.port) && parsed.port >= 1024 && parsed.port <= 65535 ? parsed.port : undefined;
+    return { devUpdates: parsed.devUpdates !== false, port };
   } catch {
     return { devUpdates: true };
   }
@@ -52,17 +53,26 @@ function saveSettings(next) {
 
 let settings = { devUpdates: true };
 
-function findFreePort() {
+function findFreePort(preferredPort = 0) {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
     srv.unref();
     srv.on('error', reject);
-    srv.listen(0, '127.0.0.1', () => {
+    srv.listen(preferredPort, '127.0.0.1', () => {
       const addr = srv.address();
       const port = typeof addr === 'object' && addr ? addr.port : 8787;
       srv.close(() => resolve(port));
     });
   });
+}
+
+async function chooseServerPort(preferredPort) {
+  try {
+    return await findFreePort(preferredPort);
+  } catch (error) {
+    if (!preferredPort || !['EADDRINUSE', 'EACCES'].includes(error.code)) throw error;
+    return findFreePort();
+  }
 }
 
 function resolvePaths() {
@@ -89,7 +99,7 @@ async function waitForHealth(port, timeoutMs = 20_000) {
       throw new Error(`TideBot server exited early with code ${serverProc.exitCode}`);
     }
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: AbortSignal.timeout(1000) });
       if (res.ok) return;
     } catch {
       // still starting
@@ -100,7 +110,7 @@ async function waitForHealth(port, timeoutMs = 20_000) {
 }
 
 async function startServer() {
-  const port = await findFreePort();
+  const port = await chooseServerPort(settings.port);
   serverPort = port;
   const userData = app.getPath('userData');
   const dataDir = path.join(userData, 'data');
@@ -122,7 +132,8 @@ async function startServer() {
     WEB_DIST_DIR: webDistDir,
     APP_URL: baseUrl,
     SERVER_URL: baseUrl,
-    DEV_LOGIN: process.env.DEV_LOGIN ?? '1',
+    TIDEBOT_DESKTOP_SIGNUP_ORIGIN: baseUrl,
+    DEV_LOGIN: process.env.DEV_LOGIN ?? '0',
   };
 
   let stderrTail = '';
@@ -149,6 +160,10 @@ async function startServer() {
   });
 
   await waitForHealth(port);
+  if (settings.port !== port) {
+    settings = { ...settings, port };
+    saveSettings(settings);
+  }
   return baseUrl;
 }
 
@@ -328,12 +343,13 @@ function createWindow(url) {
   mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
     try {
       const parsed = new URL(targetUrl);
-      const isLocal = (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') && String(parsed.port) === String(serverPort);
-      if (isLocal) return { action: 'allow' };
+      if (parsed.origin === new URL(url).origin) return { action: 'allow' };
+      if (['https:', 'http:', 'mailto:'].includes(parsed.protocol)) {
+        void shell.openExternal(parsed.href).catch((error) => console.error('[desktop] could not open link:', error.message));
+      }
     } catch {
-      // fall through to external
+      // Invalid links have no handler.
     }
-    void shell.openExternal(targetUrl);
     return { action: 'deny' };
   });
 

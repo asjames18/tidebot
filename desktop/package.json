@@ -27,6 +27,7 @@
   "build": {
     "appId": "com.tidebot.desktop",
     "productName": "TideBot",
+    "afterPack": "./scripts/check-server-bundle.cjs",
     "directories": {
       "buildResources": "build",
       "output": "dist"
@@ -42,7 +43,17 @@
         "from": "staged/server",
         "to": "server",
         "filter": [
-          "**/*"
+          "dist/**/*",
+          "package.json"
+        ]
+      },
+      {
+        "from": "staged/server/node_modules",
+        "to": "server/node_modules",
+        "filter": [
+          "**/*",
+          "!**/.bin/**",
+          "!**/.package-lock.json"
         ]
       },
       {

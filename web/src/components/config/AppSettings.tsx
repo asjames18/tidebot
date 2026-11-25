@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { LlmProvider, ShaderStyle, Toolkit } from '@shared/types';
 import { BotAvatarFor } from '../../avatar/BotAvatar';
 import { configApi, type ComputerDetails } from '../../lib/configApi';
+import { api } from '../../lib/api';
 import { relativeShort } from '../../lib/time';
 import { useConfigUI, type AppSection, type Theme } from '../../configStore';
 import { useStore } from '../../store';
@@ -12,8 +13,10 @@ import { ShaderCanvas } from '../ShaderCanvas';
 import { ToolkitLogo } from '../ToolkitLogo';
 import { Glyph } from './glyphs';
 import { ConfirmButton } from './ui';
+import { SetupSection } from './SetupSection';
 
 const SECTIONS: { id: AppSection; label: string }[] = [
+  { id: 'setup', label: 'Setup' },
   { id: 'general', label: 'General & Shaders' },
   { id: 'models', label: 'Models & OpenRouter' },
   { id: 'computer', label: 'Computer' },
@@ -188,8 +191,9 @@ export function AppSettings() {
           <Icon name="close" opacity={0.8} />
         </button>
         <div className="app-settings__page">
+          {section === 'setup' && <SetupSection />}
           {section === 'general' && <GeneralSection />}
-          {section === 'models' && <ModelsSection />}
+          {section === 'models' && <AccountModelsSection />}
           {section === 'computer' && <ComputerSection />}
           {section === 'permissions' && <PermissionsSection />}
           {section === 'apps' && <AppsSection />}
@@ -241,20 +245,18 @@ function GeneralSection() {
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const setLlmConfig = useConfigUI((s) => s.setLlmConfig);
   const openAppSettings = useConfigUI((s) => s.openAppSettings);
-  const [health, setHealth] = useState<{ model?: string; providers?: { openrouter?: boolean; custom?: boolean; xai: boolean; composio: boolean; orgo: boolean } } | null>(null);
-  const [sysStatus, setSysStatus] = useState<{ bots: number; activeTasks: number; activeRoutines: number; memories: number; messages: number } | null>(null);
+  const [sysStatus, setSysStatus] = useState<Awaited<ReturnType<typeof api.systemStatus>> | null>(null);
 
   useEffect(() => {
     let alive = true;
-    fetch('/api/health').then((r) => r.json()).then((d) => { if (alive) setHealth(d); }).catch(() => {});
-    fetch('/api/system/status', { credentials: 'include' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive) setSysStatus(d); }).catch(() => {});
+    api.systemStatus().then((d) => { if (alive) setSysStatus(d); }).catch(() => {});
     return () => { alive = false; };
   }, [llmConfig?.provider, llmConfig?.defaultModel, llmConfig?.isConfigured, llmConfig?.hasComposioKey]);
 
   const currentShader: ShaderStyle = llmConfig?.shaderStyle ?? 'aurora';
 
   const pickShader = async (s: ShaderStyle) => {
-    if (s === currentShader) return;
+    if (s === currentShader || !sysStatus?.canManageStudio) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
@@ -269,7 +271,7 @@ function GeneralSection() {
     }
   };
 
-  const p = health?.providers;
+  const p = llmConfig;
   return (
     <>
       <PageHead title="General & Shaders" sub="Customize TideBot workspace appearance, real-time WebGL shaders, and system integrations." />
@@ -304,6 +306,7 @@ function GeneralSection() {
               type="button"
               className={`shader-Option${currentShader === st.id ? ' is-active' : ''}`}
               aria-pressed={currentShader === st.id}
+              disabled={!sysStatus?.canManageStudio}
               onClick={() => void pickShader(st.id)}
             >
               <span className="shader-Option__name">{st.label}</span>
@@ -313,17 +316,17 @@ function GeneralSection() {
         </div>
       </section>
 
-      {p && (
+      {(p || sysStatus) && (
         <section className="cfg-section">
           <div className="cfg-section__label">System Telemetry & Providers</div>
           {sysStatus && (
             <div className="sys-telemetry-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))', gap: 8, marginBottom: 12 }}>
               {[
-                { label: 'Operators', val: sysStatus.bots },
-                { label: 'Messages', val: sysStatus.messages },
-                { label: 'Memories', val: sysStatus.memories },
-                { label: 'Open Tasks', val: sysStatus.activeTasks },
-                { label: 'Routines', val: sysStatus.activeRoutines },
+                { label: 'Operators', val: sysStatus.botsCount },
+                { label: 'Memories', val: sysStatus.memoriesCount },
+                { label: 'Open Tasks', val: sysStatus.tasksOpen },
+                { label: 'Completed Tasks', val: sysStatus.tasksDone },
+                { label: 'Routines', val: sysStatus.routinesCount },
               ].map((stat) => (
                 <div key={stat.label} className="cfg-card" style={{ padding: '10px 12px', textAlign: 'center' }}>
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>{stat.val}</div>
@@ -336,7 +339,7 @@ function GeneralSection() {
             <div className="cfg-row">
               <div className="cfg-row__text">
                 <div className="cfg-row__title">
-                  Bring Your Own Model ({llmConfig?.provider?.toUpperCase() ?? 'OPENROUTER'} · {llmConfig?.defaultModel ?? health?.model ?? 'anthropic/claude-3.7-sonnet'})
+                  {p ? `Bring Your Own Model (${p.provider.toUpperCase()} · ${p.defaultModel})` : 'Bring Your Own Model'}
                 </div>
                 <div className="cfg-row__sub">
                   Route operators through OpenRouter (Claude, Gemini, GPT-4.1, DeepSeek, Llama, Grok) or any OpenAI-compatible endpoint.
@@ -358,14 +361,14 @@ function GeneralSection() {
                 <div className="cfg-row__title">Composio App Marketplace & Triggers</div>
                 <div className="cfg-row__sub">Powers 1,000+ app connectors, OAuth sign-in, and event triggers via <code className="cfg-code">COMPOSIO_API_KEY</code>.</div>
               </div>
-              <span className={`cfg-chip${p.composio ? '' : ' cfg-chip--muted'}`}>{p.composio ? 'Configured' : 'Catalog preview'}</span>
+              <span className={`cfg-chip${p?.hasComposioKey ? '' : ' cfg-chip--muted'}`}>{p?.hasComposioKey ? 'Configured' : 'Catalog preview'}</span>
             </div>
             <div className="cfg-row">
               <div className="cfg-row__text">
                 <div className="cfg-row__title">Orgo Cloud Computer</div>
                 <div className="cfg-row__sub">Provides persistent Linux desktops and isolated Xvfb screens via <code className="cfg-code">ORGO_API_KEY</code>.</div>
               </div>
-              <span className={`cfg-chip${p.orgo ? '' : ' cfg-chip--muted'}`}>{p.orgo ? 'Configured' : 'Not configured'}</span>
+              <span className={`cfg-chip${p?.hasOrgoKey ? '' : ' cfg-chip--muted'}`}>{p?.hasOrgoKey ? 'Configured' : 'Not configured'}</span>
             </div>
           </div>
         </section>
@@ -376,9 +379,66 @@ function GeneralSection() {
 
 // ---------------------------------------------------------------------------
 
+function AccountModelsSection() {
+  const [personal, setPersonal] = useState<Awaited<ReturnType<typeof configApi.personalModel>>>();
+  const [key, setKey] = useState('');
+  const [model, setModel] = useState('');
+  const [status, setStatus] = useState('');
+  const [busy, setBusy] = useState(false);
+  const loadConfig = useConfigUI((s) => s.loadLlmConfig);
+  const checkAuth = useStore((s) => s.checkAuth);
+  useEffect(() => {
+    let alive = true;
+    void configApi.personalModel().then((result) => {
+      if (alive) { setPersonal(result); setModel(result.defaultModel); }
+    }).catch((error: Error) => { if (alive) setStatus(error.message); });
+    return () => { alive = false; };
+  }, []);
+  const save = async (remove = false) => {
+    setBusy(true);
+    setStatus('');
+    try {
+      const next = await configApi.savePersonalModel(model.trim(), remove ? '' : key.trim() || undefined);
+      setPersonal(next);
+      setKey('');
+      setStatus(remove ? 'Personal key removed.' : 'Personal OpenRouter settings saved.');
+      await Promise.all([loadConfig(), checkAuth()]);
+    } catch (error) { setStatus((error as Error).message); }
+    finally { setBusy(false); }
+  };
+  const test = async () => {
+    setBusy(true);
+    setStatus('');
+    try {
+      const result = await configApi.testPersonalModel();
+      setStatus(result.ok ? `Connected using ${result.model}.` : result.error ?? 'Could not connect to OpenRouter.');
+    } catch (error) { setStatus((error as Error).message); }
+    finally { setBusy(false); }
+  };
+  return <>
+    <PageHead title="Personal OpenRouter" sub="Use your own OpenRouter key for your chats, routines, and memories." />
+    <section className="cfg-section">
+      {personal && <form className="signin__dev" onSubmit={(event) => { event.preventDefault(); void save(); }}>
+        <input className="text-input" aria-label="Personal OpenRouter API key" type="password"
+          placeholder={personal.hasKey ? 'OpenRouter key saved' : 'OpenRouter API key'}
+          value={key} onChange={(event) => setKey(event.target.value)} autoComplete="off" />
+        <input className="text-input" aria-label="Personal default model" placeholder="OpenRouter model ID"
+          value={model} onChange={(event) => setModel(event.target.value)} />
+        <button className="cfg-btn" type="submit" disabled={busy || (!personal.active && !key.trim())}>Save personal settings</button>
+        {personal.hasKey && <>
+          <button className="cfg-btn cfg-btn--secondary" type="button" disabled={busy} onClick={() => void test()}>Test saved key</button>
+          <ConfirmButton className="cfg-btn cfg-btn--secondary" confirmLabel="Confirm remove key" onConfirm={async () => { if (!busy) await save(true); }}>Remove key</ConfirmButton>
+        </>}
+      </form>}
+      {status && <p role="status" className="cfg-row__sub">{status}</p>}
+    </section>
+    {personal?.canInvite && <ModelsSection />}
+  </>;
+}
+
 function ModelsSection() {
-  const llmConfig = useConfigUI((s) => s.llmConfig);
-  const setLlmConfig = useConfigUI((s) => s.setLlmConfig);
+  const [llmConfig, setLlmConfig] = useState<Awaited<ReturnType<typeof configApi.studioLlmConfig>>>();
+  const loadEffectiveConfig = useConfigUI((s) => s.loadLlmConfig);
   const curatedModels = useConfigUI((s) => s.curatedModels);
   const remoteModels = useConfigUI((s) => s.remoteModels);
   const loadModels = useConfigUI((s) => s.loadModels);
@@ -394,6 +454,12 @@ function ModelsSection() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void configApi.studioLlmConfig().then((result) => { if (alive) setLlmConfig(result); })
+      .catch((error: Error) => { if (alive) setStatusMsg({ ok: false, text: error.message }); });
+    return () => { alive = false; };
+  }, []);
   const customApiKeyRef = useRef<HTMLInputElement>(null);
   const defaultModelRef = useRef<HTMLInputElement>(null);
 
@@ -438,12 +504,15 @@ function ModelsSection() {
 
       const updated = await configApi.saveLlmConfig(payload);
       setLlmConfig(updated);
+      await loadEffectiveConfig();
       setOpenrouterKey('');
       setCustomApiKey('');
       setXaiKey('');
       setStatusMsg({ ok: true, text: `Saved BYOM configuration (${updated.provider.toUpperCase()} · ${updated.defaultModel})` });
+      return true;
     } catch (e: any) {
       setStatusMsg({ ok: false, text: e?.message ?? 'Failed to save configuration' });
+      return false;
     } finally {
       setSaving(false);
     }
@@ -459,8 +528,8 @@ function ModelsSection() {
     setStatusMsg(null);
     try {
       // Save any pending inputs first so the test uses them
-      if (openrouterKey.trim() || customApiKey.trim() || xaiKey.trim() || defaultModel !== llmConfig?.defaultModel || provider !== llmConfig?.provider) {
-        await save();
+      if (openrouterKey.trim() || customApiKey.trim() || xaiKey.trim() || defaultModel !== llmConfig?.defaultModel || provider !== llmConfig?.provider || customBaseUrl.trim() !== (llmConfig?.customBaseUrl ?? '')) {
+        if (!await save()) return;
       }
       const res = await configApi.testLlm();
       if (res.ok) {
@@ -1118,7 +1187,7 @@ function AppsSection() {
       }
       const res = await configApi.testComposio();
       if (res.ok) {
-        setKeyNote({ ok: true, text: `Composio connected (${res.count} app toolkits ready in ${res.latencyMs}ms)` });
+        setKeyNote({ ok: true, text: `Composio connection verified (${res.latencyMs}ms).` });
         const st = useStore.getState();
         st.set({ connectionsVersion: st.connectionsVersion + 1 });
       } else {
@@ -1220,6 +1289,16 @@ function AppsSection() {
 
 function AccountSection() {
   const user = useStore((s) => s.user);
+  const [canInvite, setCanInvite] = useState(false);
+  const [email, setEmail] = useState('');
+  const [invite, setInvite] = useState('');
+  const [status, setStatus] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void configApi.personalModel().then((result) => { if (alive) setCanInvite(result.canInvite); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
   const initials = (user?.name ?? user?.email ?? '?').trim().split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
   return (
     <>
@@ -1236,8 +1315,12 @@ function AccountSection() {
               className="cfg-btn cfg-btn--secondary"
               confirmLabel="Confirm sign out"
               onConfirm={async () => {
-                await configApi.logout().catch(() => {});
-                location.reload();
+                try {
+                  await configApi.logout();
+                  location.reload();
+                } catch {
+                  useStore.getState().notify('Could not sign out. Try again.');
+                }
               }}
             >
               Sign out
@@ -1245,6 +1328,27 @@ function AccountSection() {
           </div>
         </div>
       </section>
+      {canInvite && <section className="cfg-section">
+        <span className="cfg-section__label">Invite a user</span>
+        <form className="signin__dev" onSubmit={async (event) => {
+          event.preventDefault();
+          setBusy(true);
+          setInvite('');
+          setStatus('');
+          try {
+            const result = await api.createInvite(email.trim());
+            setInvite(result.code);
+            setStatus('This code expires in 24 hours and can be used once.');
+          } catch (error) { setStatus((error as Error).message); }
+          finally { setBusy(false); }
+        }}>
+          <input className="text-input" type="email" aria-label="Invitee email" placeholder="Email address"
+            value={email} onChange={(event) => setEmail(event.target.value)} required />
+          <button className="cfg-btn" type="submit" disabled={busy}>Create invite code</button>
+        </form>
+        {invite && <input className="text-input" aria-label="Invite code to share" readOnly value={invite} onFocus={(event) => event.target.select()} />}
+        {status && <p className="cfg-row__sub" role="status">{status}</p>}
+      </section>}
     </>
   );
 }

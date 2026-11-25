@@ -56,7 +56,8 @@ export function buildElectronBuilderArgs(argv, releaseTypeFromEnv = '') {
   return forwarded;
 }
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+const entry = process.argv[1];
+const isMain = entry && fs.existsSync(entry) && fs.realpathSync(entry) === fs.realpathSync(fileURLToPath(import.meta.url));
 if (isMain) {
   const cli = resolveElectronBuilderCli(desktopDir);
   const args = buildElectronBuilderArgs(process.argv.slice(2), process.env.RELEASE_TYPE);
