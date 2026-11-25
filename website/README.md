@@ -2,10 +2,14 @@
 
 Static landing page for https://tidebot.melanatedintech.com — downloads, product info and open-source links. Plain HTML/CSS, no build step, no dependencies.
 
-## Deploying (Vercel)
+## Live hosting (Cloudflare Workers)
 
-1. In the Vercel dashboard, add a new project and point it at `asjames18/tidebot`.
-2. Set the **Root Directory** to `website` (Settings → General → Root Directory). Vercel auto-detects it as a static site — no build command needed.
-3. Deploy, then add the domain: Settings → Domains → add `tidebot.melanatedintech.com`. Vercel shows the DNS records to add at your registrar if the domain isn't on the same account yet.
+The live site is served by the `tidebot` Cloudflare Worker (static assets plus a small `/api/waitlist` endpoint for the managed-hosting waitlist). It is **not** on Vercel, and pushes to this repo do **not** auto-deploy it.
 
-Any push that changes `website/` redeploys automatically once the project is connected.
+Deploy with Wrangler from the maintainer's deploy directory (which holds a copy of this folder plus the Worker entrypoint and waitlist KV binding):
+
+```bash
+wrangler deploy --config wrangler.jsonc
+```
+
+The waitlist form posts to `/api/waitlist`, which only exists on the Worker — the static page on its own does not collect signups. Keep this folder in sync with the live page whenever the landing page changes, including `favicon.png` and `screenshots/`.
