@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TideBot — Self-hosted Autonomous Multi-Agent Studio</title>
+  <meta name="description" content="TideBot is an open-source autonomous multi-agent studio you self-host. Bring your own model (OpenRouter, Ollama, vLLM), connect 1,500+ apps via Composio, and run agents in a local sandbox or cloud Linux desktops. Free desktop app for Windows, macOS and Linux." />
+  <meta name="theme-color" content="#05070B" />
+  <meta property="og:title" content="TideBot — Self-hosted Autonomous Multi-Agent Studio" />
+  <meta property="og:description" content="Open source. Bring your own model. 1,500+ app integrations. Local sandbox + cloud Linux desktops. Download the free desktop app." />
+  <meta property="og:image" content="https://raw.githubusercontent.com/asjames18/tidebot/main/assets/social-preview.png" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      --bg: #05070B; --bg2: #0B1120; --panel: #0F172A;
+      --line: #1E293B; --line2: #475569;
+      --text: #F8FAFC; --muted: #94A3B8; --soft: #CBD5E1;
+      --accent: #38BDF8; --accent2: #818CF8; --green: #34D399;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    nav {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(5,7,11,.82); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .01em; }
+    .brand img { width: 26px; height: 26px; border-radius: 7px; }
+    .nav-links { display: flex; gap: 22px; }
+    .nav-links a { color: var(--soft); text-decoration: none; font-size: 14px; }
+    .nav-links a:hover { color: var(--accent); }
+    .btn {
+      display: inline-block; padding: 11px 22px; border-radius: 10px;
+      text-decoration: none; font-weight: 600; font-size: 15px; transition: all .15s ease;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #05070B; }
+    .btn-primary:hover { filter: brightness(1.12); }
+    .btn-ghost { border: 1px solid var(--line2); color: var(--text); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm { padding: 8px 16px; font-size: 14px; }
+    header.hero { padding: 96px 0 72px; position: relative; overflow: hidden; }
+    header.hero::before {
+      content: ""; position: absolute; inset: 0;
+      background:
+        radial-gradient(55% 45% at 22% 30%, rgba(6,182,212,.16), transparent 70%),
+        radial-gradient(45% 40% at 82% 78%, rgba(99,102,241,.12), transparent 70%);
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; max-width: 760px; }
+    .kicker {
+      display: inline-block; font-size: 13px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent); border: 1px solid rgba(56,189,248,.35);
+      padding: 5px 14px; border-radius: 999px; margin-bottom: 22px;
+    }
+    h1 { font-size: clamp(34px, 6vw, 54px); line-height: 1.12; letter-spacing: -.02em; }
+    h1 .grad { background: linear-gradient(120deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { margin: 20px 0 30px; font-size: clamp(16px, 2.2vw, 19px); color: var(--soft); max-width: 640px; }
+    .cta-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+    .cta-note { font-size: 13px; color: var(--muted); width: 100%; margin-top: 10px; }
+    section { padding: 64px 0; border-top: 1px solid var(--line); }
+    h2 { font-size: clamp(24px, 3.6vw, 32px); letter-spacing: -.01em; margin-bottom: 10px; }
+    .section-sub { color: var(--muted); margin-bottom: 36px; max-width: 640px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    .card {
+      background: linear-gradient(180deg, rgba(15,23,42,.7), rgba(11,17,32,.7));
+      border: 1px solid var(--line); border-radius: 14px; padding: 24px;
+    }
+    .card h3 { font-size: 17px; margin-bottom: 8px; }
+    .card p { font-size: 14.5px; color: var(--soft); }
+    .card .icon { font-size: 22px; display: block; margin-bottom: 12px; }
+    .dl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+    .dl-card { text-align: center; padding: 28px 20px; }
+    .dl-card .os { font-size: 30px; display: block; margin-bottom: 10px; }
+    .dl-card .arch { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+    .note {
+      margin-top: 26px; font-size: 13.5px; color: var(--muted);
+      border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; background: rgba(15,23,42,.5);
+    }
+    .note code { color: var(--soft); }
+    .oss-list { margin: 18px 0 30px; padding-left: 0; list-style: none; display: grid; gap: 10px; }
+    .oss-list li { color: var(--soft); font-size: 15px; }
+    .oss-list li::before { content: "→"; color: var(--accent); margin-right: 10px; }
+    .oss-links { display: flex; gap: 14px; flex-wrap: wrap; }
+    code.inline { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; font-size: 13px; color: var(--soft); }
+    footer { border-top: 1px solid var(--line); padding: 34px 0 48px; color: var(--muted); font-size: 13.5px; }
+    .foot-inner { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    footer a { color: var(--soft); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+    @media (max-width: 640px) { .nav-links a:not(.btn) { display: none; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="wrap nav-inner">
+      <div class="brand"><img src="favicon.svg" alt="TideBot logo" /> TideBot</div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#download">Download</a>
+        <a href="#open-source">Open Source</a>
+        <a class="btn btn-ghost btn-sm" href="https://github.com/asjames18/tidebot">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap hero-inner">
+      <span class="kicker">Open source · Self-hosted · Bring your own model</span>
+      <h1>Your agents. Your models.<br /><span class="grad">Your machine.</span></h1>
+      <p class="sub">
+        TideBot is an open-source autonomous multi-agent studio you run yourself.
+        Bring any model — OpenRouter, Ollama, vLLM — connect 1,500+ apps through Composio,
+        and give agents a local workspace or a cloud Linux desktop. No subscriptions, no lock-in.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/asjames18/tidebot/releases/latest">Download for desktop</a>
+        <a class="btn btn-ghost" href="https://github.com/asjames18/tidebot">Star on GitHub ★</a>
+        <span class="cta-note">Windows · macOS (Intel &amp; Apple Silicon) · Linux — free, MIT-licensed, with automatic updates.</span>
+      </div>
+    </div>
+  </header>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Built for people who build</h2>
+      <p class="section-sub">Everything runs on your hardware, talks to the providers you choose, and stays out of your way.</p>
+      <div class="grid">
+        <div class="card"><span class="icon">🧠</span><h3>Bring your own model</h3><p>First-class OpenRouter (250+ models), plus OpenAI-compatible endpoints, Ollama and vLLM for fully local setups. Configure keys in <code class="inline">.env</code> or straight from the UI.</p></div>
+        <div class="card"><span class="icon">🔌</span><h3>1,500+ app integrations</h3><p>Agents act on the real world through Composio: GitHub, Gmail, Slack, Notion, calendars and more — tools are routed and permission-scoped per bot.</p></div>
+        <div class="card"><span class="icon">🖥️</span><h3>Dual execution sandbox</h3><p>Agents get an isolated local workspace on your machine, or an Orgo cloud Linux desktop with a full GUI they can drive remotely.</p></div>
+        <div class="card"><span class="icon">🌊</span><h3>Obsidian glass UI</h3><p>A WebGL-shader studio with streaming transcripts, chain-of-thought drawers, a ⌘K command palette and a real-time ShaderCanvas.</p></div>
+        <div class="card"><span class="icon">⏱️</span><h3>Routines &amp; proactive check-ins</h3><p>Schedule agents on cron, let them watch files, commands or URLs, and check in with you on their own initiative.</p></div>
+        <div class="card"><span class="icon">📦</span><h3>Self-hosted, always</h3><p>Node + SQLite under the hood. One repo, one install, your data in your <code class="inline">data/</code> directory — nothing phones home.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="wrap">
+      <h2>Download</h2>
+      <p class="section-sub">Prebuilt desktop apps with automatic updates — no Node.js required. Every push to <code class="inline">main</code> ships a new build.</p>
+      <div class="dl-grid">
+        <div class="card dl-card"><span class="os">🪟</span><h3>Windows</h3><a class="btn btn-ghost btn-sm" href="https://github.com/asjames18/tidebot/releases/latest">Download .exe</a><p class="arch">Windows 10/11 · x64 installer</p></div>
+        <div class="card dl-card"><span class="os">🍎</span><h3>macOS</h3><a class="btn btn-ghost btn-sm" href="https://github.com/asjames18/tidebot/releases/latest">Download .dmg</a><p class="arch">Apple Silicon &amp; Intel</p></div>
+        <div class="card dl-card"><span class="os">🐧</span><h3>Linux</h3><a class="btn btn-ghost btn-sm" href="https://github.com/asjames18/tidebot/releases/latest">Download .AppImage / .deb</a><p class="arch">x64</p></div>
+      </div>
+      <p class="note">
+        <strong>First launch:</strong> installers are currently unsigned, so SmartScreen (Windows) or Gatekeeper (macOS) may show a one-time
+        "unknown developer" warning. Choose <em>More info → Run anyway</em>, or right-click → <em>Open</em> on macOS.
+        Prefer source? Follow the <a style="color:var(--accent)" href="https://github.com/asjames18/tidebot#-quick-start">Quick Start</a> in the README.
+      </p>
+    </div>
+  </section>
+
+  <section id="open-source">
+    <div class="wrap">
+      <h2>Open source, in the open</h2>
+      <p class="section-sub">TideBot is MIT-licensed and built to be extended. The architecture, invariants and contribution flow are documented for humans and AI agents alike.</p>
+      <ul class="oss-list">
+        <li>Full architecture guide in <a style="color:var(--accent)" href="https://github.com/asjames18/tidebot/blob/main/AGENTS.md">AGENTS.md</a> — how the server, web studio and desktop app fit together</li>
+        <li><a style="color:var(--accent)" href="https://github.com/asjames18/tidebot/blob/main/CONTRIBUTING.md">Contributing guide</a> with a clear verification checklist — small, focused PRs win</li>
+        <li>Structured <a style="color:var(--accent)" href="https://github.com/asjames18/tidebot/issues/new/choose">issue templates</a> and a public <a style="color:var(--accent)" href="https://github.com/asjames18/tidebot/discussions">Discussions</a> space for questions and ideas</li>
+        <li>Security policy with <a style="color:var(--accent)" href="https://github.com/asjames18/tidebot/security/advisories/new">private vulnerability reporting</a></li>
+        <li>CI builds every platform on every push — what ships is what passed</li>
+      </ul>
+      <div class="oss-links">
+        <a class="btn btn-primary btn-sm" href="https://github.com/asjames18/tidebot/fork">Fork the repo</a>
+        <a class="btn btn-ghost btn-sm" href="https://github.com/asjames18/tidebot/issues">Browse issues</a>
+        <a class="btn btn-ghost btn-sm" href="https://github.com/asjames18/tidebot/blob/main/LICENSE">Read the license</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap foot-inner">
+      <span>© 2026 TideBot contributors · MIT License</span>
+      <span><a href="https://github.com/asjames18/tidebot">GitHub</a> · <a href="https://github.com/asjames18/tidebot/releases/latest">Releases</a> · <a href="https://github.com/asjames18/tidebot/discussions">Discussions</a> · <a href="https://melanatedintech.com">Melanated In Tech</a></span>
+    </div>
+  </footer>
+</body>
+</html>
