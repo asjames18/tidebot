@@ -90,6 +90,7 @@ api.get('/auth/me', (c) => {
 });
 
 api.get('/auth/google/start', async (c) => {
+  if (!env.composioKey) return c.json({ error: 'A studio administrator must configure Composio before Google sign-in is available.' }, 503);
   const attemptId = newId('login');
   const provisional = newId('usr');
   const cb = `${env.serverUrl}/api/auth/google/callback?attempt=${attemptId}`;
@@ -737,6 +738,7 @@ api.get('/apps', async (c) => {
 });
 
 api.post('/apps/:slug/connect', async (c) => {
+  if (!env.composioKey) return c.json({ error: 'A studio administrator must configure Composio before connecting apps.' }, 503);
   const user = c.get('user');
   const slug = c.req.param('slug');
   const { botId, seq } = await c.req.json<{ botId?: string; seq?: number }>().catch(() => ({} as any));

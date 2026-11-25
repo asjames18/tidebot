@@ -80,3 +80,28 @@ test('a new database supports deleting a routine without starting the scheduler'
   assert.equal((await call(`/routines/${routine.id}`, 'DELETE')).status, 200);
   assert.equal((await (await call(path)).json()).routines.length, 0);
 });
+
+test('setup verifies a new OpenRouter key before storing it', async (t) => {
+  const { getLlmConfig } = await import('../server/dist/agent/llm.js');
+  const { user } = await (await call('/auth/me')).json();
+  const sampleKey = 'sk-or-v1-' + 'a'.repeat(64);
+  const rejectedKey = 'sk-or-v1-' + 'b'.repeat(64);
+  t.mock.method(globalThis, 'fetch', async (input, options) => {
+    const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+    assert.equal(url.origin, 'https://openrouter.ai');
+    assert.equal(url.pathname, '/api/v1/chat/completions');
+    const headers = new Headers(options?.headers ?? input.headers);
+    if (headers.get('authorization') === 'Bearer ' + rejectedKey) {
+      return Response.json({ error: { message: 'Rejected fixture key: ' + rejectedKey } }, { status: 401 });
+    }
+    assert.equal(headers.get('authorization'), 'Bearer ' + sampleKey);
+    return Response.json({ choices: [{ message: { content: 'Fixture reply.' } }] });
+  });
+  const connect = (openrouterKey) => call('/llm/personal/connect', 'POST', { openrouterKey, defaultModel: 'fixture/model' });
+  assert.equal((await (await connect(sampleKey)).json()).ok, true);
+  assert.equal(getLlmConfig(user.id).openrouterKey, sampleKey);
+  const rejected = await (await connect(rejectedKey)).json();
+  assert.equal(rejected.ok, false);
+  assert.ok(!rejected.error.includes(rejectedKey));
+  assert.equal(getLlmConfig(user.id).openrouterKey, sampleKey);
+});

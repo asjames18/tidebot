@@ -13,8 +13,10 @@ import { ShaderCanvas } from '../ShaderCanvas';
 import { ToolkitLogo } from '../ToolkitLogo';
 import { Glyph } from './glyphs';
 import { ConfirmButton } from './ui';
+import { SetupSection } from './SetupSection';
 
 const SECTIONS: { id: AppSection; label: string }[] = [
+  { id: 'setup', label: 'Setup' },
   { id: 'general', label: 'General & Shaders' },
   { id: 'models', label: 'Models & OpenRouter' },
   { id: 'computer', label: 'Computer' },
@@ -189,6 +191,7 @@ export function AppSettings() {
           <Icon name="close" opacity={0.8} />
         </button>
         <div className="app-settings__page">
+          {section === 'setup' && <SetupSection />}
           {section === 'general' && <GeneralSection />}
           {section === 'models' && <AccountModelsSection />}
           {section === 'computer' && <ComputerSection />}
@@ -1184,7 +1187,7 @@ function AppsSection() {
       }
       const res = await configApi.testComposio();
       if (res.ok) {
-        setKeyNote({ ok: true, text: `Composio connected (${res.count} app toolkits ready in ${res.latencyMs}ms)` });
+        setKeyNote({ ok: true, text: `Composio connection verified (${res.latencyMs}ms).` });
         const st = useStore.getState();
         st.set({ connectionsVersion: st.connectionsVersion + 1 });
       } else {

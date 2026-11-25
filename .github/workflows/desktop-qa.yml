@@ -35,7 +35,8 @@ jobs:
         working-directory: desktop
         env:
           TARGET_ARCH: ${{ matrix.arch }}
-      - run: node scripts/eb-cli.mjs ${{ matrix.flag }} --${{ matrix.arch }} --dir --publish never -c.directories.output=dist/qa
+      - run: node scripts/eb-cli.mjs ${{ matrix.flag }} --${{ matrix.arch }} --dir --publish never '-c.directories.output=dist/qa'
+        shell: bash
         working-directory: desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"

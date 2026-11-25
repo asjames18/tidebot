@@ -10,6 +10,7 @@ import { newId } from './lib/ids.js';
 import type { AuthVars } from './lib/auth.js';
 import { appendRow, emitBot, getBotRow, getLive, listRoutines, listTasks, updateRow } from './store.js';
 import { enqueue } from './agent/loop.js';
+import { getLlmConfig } from './agent/llm.js';
 import { computerState } from './computer.js';
 import type { ActivityKind, EventBody, MessageBody, RowBody, VoiceCallRecord, VoiceOption } from './types.js';
 
@@ -19,7 +20,14 @@ const XAI = 'https://api.x.ai/v1';
 const VOICE_MODEL = process.env.XAI_VOICE_MODEL ?? 'grok-voice-latest';
 const STT_MODEL = process.env.XAI_STT_MODEL ?? 'grok-voice-transcribe-2.0';
 const SAMPLE_RATE = 24000;
-const xaiHeaders = () => ({ Authorization: `Bearer ${env.xaiKey}` });
+const voiceKey = () => getLlmConfig().xaiKey;
+const xaiHeaders = () => ({ Authorization: `Bearer ${voiceKey()}` });
+for (const route of ['/session', '/preview', '/stt']) {
+  voiceApi.use(route, async (c, next) => {
+    if (!voiceKey()) return c.json({ error: 'Add an xAI key in studio model settings to use xAI voice.' }, 503);
+    await next();
+  });
+}
 
 // ---------- voices / languages ----------
 
@@ -42,7 +50,7 @@ export const SPEEDS = [0.7, 0.85, 1, 1.15, 1.3, 1.5];
 
 let voiceCache: { at: number; voices: VoiceOption[] } | null = null;
 async function listVoices(): Promise<VoiceOption[]> {
-  if (!env.xaiKey) return FALLBACK_VOICES;
+  if (!voiceKey()) return FALLBACK_VOICES;
   if (voiceCache && Date.now() - voiceCache.at < 3600_000) return voiceCache.voices;
   try {
     const r = await fetch(`${XAI}/tts/voices`, { headers: xaiHeaders(), signal: AbortSignal.timeout(8000) });
@@ -356,12 +364,12 @@ voiceApi.post('/tool', async (c) => {
   }
 });
 
-const getXai = () => new OpenAI({ apiKey: env.xaiKey || 'local-unconfigured-key', baseURL: XAI, timeout: 45_000 });
-
 async function summarizeCall(botName: string, transcript: { role: string; text: string }[], tasks: string[]): Promise<string | null> {
-  if (!env.xaiKey || (!transcript.length && !tasks.length)) return null;
+  const key = voiceKey();
+  if (!key || (!transcript.length && !tasks.length)) return null;
   const lines = transcript.map((t) => `${t.role === 'user' ? 'User' : botName}: ${t.text}`).join('\n').slice(-12_000);
-  const res: any = await getXai().responses.create({
+  const client = new OpenAI({ apiKey: key, baseURL: XAI, timeout: 45_000 });
+  const res: any = await client.responses.create({
     model: env.xaiModel,
     reasoning: { effort: 'low' },
     store: false,

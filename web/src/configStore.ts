@@ -7,7 +7,7 @@ import { configApi } from './lib/configApi';
 
 export type Theme = 'system' | 'light' | 'dark';
 export type BotSettingsTab = 'general' | 'skills' | 'memories' | 'routines';
-export type AppSection = 'general' | 'models' | 'computer' | 'permissions' | 'apps' | 'account';
+export type AppSection = 'setup' | 'general' | 'models' | 'computer' | 'permissions' | 'apps' | 'account';
 
 interface ConfigUI {
   botSettings: { botId: string; tab: BotSettingsTab } | null;

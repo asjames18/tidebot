@@ -361,12 +361,13 @@ export async function fetchModelsCatalog(): Promise<{ curated: ModelInfo[]; remo
   }
 }
 
-function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; apiKey: string } {
+function getClient(cfg: LlmRuntimeConfig, connectionCheck = false): { client: OpenAI; baseURL: string; apiKey: string } {
+  const options = connectionCheck ? { timeout: 15_000, maxRetries: 0 } : { timeout: 360_000 };
   if (cfg.provider === 'xai') {
     const apiKey = cfg.xaiKey;
     const baseURL = 'https://api.x.ai/v1';
     return {
-      client: new OpenAI({ apiKey: apiKey || 'unconfigured', baseURL, timeout: 360_000 }),
+      client: new OpenAI({ apiKey: apiKey || 'unconfigured', baseURL, ...options }),
       baseURL,
       apiKey,
     };
@@ -376,7 +377,7 @@ function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; ap
     const baseURL = cfg.customBaseUrl || 'http://localhost:11434/v1';
     const apiKey = cfg.customApiKey || 'custom-local-key';
     return {
-      client: new OpenAI({ apiKey, baseURL, timeout: 360_000 }),
+      client: new OpenAI({ apiKey, baseURL, ...options }),
       baseURL,
       apiKey: cfg.customBaseUrl ? apiKey : '',
     };
@@ -388,7 +389,7 @@ function getClient(cfg: LlmRuntimeConfig): { client: OpenAI; baseURL: string; ap
     client: new OpenAI({
       apiKey: apiKey || 'unconfigured',
       baseURL,
-      timeout: 360_000,
+      ...options,
       defaultHeaders: {
         'HTTP-Referer': 'https://github.com/asjames18/tidebot',
         'X-Title': 'TideBot',
@@ -744,15 +745,19 @@ export async function streamModelTurn(opts: {
 }
 
 /** Non-streaming helper for memory consolidation, history summarization, and connection testing. */
-export async function completeText(opts: {
-  userId?: string;
+type TextRequest = {
   system: string;
   user: string;
   jsonMode?: boolean;
   maxTokens?: number;
-}): Promise<string> {
-  const cfg = getLlmConfig(opts.userId);
-  const { client, apiKey } = getClient(cfg);
+};
+
+export async function completeText(opts: TextRequest & { userId?: string }): Promise<string> {
+  return requestText(getLlmConfig(opts.userId), opts);
+}
+
+async function requestText(cfg: LlmRuntimeConfig, opts: TextRequest, connectionCheck = false): Promise<string> {
+  const { client, apiKey } = getClient(cfg, connectionCheck);
   if (!apiKey) throw new Error('No LLM API key configured');
 
   if (cfg.provider === 'xai') {
@@ -773,26 +778,39 @@ export async function completeText(opts: {
       { role: 'system', content: opts.system },
       { role: 'user', content: opts.user },
     ],
-    ...(opts.maxTokens ? { max_tokens: opts.maxTokens, reasoning: { effort: 'low' } } : {}),
+    ...(opts.maxTokens ? { max_tokens: opts.maxTokens, ...(connectionCheck ? {} : { reasoning: { effort: 'low' } }) } : {}),
     ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
   } as any);
   const msg = res.choices?.[0]?.message;
   const content = String(msg?.content ?? '').trim();
   if (content) return content;
   const reasoning = String(msg?.reasoning ?? msg?.reasoning_content ?? '').trim();
+  if (connectionCheck && !reasoning) return '';
   return reasoning ? reasoning.slice(-200) : 'Online and ready.';
 }
 
-export async function testLlmConnection(userId?: string): Promise<{ ok: boolean; model: string; provider: string; latencyMs: number; reply?: string; error?: string }> {
-  const cfg = getLlmConfig(userId);
+export function testLlmConnection(userId?: string) {
+  return checkConnection(getLlmConfig(userId));
+}
+
+export function testOpenRouterKey(userId: string, apiKey: string, model: string) {
+  return checkConnection({
+    ...getLlmConfig(userId),
+    provider: 'openrouter',
+    openrouterKey: apiKey,
+    defaultModel: model || env.openrouterModel,
+  });
+}
+
+async function checkConnection(cfg: LlmRuntimeConfig): Promise<{ ok: boolean; model: string; provider: string; latencyMs: number; reply?: string; error?: string }> {
   const t0 = Date.now();
   try {
-    const reply = await completeText({
-      userId,
+    const reply = await requestText(cfg, {
       system: 'Reply with a short confirmation (under 12 words) stating you are online.',
       user: 'Ping from TideBot.',
-      maxTokens: 256,
-    });
+      maxTokens: 128,
+    }, true);
+    if (!reply) throw new Error('The provider returned no reply. Try another model.');
     return {
       ok: true,
       model: cfg.defaultModel,
@@ -806,7 +824,8 @@ export async function testLlmConnection(userId?: string): Promise<{ ok: boolean;
       model: cfg.defaultModel,
       provider: cfg.provider,
       latencyMs: Date.now() - t0,
-      error: String(e?.message ?? e),
+      error: [cfg.openrouterKey, cfg.xaiKey, cfg.customApiKey].filter(Boolean)
+        .reduce((message, key) => message.replaceAll(key, '[redacted]'), String(e?.message ?? e)).slice(0, 400),
     };
   }
 }

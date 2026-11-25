@@ -10,11 +10,11 @@ import { requireUser, type AuthVars } from './lib/auth.js';
 import { getBotRow, listRoutines, listTasks } from './store.js';
 import { computerState, ensureComputer } from './computer.js';
 import { orgo } from './orgo.js';
-import { catalog } from './composio.js';
+import { checkComposioConnection } from './composio.js';
 import { runInBotQueue } from './agent/loop.js';
 import { localWorkspaceDir } from './agent/tools.js';
 import { consolidateBot, historySize, maybeCompact, memoryConfig } from './agent/memory.js';
-import { completeText, fetchModelsCatalog, getPublicLlmConfig, publicPersonalModel, saveLlmConfig, savePersonalModel, testLlmConnection } from './agent/llm.js';
+import { completeText, fetchModelsCatalog, getPublicLlmConfig, publicPersonalModel, saveLlmConfig, savePersonalModel, testLlmConnection, testOpenRouterKey } from './agent/llm.js';
 import { idleConfig, viewerCount } from './idle.js';
 import { assertPublicUrl } from './lib/ssrf.js';
 import { resolveWithinWorkspace, writeWorkspaceFile } from './lib/files.js';
@@ -63,6 +63,22 @@ configApi.post('/llm/personal/test', async (c) => {
   return c.json(await testLlmConnection(c.get('user').id));
 });
 
+configApi.post('/llm/personal/connect', async (c) => {
+  if (!c.get('verifiedSession')) return c.json({ error: 'Sign in with your account to connect OpenRouter.' }, 403);
+  const { openrouterKey, defaultModel } = (await c.req.json<{ openrouterKey?: unknown; defaultModel?: unknown }>().catch(() => null)) ?? {};
+  if (typeof openrouterKey !== 'string' || !/^sk-or-v1-[a-f0-9]{64}$/.test(openrouterKey)) {
+    return c.json({ error: 'Enter a valid OpenRouter API key.' }, 400);
+  }
+  if (typeof defaultModel !== 'string' || defaultModel.length > 200 || /\s/.test(defaultModel)) {
+    return c.json({ error: 'Enter a valid OpenRouter model ID.' }, 400);
+  }
+  const userId = c.get('user').id;
+  const result = await testOpenRouterKey(userId, openrouterKey, defaultModel);
+  if (result.ok) savePersonalModel(userId, openrouterKey, defaultModel);
+  c.header('Cache-Control', 'no-store');
+  return c.json(result);
+});
+
 configApi.put('/llm/config', async (c) => {
   if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can change shared settings.' }, 403);
   const body = await c.req.json().catch(() => ({}));
@@ -94,14 +110,32 @@ configApi.post('/llm/test', async (c) => {
 });
 
 configApi.post('/llm/test-composio', async (c) => {
+  if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can test the Composio key.' }, 403);
   const t0 = Date.now();
   try {
     if (!env.composioKey) return c.json({ ok: false, error: 'COMPOSIO_API_KEY is not configured.' });
-    const items = await catalog();
-    return c.json({ ok: true, count: items.length, latencyMs: Date.now() - t0 });
-  } catch (e: any) {
-    return c.json({ ok: false, error: String(e?.message ?? e) });
+    await checkComposioConnection();
+    return c.json({ ok: true, latencyMs: Date.now() - t0 });
+  } catch {
+    return c.json({ ok: false, error: 'Composio could not verify this key. Check the key and try again.' });
   }
+});
+
+configApi.post('/llm/connect-orgo', async (c) => {
+  if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can connect Orgo.' }, 403);
+  const { apiKey } = (await c.req.json<{ apiKey?: unknown }>().catch(() => null)) ?? {};
+  if (typeof apiKey !== 'string' || !apiKey.trim() || apiKey.length > 512 || /\s/.test(apiKey)) {
+    return c.json({ error: 'Enter a valid Orgo API key.' }, 400);
+  }
+  try {
+    const res = await orgo.workspaces(apiKey);
+    const workspaces = Array.isArray(res) ? res : res?.workspaces ?? res?.projects ?? [];
+    if (!Array.isArray(workspaces) || !workspaces.length) return c.json({ error: 'This key has no Orgo workspace.' }, 400);
+  } catch {
+    return c.json({ error: 'Orgo could not verify this key. Check the key and try again.' }, 400);
+  }
+  saveLlmConfig({ orgoKey: apiKey });
+  return c.json({ ok: true });
 });
 
 configApi.get('/llm/models', async (c) => {

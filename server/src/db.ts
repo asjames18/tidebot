@@ -173,6 +173,17 @@ db.exec(`
   );
 `);
 addColumn('local_passwords', 'desktop_only', 'INTEGER NOT NULL DEFAULT 0');
+// Older builds could attach an existing workspace desktop to more than one account.
+// Disconnect those ambiguous assignments without touching the remote desktops.
+db.transaction(() => {
+  const shared = db.prepare('SELECT orgo_id FROM computers WHERE orgo_id IS NOT NULL GROUP BY orgo_id HAVING COUNT(*) > 1').all() as { orgo_id: string }[];
+  const clearScreens = db.prepare('DELETE FROM screens WHERE user_id IN (SELECT user_id FROM computers WHERE orgo_id=?)');
+  const detach = db.prepare("UPDATE computers SET orgo_id=NULL,status='absent',error=NULL WHERE orgo_id=?");
+  for (const { orgo_id } of shared) {
+    clearScreens.run(orgo_id);
+    detach.run(orgo_id);
+  }
+})();
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS llm_settings (

@@ -132,6 +132,8 @@ Changing shared settings in the UI requires signing in as the studio administrat
 
 In the desktop app, select **Create local account** to choose your own email and password. Desktop accounts are stored in TideBot on that computer and use a personal OpenRouter key configured under **Settings → Models & OpenRouter**.
 
+On the first sign-in without a model, TideBot opens **Settings → Setup**. Use **Connect and test OpenRouter** to verify a key before saving it, or continue without a model to explore the studio. Studio administrators can choose a shared OpenAI-compatible model in **Models & OpenRouter** and configure optional app, cloud desktop, and voice services. A local model must already be running at the address you enter.
+
 To add another user to a shared, self-hosted studio, open **Settings → Account** and create an invite code for their email. They redeem it on the sign-in screen, choose their own password, and add a key under **Settings → Models & OpenRouter**. The code expires after 24 hours and can be used once. Personal accounts use their own OpenRouter key for conversations, routines, and memory processing. Voice through the studio's xAI account is unavailable in personal OpenRouter mode.
 
 | Variable | Required | Description |
