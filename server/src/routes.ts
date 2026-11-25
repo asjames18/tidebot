@@ -21,6 +21,7 @@ import { dispatchRoomMessage } from './agent/rooms.js';
 import { voiceApi } from './voice.js';
 import type { AvatarColor, AvatarShape, RowBody, Toolkit } from './types.js';
 import { Cron } from 'croner';
+import { releaseStatus } from './releases.js';
 import crypto from 'node:crypto';
 
 const callbackSig = (userId: string, botId: string, slug: string, exp: number) =>
@@ -278,6 +279,8 @@ api.get('/bots/:id/export', (c) => {
     },
   });
 });
+
+api.get('/releases/latest', async (c) => c.json(await releaseStatus()));
 
 api.get('/system/status', async (c) => {
   const user = c.get('user');

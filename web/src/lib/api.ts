@@ -24,6 +24,12 @@ export interface AppsResponse { apps: Toolkit[]; connected: string[]; categories
 
 export interface RoomMember { id: string; name: string; label: string; avatarShape: string; avatarColor: string }
 
+export interface LatestReleaseResponse {
+  release: { tag: string; name: string; url: string; publishedAt: string | null; notes: string } | null;
+  current: string;
+  updateAvailable: boolean;
+}
+
 export interface SearchResults {
   messages: { botId: string; botName: string; seq: number; role: string; snippet: string; createdAt: number }[];
   memories: { id: string; botId: string; botName: string; text: string; createdAt: number }[];
@@ -40,6 +46,7 @@ export const api = {
   createBot: (b: Pick<Bot, 'name' | 'avatarShape' | 'avatarColor' | 'mode'> & Partial<Pick<Bot, 'label' | 'description' | 'instructions' | 'model'>>) => req<{ bot: Bot }>('POST', '/bots', b),
   cloneBot: (id: string) => req<{ bot: Bot }>('POST', `/bots/${id}/clone`),
   exportBotUrl: (id: string) => `/api/bots/${id}/export`,
+  latestRelease: () => req<LatestReleaseResponse>('GET', '/releases/latest'),
   systemStatus: () => req<{ botsCount: number; tasksOpen: number; tasksDone: number; memoriesCount: number; routinesCount: number; connectedAppsCount: number; connectedApps: string[]; serverTime: number }>('GET', '/system/status'),
   markRead: (id: string) => req<{ ok: true }>('POST', `/bots/${id}/read`),
   rows: (id: string) => req<{ generation: number; rows: Row[] }>('GET', `/bots/${id}/rows`),

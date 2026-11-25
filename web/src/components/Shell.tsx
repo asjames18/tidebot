@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import { ChatView } from './ChatView';
 import { Sidebar } from './Sidebar';
 import { Toasts } from './Toasts';
+import { ReleaseNotice } from './ReleaseNotice';
 import { useConfigUI } from '../configStore';
 
 const ConnectAppsModal = lazy(() => import('./modals/ConnectAppsModal').then((m) => ({ default: m.ConnectAppsModal })));
@@ -172,6 +173,7 @@ export function Shell() {
           aria-hidden="true"
         />
       )}
+      <ReleaseNotice />
       <Toasts />
       {view === 'tasks' ? <Suspense fallback={null}><TasksView /></Suspense> : <ChatView />}
       {detailsOpen && hasBot && view === 'chat' && <Suspense fallback={null}><DetailsPanel /></Suspense>}
