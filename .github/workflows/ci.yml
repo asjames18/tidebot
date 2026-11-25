@@ -55,7 +55,7 @@ jobs:
             --data '{"email":"compose-fixture@example.test","password":"compose-only-test-password"}' > /dev/null
           bot=$(curl -fsS -b "$jar" "$base/api/bots" | jq -er '.bots[0].id')
           docker compose restart
-          curl -fsS --retry 15 --retry-connrefused --retry-delay 1 "$base/api/health" > /dev/null
+          docker compose up --wait --wait-timeout 120
           curl -fsS -b "$jar" "$base/api/bots" | jq -e --arg bot "$bot" '.bots[0].id == $bot'
       - name: Show service logs on failure
         if: failure()
