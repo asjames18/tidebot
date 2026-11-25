@@ -7,9 +7,10 @@ import path from 'node:path';
 
 const output = path.resolve(process.argv[2] ?? 'desktop/dist/qa');
 const platform = process.platform;
+const macFolder = process.arch === 'arm64' ? 'mac-arm64' : 'mac';
 const folder = (await readdir(output, { withFileTypes: true }))
-  .find((entry) => entry.isDirectory() && (platform === 'darwin' ? /^mac(?:-|$)/.test(entry.name) : entry.name.endsWith('-unpacked')));
-assert.ok(folder, `No unpacked ${platform} app found in ${output}`);
+  .find((entry) => entry.isDirectory() && (platform === 'darwin' ? entry.name === macFolder : entry.name.endsWith('-unpacked')));
+assert.ok(folder, `No unpacked ${platform} ${process.arch} app found in ${output}`);
 const buildDir = path.join(output, folder.name);
 const temp = await mkdtemp(path.join(tmpdir(), 'tidebot-packaged-'));
 let child;
