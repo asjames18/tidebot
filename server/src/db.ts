@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   token TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL,
-  expires_at INTEGER NOT NULL
+  expires_at INTEGER NOT NULL,
+  verified INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS login_attempts (
   id TEXT PRIMARY KEY,
@@ -150,6 +151,28 @@ addColumn('bots', 'voice', "TEXT NOT NULL DEFAULT 'luna'");
 addColumn('bots', 'voice_speed', 'REAL NOT NULL DEFAULT 1');
 addColumn('bots', 'voice_language', "TEXT NOT NULL DEFAULT 'auto'");
 addColumn('bots', 'model', "TEXT NOT NULL DEFAULT ''");
+addColumn('auth_sessions', 'verified', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('users', 'verified_account', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('routines', 'trigger_id', 'TEXT');
+addColumn('routines', 'trigger_config', 'TEXT');
+db.exec('UPDATE users SET verified_account=1 WHERE verified_account=0 AND id IN (SELECT user_id FROM auth_sessions WHERE verified=1)');
+db.exec(`
+  CREATE TABLE IF NOT EXISTS local_passwords (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    password_hash TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS account_invites (
+    token_hash TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    expires_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS personal_models (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    openrouter_key TEXT NOT NULL DEFAULT '',
+    default_model TEXT NOT NULL DEFAULT ''
+  );
+`);
+addColumn('local_passwords', 'desktop_only', 'INTEGER NOT NULL DEFAULT 0');
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS llm_settings (

@@ -173,9 +173,11 @@ export function Shell() {
           aria-hidden="true"
         />
       )}
-      <ReleaseNotice />
       <Toasts />
-      {view === 'tasks' ? <Suspense fallback={null}><TasksView /></Suspense> : <ChatView />}
+      <div className="app__main">
+        <ReleaseNotice />
+        {view === 'tasks' ? <Suspense fallback={null}><TasksView /></Suspense> : <ChatView />}
+      </div>
       {detailsOpen && hasBot && view === 'chat' && <Suspense fallback={null}><DetailsPanel /></Suspense>}
       <Suspense fallback={null}>
         {modal === 'create' && <CreateBotModal />}

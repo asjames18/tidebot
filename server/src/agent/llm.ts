@@ -26,8 +26,32 @@ function maskKey(k: string): string {
   return `${k.slice(0, 6)}••••${k.slice(-4)}`;
 }
 
-export function getLlmConfig(): LlmRuntimeConfig {
+export function getPersonalModel(userId: string) {
+  const row = db.prepare('SELECT openrouter_key, default_model FROM personal_models WHERE user_id=?').get(userId) as { openrouter_key: string; default_model: string } | undefined;
+  return row ? { key: decryptSecret(secretsDir(), row.openrouter_key), model: row.default_model || env.openrouterModel } : undefined;
+}
+
+export function publicPersonalModel(userId: string) {
+  const personal = getPersonalModel(userId);
+  return { active: Boolean(personal), hasKey: Boolean(personal?.key), defaultModel: personal?.model ?? env.openrouterModel };
+}
+
+export function savePersonalModel(userId: string, key: string | undefined, model: string) {
+  const stored = key === undefined ? null : encryptSecret(secretsDir(), key);
+  db.prepare(`INSERT INTO personal_models (user_id, openrouter_key, default_model) VALUES (?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET openrouter_key=COALESCE(?, personal_models.openrouter_key), default_model=excluded.default_model`)
+    .run(userId, stored ?? '', model, stored);
+  return publicPersonalModel(userId);
+}
+
+export function getLlmConfig(userId?: string): LlmRuntimeConfig {
   const row = db.prepare('SELECT * FROM llm_settings WHERE id = 1').get() as any;
+  const shaderStyle: ShaderStyle = (row?.shader_style as ShaderStyle) || 'aurora';
+  const personal = userId ? getPersonalModel(userId) : undefined;
+  if (personal) return {
+    provider: 'openrouter', openrouterKey: personal.key, xaiKey: '',
+    customBaseUrl: '', customApiKey: '', defaultModel: personal.model, shaderStyle,
+  };
   const openrouterKey = decryptSecret(secretsDir(), (row?.openrouter_key || '').trim()) || (env.openrouterKey || '').trim();
   const xaiKey = decryptSecret(secretsDir(), (row?.xai_key || '').trim()) || (env.xaiKey || '').trim();
   const customBaseUrl = (row?.custom_base_url || env.customBaseUrl || '').trim();
@@ -48,7 +72,6 @@ export function getLlmConfig(): LlmRuntimeConfig {
         : env.openrouterModel || 'anthropic/claude-3.7-sonnet';
 
   const defaultModel = (row?.default_model || defaultFallback).trim();
-  const shaderStyle: ShaderStyle = (row?.shader_style as ShaderStyle) || 'aurora';
 
   return {
     provider,
@@ -61,8 +84,8 @@ export function getLlmConfig(): LlmRuntimeConfig {
   };
 }
 
-export function getPublicLlmConfig(): LlmConfigPublic {
-  const cfg = getLlmConfig();
+export function getPublicLlmConfig(userId?: string, showKeyHints = true): LlmConfigPublic {
+  const cfg = getLlmConfig(userId);
   const isConfigured =
     (cfg.provider === 'openrouter' && Boolean(cfg.openrouterKey)) ||
     (cfg.provider === 'custom' && Boolean(cfg.customBaseUrl)) ||
@@ -74,15 +97,15 @@ export function getPublicLlmConfig(): LlmConfigPublic {
     customBaseUrl: cfg.customBaseUrl,
     shaderStyle: cfg.shaderStyle,
     hasOpenrouterKey: Boolean(cfg.openrouterKey),
-    openrouterKeyHint: maskKey(cfg.openrouterKey),
+    openrouterKeyHint: showKeyHints ? maskKey(cfg.openrouterKey) : '',
     hasCustomKey: Boolean(cfg.customApiKey),
-    customKeyHint: maskKey(cfg.customApiKey),
+    customKeyHint: showKeyHints ? maskKey(cfg.customApiKey) : '',
     hasXaiKey: Boolean(cfg.xaiKey),
-    xaiKeyHint: maskKey(cfg.xaiKey),
+    xaiKeyHint: showKeyHints ? maskKey(cfg.xaiKey) : '',
     hasComposioKey: Boolean(env.composioKey),
-    composioKeyHint: maskKey(env.composioKey),
+    composioKeyHint: showKeyHints ? maskKey(env.composioKey) : '',
     hasOrgoKey: Boolean(env.orgoKey),
-    orgoKeyHint: maskKey(env.orgoKey),
+    orgoKeyHint: showKeyHints ? maskKey(env.orgoKey) : '',
     isConfigured,
   };
 }
@@ -385,7 +408,7 @@ function normalizeModelId(m: string): string {
 }
 
 /** Resolve the effective model ID for a bot given the current runtime config. */
-export function resolveBotModel(botRow: any, cfg = getLlmConfig()): string {
+export function resolveBotModel(botRow: any, cfg = getLlmConfig(botRow?.user_id)): string {
   const override = normalizeModelId(String(botRow?.model ?? ''));
   if (override) return override;
   return normalizeModelId(cfg.defaultModel);
@@ -555,7 +578,7 @@ export async function streamModelTurn(opts: {
   signal: AbortSignal;
   callbacks: StreamTurnCallbacks;
 }): Promise<{ output: any[]; inputTokens?: number; isLocalFallback?: boolean; localReply?: string }> {
-  const cfg = getLlmConfig();
+  const cfg = getLlmConfig(opts.userId);
   const model = resolveBotModel(opts.bot, cfg);
   const { client, apiKey } = getClient(cfg);
 
@@ -722,12 +745,13 @@ export async function streamModelTurn(opts: {
 
 /** Non-streaming helper for memory consolidation, history summarization, and connection testing. */
 export async function completeText(opts: {
+  userId?: string;
   system: string;
   user: string;
   jsonMode?: boolean;
   maxTokens?: number;
 }): Promise<string> {
-  const cfg = getLlmConfig();
+  const cfg = getLlmConfig(opts.userId);
   const { client, apiKey } = getClient(cfg);
   if (!apiKey) throw new Error('No LLM API key configured');
 
@@ -759,11 +783,12 @@ export async function completeText(opts: {
   return reasoning ? reasoning.slice(-200) : 'Online and ready.';
 }
 
-export async function testLlmConnection(): Promise<{ ok: boolean; model: string; provider: string; latencyMs: number; reply?: string; error?: string }> {
-  const cfg = getLlmConfig();
+export async function testLlmConnection(userId?: string): Promise<{ ok: boolean; model: string; provider: string; latencyMs: number; reply?: string; error?: string }> {
+  const cfg = getLlmConfig(userId);
   const t0 = Date.now();
   try {
     const reply = await completeText({
+      userId,
       system: 'Reply with a short confirmation (under 12 words) stating you are online.',
       user: 'Ping from TideBot.',
       maxTokens: 256,

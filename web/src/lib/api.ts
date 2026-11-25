@@ -37,9 +37,12 @@ export interface SearchResults {
 }
 
 export const api = {
-  me: () => req<{ user: User | null; devLogin: boolean; studioEmail?: string; hasXaiKey?: boolean; providers?: { xai: boolean; composio: boolean; orgo: boolean } }>('GET', '/auth/me'),
+  me: () => req<{ user: User | null; devLogin: boolean; localSignup?: boolean; hasXaiKey?: boolean; providers?: { xai: boolean; composio: boolean; orgo: boolean } }>('GET', '/auth/me'),
   devLogin: (email: string, name?: string) => req<{ ok: true }>('POST', '/auth/dev', { email, name }),
   passwordLogin: (email: string, password: string, name?: string) => req<{ ok: true }>('POST', '/auth/password', { email, password, name }),
+  acceptInvite: (code: string, password: string, name?: string) => req<{ ok: true }>('POST', '/auth/accept-invite', { code, password, name }),
+  createLocalAccount: (email: string, password: string, name?: string) => req<{ ok: true }>('POST', '/auth/create-local-account', { email, password, name }),
+  createInvite: (email: string) => req<{ code: string; expiresAt: number }>('POST', '/account/invites', { email }),
   logout: () => req<{ ok: true }>('POST', '/auth/logout'),
 
   bots: () => req<{ bots: Bot[]; live: LiveState[] }>('GET', '/bots'),
@@ -47,7 +50,7 @@ export const api = {
   cloneBot: (id: string) => req<{ bot: Bot }>('POST', `/bots/${id}/clone`),
   exportBotUrl: (id: string) => `/api/bots/${id}/export`,
   latestRelease: () => req<LatestReleaseResponse>('GET', '/releases/latest'),
-  systemStatus: () => req<{ botsCount: number; tasksOpen: number; tasksDone: number; memoriesCount: number; routinesCount: number; connectedAppsCount: number; connectedApps: string[]; serverTime: number }>('GET', '/system/status'),
+  systemStatus: () => req<{ botsCount: number; tasksOpen: number; tasksDone: number; memoriesCount: number; routinesCount: number; canManageStudio: boolean; connectedAppsCount: number; connectedApps: string[]; serverTime: number }>('GET', '/system/status'),
   markRead: (id: string) => req<{ ok: true }>('POST', `/bots/${id}/read`),
   rows: (id: string) => req<{ generation: number; rows: Row[] }>('GET', `/bots/${id}/rows`),
   send: (id: string, text: string) => req<{ row: Row }>('POST', `/bots/${id}/messages`, { text }),

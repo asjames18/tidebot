@@ -14,10 +14,10 @@ import { catalog } from './composio.js';
 import { runInBotQueue } from './agent/loop.js';
 import { localWorkspaceDir } from './agent/tools.js';
 import { consolidateBot, historySize, maybeCompact, memoryConfig } from './agent/memory.js';
-import { completeText, fetchModelsCatalog, getPublicLlmConfig, saveLlmConfig, testLlmConnection } from './agent/llm.js';
+import { completeText, fetchModelsCatalog, getPublicLlmConfig, publicPersonalModel, saveLlmConfig, savePersonalModel, testLlmConnection } from './agent/llm.js';
 import { idleConfig, viewerCount } from './idle.js';
 import { assertPublicUrl } from './lib/ssrf.js';
-import { resolveWithinWorkspace } from './lib/files.js';
+import { resolveWithinWorkspace, writeWorkspaceFile } from './lib/files.js';
 import { loadHistory } from './store.js';
 import type { LibraryFile, Memory, Skill } from './types.js';
 
@@ -32,10 +32,39 @@ for (const p of ['/bots/*', '/skills/*', '/computer/*', '/llm/*']) configApi.use
 // ---------- BYOM / OpenRouter runtime config & models ----------
 
 configApi.get('/llm/config', (c) => {
-  return c.json(getPublicLlmConfig());
+  if (c.req.query('scope') === 'studio') {
+    if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can view shared settings.' }, 403);
+    return c.json(getPublicLlmConfig());
+  }
+  return c.json(getPublicLlmConfig(c.get('user').id, false));
+});
+
+configApi.get('/llm/personal', (c) => {
+  if (!c.get('verifiedSession')) return c.json({ error: 'Sign in with your account to manage your OpenRouter key.' }, 403);
+  c.header('Cache-Control', 'no-store');
+  return c.json({ ...publicPersonalModel(c.get('user').id), canInvite: c.get('studioAdmin') });
+});
+
+configApi.put('/llm/personal', async (c) => {
+  if (!c.get('verifiedSession')) return c.json({ error: 'Sign in with your account to manage your OpenRouter key.' }, 403);
+  const body = (await c.req.json<{ openrouterKey?: unknown; defaultModel?: unknown }>().catch(() => null)) ?? {};
+  if (body.openrouterKey !== undefined && (typeof body.openrouterKey !== 'string' || (body.openrouterKey !== '' && !/^sk-or-v1-[a-f0-9]{64}$/.test(body.openrouterKey)))) {
+    return c.json({ error: 'Enter a valid OpenRouter API key.' }, 400);
+  }
+  if (typeof body.defaultModel !== 'string' || body.defaultModel.length > 200 || /\s/.test(body.defaultModel)) {
+    return c.json({ error: 'Enter a valid OpenRouter model ID.' }, 400);
+  }
+  c.header('Cache-Control', 'no-store');
+  return c.json({ ...savePersonalModel(c.get('user').id, body.openrouterKey, body.defaultModel), canInvite: c.get('studioAdmin') });
+});
+
+configApi.post('/llm/personal/test', async (c) => {
+  if (!c.get('verifiedSession') || !publicPersonalModel(c.get('user').id).hasKey) return c.json({ error: 'Save a personal OpenRouter key first.' }, 400);
+  return c.json(await testLlmConnection(c.get('user').id));
 });
 
 configApi.put('/llm/config', async (c) => {
+  if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can change shared settings.' }, 403);
   const body = await c.req.json().catch(() => ({}));
   if (body.customBaseUrl !== undefined && String(body.customBaseUrl).trim()) {
     try { await assertPublicUrl(String(body.customBaseUrl).trim(), { allowLoopback: true }); }
@@ -61,7 +90,7 @@ configApi.put('/llm/config', async (c) => {
 });
 
 configApi.post('/llm/test', async (c) => {
-  return c.json(await testLlmConnection());
+  return c.json(await testLlmConnection(c.get('studioAdmin') ? undefined : c.get('user').id));
 });
 
 configApi.post('/llm/test-composio', async (c) => {
@@ -85,6 +114,7 @@ configApi.post('/llm/enhance', async (c) => {
   if (!raw) return c.json({ error: 'Prompt text is required' }, 400);
   try {
     const enhanced = await completeText({
+      userId: c.get('user').id,
       system:
         `You are a prompt optimizer for TideBot autonomous AI operators${botName ? ` (currently targeting ${botName}${botRole ? `, ${botRole}` : ''})` : ''}. ` +
         `Rewrite the user's draft instruction into a clear, actionable, high-signal prompt that specifies concrete deliverables, relevant tools (e.g., web_search, fetch_webpage, save_file, shell, or connected Composio apps), and formatting expectations. ` +
@@ -298,10 +328,12 @@ configApi.get('/bots/:id/files/raw', (c) => {
   }
   const buf = fs.readFileSync(fullPath);
   const baseName = nodePath.basename(fullPath);
+  const fallbackName = baseName.replace(/[^\x20-\x7e]|["\\]/g, '_');
+  const utf8Name = encodeURIComponent(baseName).replace(/['()*]/g, (char) => '%' + char.charCodeAt(0).toString(16).toUpperCase());
   return new Response(buf, {
     headers: {
       'Content-Type': 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${baseName.replace(/"/g, '')}"`,
+      'Content-Disposition': `attachment; filename="${fallbackName}"; filename*=UTF-8''${utf8Name}`,
     },
   });
 });
@@ -338,10 +370,8 @@ configApi.post('/bots/:id/files', async (c) => {
   if (!rel) return c.json({ error: 'Valid file path is required' }, 400);
   const content = String(body.content ?? '');
   if (content.length > 10_000_000) return c.json({ error: 'File too large (max 10 MB)' }, 413);
-  const localPath = resolveWithinWorkspace(localWorkspaceDir(b.id), rel);
-  if (!localPath) return c.json({ error: 'bad path' }, 400);
-  fs.mkdirSync(nodePath.dirname(localPath), { recursive: true });
-  fs.writeFileSync(localPath, content, 'utf8');
+  try { writeWorkspaceFile(localWorkspaceDir(b.id), rel, content); }
+  catch { return c.json({ error: 'Could not write workspace file.' }, 400); }
   return c.json({ ok: true, path: rel, size: Buffer.byteLength(content, 'utf8') });
 });
 
@@ -375,7 +405,7 @@ configApi.post('/bots/:id/files/download', async (c) => {
     return c.json({ url: `/api/bots/${b.id}/files/raw?path=${encodeURIComponent(rel)}` });
   }
   if (!env.orgoKey) {
-    return c.json({ url: `/api/bots/${b.id}/files/raw?path=${encodeURIComponent(rel)}` });
+    return c.json({ error: 'File not found' }, 404);
   }
   try {
     const box = await boxFor(user.id, b.id, true);

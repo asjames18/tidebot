@@ -128,6 +128,12 @@ cp .env.example .env
 
 Open `.env` and add your API keys (or start the server first and paste your keys into **Settings → Models & OpenRouter** in the web UI):
 
+Changing shared settings in the UI requires signing in as the studio administrator. Set `STUDIO_EMAIL` and `STUDIO_PASSWORD` for local sign-in, or set `STUDIO_ADMIN_EMAIL` to the email of your Google sign-in. If you were signed in before upgrading, sign in again.
+
+In the desktop app, select **Create local account** to choose your own email and password. Desktop accounts are stored in TideBot on that computer and use a personal OpenRouter key configured under **Settings → Models & OpenRouter**.
+
+To add another user to a shared, self-hosted studio, open **Settings → Account** and create an invite code for their email. They redeem it on the sign-in screen, choose their own password, and add a key under **Settings → Models & OpenRouter**. The code expires after 24 hours and can be used once. Personal accounts use their own OpenRouter key for conversations, routines, and memory processing. Voice through the studio's xAI account is unavailable in personal OpenRouter mode.
+
 | Variable | Required | Description |
 | :--- | :---: | :--- |
 | `LLM_PROVIDER` | No | `openrouter` (default), `custom`, or `xai` |

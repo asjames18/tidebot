@@ -7,6 +7,7 @@ import {once} from 'node:events';
 import {mkdtemp,cp,symlink,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {setTimeout as sleep} from 'node:timers/promises';
+import {fileURLToPath} from 'node:url';
 
 const listen = async s => { s.listen(0,'127.0.0.1'); await once(s,'listening'); return s.address().port; };
 async function until(fn) {
@@ -18,7 +19,7 @@ test('custom provider outage has bounded retries; chat recovers and survives res
   t.after(()=>rm(d,{recursive:true,force:true}));
   await cp(new URL('../server/dist/',import.meta.url),d+'/server/dist',{recursive:true});
   await cp(new URL('../server/package.json',import.meta.url),d+'/server/package.json');
-  await symlink(new URL('../node_modules',import.meta.url).pathname,d+'/node_modules','dir');
+  await symlink(fileURLToPath(new URL('../node_modules',import.meta.url)),d+'/node_modules','dir');
   const prompt='Round trip test', reply='Local fixture reply';
   const requests=[];
   let unavailable=true;

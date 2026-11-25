@@ -33,35 +33,12 @@
     "softwareVersion": "1.0.0-dev.50",
     "description": "TideBot is an open-source autonomous multi-agent studio you self-host. Bring your own model (OpenRouter, Ollama, vLLM), connect 1,500+ apps via Composio, and run agents in a local sandbox or cloud Linux desktops."
   }
+  </script>
 
-    // Download links: resolve the latest GitHub prerelease live; fall back to the pinned URLs in the markup.
-    (function () {
-      var pick = function (assets, test) { var a = assets.find(function (x) { return test(x.name); }); return a ? a.browser_download_url : null; };
-      fetch('https://api.github.com/repos/asjames18/tidebot/releases?per_page=5')
-        .then(function (r) { if (!r.ok) throw new Error('gh ' + r.status); return r.json(); })
-        .then(function (rels) {
-          var rel = (rels || []).find(function (x) { return !x.draft && (x.assets || []).length; });
-          if (!rel) return;
-          var map = {
-            win: function (n) { return /\.exe$/i.test(n); },
-            'mac-arm': function (n) { return /arm64\.dmg$/i.test(n); },
-            'mac-intel': function (n) { return /\.dmg$/i.test(n) && !/arm64/i.test(n); },
-            'linux-appimage': function (n) { return /\.AppImage$/i.test(n); },
-            'linux-deb': function (n) { return /\.deb$/i.test(n); }
-          };
-          for (var key in map) {
-            var url = pick(rel.assets, map[key]);
-            var el = document.querySelector('[data-dl="' + key + '"]');
-            if (url && el) el.href = url;
-          }
-          var tag = document.getElementById('dl-tag');
-          if (tag) tag.textContent = rel.tag_name;
-        })
-        .catch(function () { /* pinned fallback links stay in place */ });
-    })();
-
+  <noscript><style>.reveal { opacity: 1 !important; transform: none !important; }</style></noscript>
+  <script>
     // Hosted waitlist signup.
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {
       var form = document.getElementById('wl-form');
       if (!form) return;
       var email = document.getElementById('wl-email');
@@ -105,7 +82,7 @@
             btn.textContent = 'Join the waitlist';
           });
       });
-    })();
+    });
   </script>
   <link rel="icon" href="favicon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -240,6 +217,8 @@
     .dl-card .arch { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
     .dl-btn { display: inline-block; padding: 11px 24px; border-radius: 999px; font-weight: 600; font-size: 14px; color: #04121a; background: var(--grad); box-shadow: 0 6px 22px rgba(45,212,191,.25); transition: transform .18s ease, box-shadow .18s ease; }
     .dl-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(45,212,191,.4); }
+    .dl-options { display: grid; gap: 10px; max-width: 230px; margin-inline: auto; }
+    .dl-options .dl-btn { padding-inline: 16px; }
     .dl-note { text-align: center; margin-top: 24px; font-size: 13.5px; color: var(--muted); }
     .dl-note code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: rgba(255,255,255,.06); padding: 2px 7px; border-radius: 6px; color: #99f6e4; }
 
@@ -461,7 +440,15 @@ npm run dev <span class="cm"># studio at http://localhost:5173</span></pre>
       </div>
       <div class="dl-grid">
         <div class="dl-card reveal"><span class="os">🪟</span><h3>Windows</h3><p class="arch">Windows 10 / 11</p><a class="dl-btn" data-dl="win" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.50/TideBot-Setup-1.0.0-dev.50.exe">Download .exe</a></div>
-        <div class="dl-card reveal"><span class="os">🍎</span><h3>macOS</h3><p class="arch">Apple Silicon · <a data-dl="mac-intel" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.50/TideBot-1.0.0-dev.50.dmg" style="color:var(--text);text-decoration:underline">Intel build</a></p><a class="dl-btn" data-dl="mac-arm" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.50/TideBot-1.0.0-dev.50-arm64.dmg">Download .dmg</a></div>
+        <div class="dl-card reveal">
+          <span class="os">🍎</span>
+          <h3>macOS</h3>
+          <p class="arch">Check your chip in  → About This Mac.</p>
+          <div class="dl-options">
+            <a class="dl-btn" data-dl="mac-arm" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.50/TideBot-1.0.0-dev.50-arm64.dmg">Download for Apple Silicon</a>
+            <a class="dl-btn" data-dl="mac-intel" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.50/TideBot-1.0.0-dev.50.dmg">Download for Intel Mac</a>
+          </div>
+        </div>
         <div class="dl-card reveal"><span class="os">🐧</span><h3>Linux</h3><p class="arch">AppImage &amp; <a data-dl="linux-deb" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.50/tidebot-desktop_1.0.0-dev.50_amd64.deb" style="color:var(--text);text-decoration:underline">.deb</a></p><a class="dl-btn" data-dl="linux-appimage" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.50/TideBot-1.0.0-dev.50.AppImage">Download</a></div>
       </div>
       <p class="dl-note reveal">Latest build: <b id="dl-tag">v1.0.0-dev.50</b> · <a href="https://github.com/asjames18/tidebot/releases" style="color:#93c5fd">all builds &amp; changelogs</a></p>
@@ -519,6 +506,38 @@ npm run dev <span class="cm"># studio at http://localhost:5173</span></pre>
   </footer>
 
   <script>
+    const releaseDownloadRoot = 'https://github.com/asjames18/tidebot/releases/download/';
+
+    async function refreshDownloads() {
+      const response = await fetch('https://api.github.com/repos/asjames18/tidebot/releases?per_page=5');
+      if (!response.ok) return;
+      const releases = await response.json();
+      const links = Array.from(document.querySelectorAll('[data-dl]'));
+      for (const release of releases) {
+        if (release.draft || !/^v\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(release.tag_name)) continue;
+        const version = release.tag_name.slice(1);
+        const names = {
+          win: [`TideBot-Setup-${version}.exe`],
+          'mac-arm': [`TideBot-${version}-arm64.dmg`],
+          'mac-intel': [`TideBot-${version}.dmg`, `TideBot-${version}-x64.dmg`],
+          'linux-appimage': [`TideBot-${version}.AppImage`],
+          'linux-deb': [`tidebot-desktop_${version}_amd64.deb`],
+        };
+        const published = new Set(release.assets?.map((asset) => asset.name));
+        const filenames = links.map((link) => names[link.dataset.dl]?.find((name) => published.has(name)));
+        if (filenames.some((name) => !name)) continue;
+        links.forEach((link, i) => {
+          link.href = `${releaseDownloadRoot}${release.tag_name}/${filenames[i]}`;
+        });
+        document.getElementById('dl-tag').textContent = release.tag_name;
+        return;
+      }
+    }
+
+    refreshDownloads().catch(() => {
+      // The pinned installer links remain available if GitHub cannot be reached.
+    });
+
     // Scroll-reveal (respects prefers-reduced-motion via CSS above).
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }

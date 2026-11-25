@@ -18,7 +18,7 @@ import { createRoom, postToRoom } from './rooms.js';
 import type { ActivityKind } from '../types.js';
 import { Cron } from 'croner';
 import { safeFetch } from '../lib/ssrf.js';
-import { resolveWithinWorkspace } from '../lib/files.js';
+import { resolveWithinWorkspace, writeWorkspaceFile } from '../lib/files.js';
 import { runShell } from '../lib/sandbox.js';
 
 const execAsync = promisify(exec);
@@ -324,9 +324,9 @@ export const TOOLS: ToolDef[] = [
       const name = String(a.filename).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file.txt';
       if (String(a.content ?? '').length > 10_000_000) return { output: 'File too large (max 10 MB).' };
       const localDir = localWorkspaceDir(ctx.botId);
-      const fullPath = resolveWithinWorkspace(localDir, name);
-      if (!fullPath) return { output: 'Invalid file path.' };
-      fs.writeFileSync(fullPath, String(a.content ?? ''), 'utf8');
+      let fullPath: string;
+      try { fullPath = writeWorkspaceFile(localDir, name, String(a.content ?? '')); }
+      catch { return { output: 'Could not write workspace file.' }; }
       const comp = db.prepare("SELECT orgo_id FROM computers WHERE user_id=? AND status='running'").get(ctx.userId) as any;
       if (env.orgoKey && comp?.orgo_id) {
         const dir = `/root/grokbot/files/${ctx.botId}`;
@@ -510,6 +510,9 @@ export const TOOLS: ToolDef[] = [
     activity: 'working',
     label: 'Removing a routine',
     impl: async (a, ctx) => {
+      if (!db.prepare('SELECT 1 FROM routines WHERE id=? AND bot_id=?').get(a.routine_id, ctx.botId)) {
+        return { output: 'Routine not found.' };
+      }
       unscheduleRoutine(a.routine_id);
       await deleteEventTrigger(a.routine_id);
       db.prepare('DELETE FROM routines WHERE id=? AND bot_id=?').run(a.routine_id, ctx.botId);

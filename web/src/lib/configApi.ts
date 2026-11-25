@@ -35,7 +35,11 @@ export interface ComputerDetails {
 export type BotPatch = Partial<Pick<Bot, 'name' | 'label' | 'description' | 'instructions' | 'avatarShape' | 'avatarColor' | 'effort' | 'mode' | 'model'>>;
 
 export const configApi = {
+  personalModel: () => req<{ active: boolean; hasKey: boolean; defaultModel: string; canInvite: boolean }>('GET', '/llm/personal'),
+  savePersonalModel: (defaultModel: string, openrouterKey?: string) => req<{ active: boolean; hasKey: boolean; defaultModel: string; canInvite: boolean }>('PUT', '/llm/personal', { defaultModel, openrouterKey }),
+  testPersonalModel: () => req<{ ok: boolean; model: string; error?: string }>('POST', '/llm/personal/test'),
   llmConfig: () => req<LlmConfigPublic>('GET', '/llm/config'),
+  studioLlmConfig: () => req<LlmConfigPublic>('GET', '/llm/config?scope=studio'),
   saveLlmConfig: (p: Partial<{ provider: LlmProvider; openrouterKey: string; xaiKey: string; customBaseUrl: string; customApiKey: string; defaultModel: string; shaderStyle: ShaderStyle; composioKey: string; orgoKey: string }>) =>
     req<LlmConfigPublic>('PUT', '/llm/config', p),
   testLlm: () => req<{ ok: boolean; model: string; provider: string; latencyMs: number; reply?: string; error?: string }>('POST', '/llm/test'),
