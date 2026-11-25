@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>TideBot Git Review</title>
+  <style>
+    :root { color-scheme: dark; background: #101620; color: #eaf0f6; font: 14px system-ui, sans-serif; }
+    body { margin: 0; height: 100dvh; display: grid; grid-template-rows: auto auto minmax(0, 1fr); }
+    header { padding: 18px 20px 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    h1 { font-size: 22px; margin: 0 auto 0 0; }
+    h2 { font-size: 15px; margin: 0; }
+    button { font: inherit; padding: 6px 9px; border: 1px solid #526075; border-radius: 5px; cursor: pointer; }
+    button:disabled { cursor: default; opacity: .65; }
+    button[aria-current] { background: #284666; color: #fff; }
+    #location { padding: 0 20px 9px; color: #b5c4d4; overflow-wrap: anywhere; }
+    #status { padding: 0 20px 9px; margin: 0; color: #b5c4d4; }
+    #status[data-error] { color: #ffb4ae; }
+    main { display: grid; grid-template-columns: minmax(180px, 28%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+    nav, article { padding: 12px 18px; overflow: auto; min-width: 0; border-top: 1px solid #364253; }
+    nav { border-right: 1px solid #364253; }
+    ul { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 3px; }
+    ul button { width: 100%; text-align: left; overflow-wrap: anywhere; background: transparent; border-color: transparent; }
+    ul span { display: block; color: #b5c4d4; font-size: 12px; }
+    #file { margin-bottom: 12px; overflow-wrap: anywhere; }
+    section { margin: 12px 0 22px; }
+    pre { overflow: auto; margin: 8px 0 0; border: 1px solid #364253; border-radius: 5px; font-size: 12px; }
+    pre span { display: block; min-width: max-content; padding-inline: 8px; }
+    .add { color: #a8f2b5; background: #172b20; }
+    .remove { color: #ffc5c0; background: #341f25; }
+    .hunk { color: #a9d1fe; }
+  </style>
+  <script src="git-review.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Git Review</h1>
+    <button id="choose" type="button">Open repository</button>
+    <button id="refresh" type="button" disabled>Refresh</button>
+    <button id="reveal" type="button" disabled>Show folder</button>
+    <button id="worktree" type="button" disabled title="Check out the committed branch in a separate folder">New worktree</button>
+  </header>
+  <div>
+    <div id="location">Choose a Git repository to review its changes.</div>
+    <p id="status" role="status" aria-live="polite"></p>
+  </div>
+  <main>
+    <nav aria-label="Changed files">
+      <h2>Changed files</h2>
+      <ul id="files"></ul>
+    </nav>
+    <article aria-label="File diff">
+      <h2 id="file">Select a file</h2>
+      <div id="output"></div>
+    </article>
+  </main>
+</body>
+</html>

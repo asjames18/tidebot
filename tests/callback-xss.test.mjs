@@ -9,13 +9,14 @@ import {mkdtemp,cp,symlink,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {createServer} from 'node:http';
+import {fileURLToPath} from 'node:url';
 
 test('apps callback rejects hostile slugs and never reflects them into the page', async t => {
   const d=await mkdtemp(tmpdir()+'/tide-xss-');
   t.after(()=>rm(d,{recursive:true,force:true}));
   await cp(new URL('../server/dist/',import.meta.url),d+'/server/dist',{recursive:true});
   await cp(new URL('../server/package.json',import.meta.url),d+'/server/package.json');
-  await symlink(new URL('../node_modules',import.meta.url).pathname,d+'/node_modules','dir');
+  await symlink(fileURLToPath(new URL('../node_modules',import.meta.url)),d+'/node_modules','dir');
   const holder=createServer(); holder.listen(0,'127.0.0.1'); await once(holder,'listening');
   const port=holder.address().port; await new Promise(r=>holder.close(r));
   const child=spawn(process.execPath,['server/dist/index.js'],{cwd:d,stdio:'ignore',env:{HOME:d,HOST:'127.0.0.1',PORT:String(port),DB_PATH:d+'/fixture.db',DEV_LOGIN:'1',GROKBOT_NO_SCHEDULER:'1'}});

@@ -59,3 +59,36 @@ test('the bot stays usable after clearing: new rows land in the new generation',
   assert.deepEqual(counts('clear-b', before.generation), { rows: 0, items: 0 });
   assert.deepEqual(counts('clear-b', gen.generation), { rows: 1, items: 0 });
 });
+
+test('an obsolete approval continuation leaves the current run waiting', async () => {
+  const { createRun, getRun, setRunState, startRun } = await import('../server/dist/runs.js');
+  const { enqueue, runInBotQueue } = await import('../server/dist/agent/loop.js');
+  const botId = 'superseded-approval';
+  seedBot(botId);
+  const runId = createRun(botId, 'chat', 'Current request');
+  assert.ok(startRun(runId, botId));
+  setRunState(runId, botId, 'waiting');
+  db.prepare('INSERT INTO pending_turns(bot_id,state) VALUES (?,?)').run(botId,
+    JSON.stringify({ runId, approvalId: 'approval-current', calls: [], outputs: [], depth: 0 }));
+
+  enqueue(botId, { type: 'resume', approvalId: 'approval-old' });
+  await runInBotQueue(botId, async () => {});
+  assert.equal(getRun(botId, runId).state, 'waiting');
+  assert.ok(db.prepare('SELECT 1 FROM pending_turns WHERE bot_id=?').get(botId));
+});
+
+test('long run details retain the request and the most recent output', async () => {
+  const { createRun, runContext } = await import('../server/dist/runs.js');
+  const { listRunRows } = await import('../server/dist/store.js');
+  const botId = 'long-run';
+  seedBot(botId);
+  const request = appendRow(botId, 'message', { type: 'message', role: 'user', text: 'Prepare a brief' });
+  const runId = createRun(botId, 'chat', 'Prepare a brief', undefined, request.seq);
+  runContext.run({ id: runId, botId }, () => {
+    for (let i = 1; i <= 85; i++) appendRow(botId, 'notice', { type: 'notice', text: `Step ${i}` });
+  });
+  const rows = listRunRows(botId, runId);
+  assert.equal(rows.length, 80);
+  assert.equal(rows[0].seq, request.seq);
+  assert.equal(rows.at(-1).body.text, 'Step 85');
+});

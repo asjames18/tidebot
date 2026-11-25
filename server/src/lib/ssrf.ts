@@ -1,5 +1,7 @@
 import dns from 'node:dns/promises';
 import net from 'node:net';
+import http from 'node:http';
+import https from 'node:https';
 
 /** True for loopback, private, link-local, CGNAT, multicast and reserved addresses. */
 export function isPrivateIp(ip: string): boolean {
@@ -17,14 +19,19 @@ export function isPrivateIp(ip: string): boolean {
     return false;
   }
   if (fam === 6) {
-    const low = ip.toLowerCase();
-    if (low === '::1' || low === '::') return true;
-    if (low.startsWith('fe8') || low.startsWith('fe9') || low.startsWith('fea') || low.startsWith('feb')) return true;
-    if (low.startsWith('fc') || low.startsWith('fd')) return true;
-    if (low.startsWith('ff')) return true;
-    const m = low.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (m) return isPrivateIp(m[1]);
-    return false;
+    if (ip.includes('%')) return true;
+    const normalized = new URL(`http://[${ip}]`).hostname.slice(1, -1);
+    const mapped = normalized.match(/^::ffff:([\da-f]+):([\da-f]+)$/);
+    if (mapped) {
+      const hi = parseInt(mapped[1], 16);
+      const lo = parseInt(mapped[2], 16);
+      return isPrivateIp([hi >> 8, hi & 255, lo >> 8, lo & 255].join('.'));
+    }
+    const [first, second] = normalized.split(':').map((part) => parseInt(part || '0', 16));
+    // Require global unicast and exclude transition, special-purpose, and documentation ranges.
+    return (first & 0xe000) !== 0x2000
+      || (first === 0x2001 && (second < 0x200 || second === 0xdb8))
+      || first === 0x2002 || first === 0x3fff;
   }
   return true;
 }
@@ -46,6 +53,7 @@ export function assertUrlHostAllowedSync(raw: string, opts: { allowLoopback?: bo
   if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('URL must use http or https');
   const host = u.hostname.replace(/^\[|\]$/g, '');
   if (!host) throw new Error('URL has no host');
+  if (u.username || u.password) throw new Error('URL credentials are not allowed');
   if (isLoopbackHost(host)) {
     if (opts.allowLoopback) return u;
     throw new Error('Loopback URLs are not allowed');
@@ -54,54 +62,67 @@ export function assertUrlHostAllowedSync(raw: string, opts: { allowLoopback?: bo
   return u;
 }
 
-/**
- * Full check including DNS resolution of every address. Note: fetch() resolves
- * again afterwards, so a DNS-rebinding window remains; this blocks direct and
- * ordinarily-resolving private targets, which is the practical SSRF surface here.
- */
-export async function assertPublicUrl(raw: string, opts: { allowLoopback?: boolean } = {}): Promise<URL> {
+async function resolveAllowedUrl(raw: string, opts: { allowLoopback?: boolean } = {}) {
   const u = assertUrlHostAllowedSync(raw, opts);
   const host = u.hostname.replace(/^\[|\]$/g, '');
-  if (net.isIP(host)) return u;
-  let addrs: { address: string }[];
+  const family = net.isIP(host);
+  if (family) return { u, addrs: [{ address: host, family }] };
+  let addrs: { address: string; family: number }[];
   try { addrs = await dns.lookup(host, { all: true }); } catch { throw new Error(`Cannot resolve host: ${host}`); }
   if (!addrs.length) throw new Error(`Cannot resolve host: ${host}`);
   for (const a of addrs) {
     if (opts.allowLoopback && isLoopbackHost(a.address)) continue;
     if (isPrivateIp(a.address)) throw new Error('Host resolves to a private or reserved IP');
   }
-  return u;
+  return { u, addrs };
+}
+
+export async function assertPublicUrl(raw: string, opts: { allowLoopback?: boolean } = {}): Promise<URL> {
+  return (await resolveAllowedUrl(raw, opts)).u;
 }
 
 const MAX_REDIRECTS = 5;
 
 /** fetch() that re-validates every redirect hop and caps the response body. */
-export async function safeFetch(raw: string, init: { headers?: Record<string, string>; timeoutMs?: number; maxBytes?: number } = {}): Promise<{ status: number; contentType: string; text: string }> {
+export async function safeFetch(raw: string, init: { headers?: Record<string, string>; timeoutMs?: number; maxBytes?: number; signal?: AbortSignal } = {}): Promise<{ status: number; contentType: string; text: string }> {
   const maxBytes = init.maxBytes ?? 1_000_000;
   let current = raw;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const u = await assertPublicUrl(current);
-    const res = await fetch(u, { headers: init.headers, redirect: 'manual', signal: AbortSignal.timeout(init.timeoutMs ?? 12_000) });
-    if (res.status >= 300 && res.status < 400) {
-      const loc = res.headers.get('location');
-      if (!loc) return { status: res.status, contentType: res.headers.get('content-type') ?? '', text: '' };
+    init.signal?.throwIfAborted();
+    const { u, addrs } = await resolveAllowedUrl(current);
+    const request = u.protocol === 'https:' ? https.request : http.request;
+    const timeout = AbortSignal.timeout(init.timeoutMs ?? 12_000);
+    const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
+      const req = request(u, {
+        agent: false,
+        headers: { ...init.headers, 'Accept-Encoding': 'identity' },
+        signal: init.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
+        lookup: (_host, opts, callback) => {
+          if (opts.all) callback(null, addrs);
+          else callback(null, addrs[0].address, addrs[0].family);
+        },
+      }, resolve);
+      req.once('error', reject);
+      req.end();
+    });
+    const status = res.statusCode ?? 0;
+    const contentType = res.headers['content-type'] ?? '';
+    if (status >= 300 && status < 400) {
+      const loc = res.headers.location;
+      res.destroy();
+      if (!loc) return { status, contentType, text: '' };
       if (hop === MAX_REDIRECTS) throw new Error('Too many redirects');
       current = new URL(loc, u).toString();
       continue;
     }
-    const ct = res.headers.get('content-type') ?? '';
-    if (!res.body) return { status: res.status, contentType: ct, text: await res.text().then((t) => t.slice(0, maxBytes)) };
-    const reader = res.body.getReader();
     const chunks: Uint8Array[] = [];
     let total = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > maxBytes) { await reader.cancel().catch(() => {}); throw new Error('Response too large'); }
-      chunks.push(value);
+    for await (const chunk of res) {
+      total += chunk.byteLength;
+      if (total > maxBytes) throw new Error('Response too large');
+      chunks.push(chunk);
     }
-    return { status: res.status, contentType: ct, text: Buffer.concat(chunks).toString('utf8') };
+    return { status, contentType, text: Buffer.concat(chunks).toString('utf8') };
   }
   throw new Error('Too many redirects');
 }

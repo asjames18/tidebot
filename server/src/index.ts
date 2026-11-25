@@ -10,6 +10,7 @@ import type { Server } from 'node:http';
 import { env } from './env.js';
 import { api } from './routes.js';
 import { attachVncRelay } from './vnc.js';
+import { recoverInterruptedRuns } from './runs.js';
 import { initRoutines } from './routines.js';
 import { initTriggers } from './triggers.js';
 import { initProactive } from './proactive.js';
@@ -57,16 +58,22 @@ app.get('/api/health', (c) => c.json({ ok: true }));
 app.use('/api/auth/*', rateLimit({ limit: 30, windowMs: 60_000 }));
 app.use('/api/llm/*', rateLimit({ limit: 60, windowMs: 60_000 }));
 app.use('/api/voice/*', rateLimit({ limit: 60, windowMs: 60_000 }));
+// Serve the built web app in production.
+const webDist = process.env.WEB_DIST_DIR
+  ? path.resolve(process.env.WEB_DIST_DIR)
+  : path.resolve(fileURLToPath(new URL('.', import.meta.url)), '../../web/dist');
+const hasWebApp = fs.existsSync(path.join(webDist, 'index.html'));
+app.get('/api/desktop', (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json({ application: 'tidebot', apiVersion: 1, web: hasWebApp });
+});
+
 app.route('/api/checkins', checkinsApi);
 app.route('/api/rooms', roomsApi);
 app.route('/api', api);
 app.route('/api', configApi);
 
-// Serve the built web app in production.
-const webDist = process.env.WEB_DIST_DIR
-  ? path.resolve(process.env.WEB_DIST_DIR)
-  : path.resolve(fileURLToPath(new URL('.', import.meta.url)), '../../web/dist');
-if (fs.existsSync(webDist)) {
+if (hasWebApp) {
   const indexHtml = fs.readFileSync(path.join(webDist, 'index.html'), 'utf8');
   app.use('/*', async (c, next) => {
     await next();
@@ -86,6 +93,7 @@ if (fs.existsSync(webDist)) {
   });
 }
 
+recoverInterruptedRuns();
 const server = serve({ fetch: app.fetch, port: env.port, hostname: env.host }, (info) => console.log(`[grokbot] server on http://${info.address}:${info.port} (model ${env.xaiModel})`));
 attachVncRelay(server as unknown as Server);
 // GROKBOT_NO_SCHEDULER=1 for extra dev/test servers sharing a database copy, so routines and triggers don't fire twice.

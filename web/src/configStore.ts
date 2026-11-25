@@ -7,10 +7,10 @@ import { configApi } from './lib/configApi';
 
 export type Theme = 'system' | 'light' | 'dark';
 export type BotSettingsTab = 'general' | 'skills' | 'memories' | 'routines';
-export type AppSection = 'general' | 'models' | 'computer' | 'permissions' | 'apps' | 'account';
+export type AppSection = 'setup' | 'general' | 'projects' | 'models' | 'computer' | 'permissions' | 'apps' | 'account';
 
 interface ConfigUI {
-  botSettings: { botId: string; tab: BotSettingsTab } | null;
+  botSettings: { botId: string; tab: BotSettingsTab; routineDraft?: { name: string; prompt: string } } | null;
   appSettings: AppSection | null;
   view: 'chat' | 'tasks';
   theme: Theme;
@@ -19,7 +19,7 @@ interface ConfigUI {
   remoteModels: ModelInfo[];
   /** Bumped by server events (tasks, memories) so open views refetch. Keys: 'tasks', 'memories:<botId>'. */
   versions: Record<string, number>;
-  openBotSettings(botId: string, tab?: BotSettingsTab): void;
+  openBotSettings(botId: string, tab?: BotSettingsTab, routineDraft?: { name: string; prompt: string }): void;
   closeBotSettings(): void;
   openAppSettings(section?: AppSection): void;
   closeAppSettings(): void;
@@ -60,11 +60,11 @@ export const useConfigUI = create<ConfigUI>((set, get) => ({
   curatedModels: [],
   remoteModels: [],
   versions: {},
-  openBotSettings: (botId, tab = 'general') => {
+  openBotSettings: (botId, tab = 'general', routineDraft) => {
     if (typeof window !== 'undefined' && window.innerWidth <= 900) {
       useStore.getState().set({ mobileSidebarOpen: false, detailsOpen: false, modal: null });
     }
-    set({ botSettings: { botId, tab } });
+    set({ botSettings: { botId, tab, routineDraft } });
   },
   closeBotSettings: () => set({ botSettings: null }),
   openAppSettings: (section = 'general') => {
@@ -110,6 +110,7 @@ window.addEventListener('grokbot:event', (e) => {
   const ev = (e as CustomEvent<ServerEvent>).detail;
   const { bump } = useConfigUI.getState();
   if (ev.type === 'tasks') { bump('tasks'); bump(`tasks:${ev.botId}`); }
+  if (ev.type === 'runs') bump(`runs:${ev.botId}`);
   if (ev.type === 'memories') bump(`memories:${ev.botId}`);
 });
 

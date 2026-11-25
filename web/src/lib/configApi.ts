@@ -1,4 +1,4 @@
-import type { Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
+import type { AgentRun, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
 import { ApiError } from './api';
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -35,7 +35,14 @@ export interface ComputerDetails {
 export type BotPatch = Partial<Pick<Bot, 'name' | 'label' | 'description' | 'instructions' | 'avatarShape' | 'avatarColor' | 'effort' | 'mode' | 'model'>>;
 
 export const configApi = {
+  personalModel: () => req<{ active: boolean; hasKey: boolean; defaultModel: string; canInvite: boolean }>('GET', '/llm/personal'),
+  savePersonalModel: (defaultModel: string, openrouterKey?: string) => req<{ active: boolean; hasKey: boolean; defaultModel: string; canInvite: boolean }>('PUT', '/llm/personal', { defaultModel, openrouterKey }),
+  testPersonalModel: () => req<{ ok: boolean; model: string; error?: string }>('POST', '/llm/personal/test'),
+  connectPersonalModel: (openrouterKey: string, defaultModel: string) =>
+    req<{ ok: boolean; model: string; error?: string }>('POST', '/llm/personal/connect', { openrouterKey, defaultModel }),
+  connectOrgo: (apiKey: string) => req<{ ok: boolean }>('POST', '/llm/connect-orgo', { apiKey }),
   llmConfig: () => req<LlmConfigPublic>('GET', '/llm/config'),
+  studioLlmConfig: () => req<LlmConfigPublic>('GET', '/llm/config?scope=studio'),
   saveLlmConfig: (p: Partial<{ provider: LlmProvider; openrouterKey: string; xaiKey: string; customBaseUrl: string; customApiKey: string; defaultModel: string; shaderStyle: ShaderStyle; composioKey: string; orgoKey: string }>) =>
     req<LlmConfigPublic>('PUT', '/llm/config', p),
   testLlm: () => req<{ ok: boolean; model: string; provider: string; latencyMs: number; reply?: string; error?: string }>('POST', '/llm/test'),
@@ -64,6 +71,17 @@ export const configApi = {
   runRoutine: (id: string) => req<{ ok: true }>('POST', `/routines/${id}/run`),
   deleteRoutine: (id: string) => req<{ ok: true }>('DELETE', `/routines/${id}`),
 
+  projects: () => req<{ projects: Project[] }>('GET', '/projects'),
+  saveProject: (project: Project) => project.id
+    ? req<{ project: Project }>('PUT', `/projects/${project.id}`, project)
+    : req<{ project: Project }>('POST', '/projects', project),
+  deleteProject: (id: string) => req<{ ok: true }>('DELETE', `/projects/${id}`),
+
+  startResearch: (botId: string, plan: { question: string; outline: string; links: string[]; files: string[] }) =>
+    req<{ runId: string }>('POST', `/bots/${botId}/research`, plan),
+  runs: (botId: string) => req<{ runs: AgentRun[] }>('GET', `/bots/${botId}/runs`),
+  runDetails: (botId: string, runId: string) => req<{ run: AgentRun; rows: Row[] }>('GET', `/bots/${botId}/runs/${runId}`),
+
   tasks: () => req<{ tasks: Task[] }>('GET', '/tasks'),
   botTasks: (botId: string) => req<{ tasks: Task[] }>('GET', `/bots/${botId}/tasks`),
   createTask: (botId: string, t: { title: string; note?: string }) => req<{ task: Task }>('POST', `/bots/${botId}/tasks`, t),
@@ -75,6 +93,7 @@ export const configApi = {
   checkinNow: () => req<{ ok: true }>('POST', '/checkins/now'),
 
   files: (botId: string, path = '', wake = false) => req<LibraryListing>('GET', `/bots/${botId}/files?path=${encodeURIComponent(path)}${wake ? '&wake=1' : ''}`),
+  localFiles: (botId: string) => req<LibraryListing>('GET', `/bots/${botId}/files?local=1`),
   fileContent: (botId: string, path: string) => req<{ ok: boolean; path: string; content: string }>('GET', `/bots/${botId}/files/content?path=${encodeURIComponent(path)}`),
   saveFile: (botId: string, path: string, content: string) => req<{ ok: boolean; path: string; size: number }>('POST', `/bots/${botId}/files`, { path, content }),
   deleteFile: (botId: string, path: string) => req<{ ok: boolean }>('DELETE', `/bots/${botId}/files?path=${encodeURIComponent(path)}`),

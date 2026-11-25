@@ -17,8 +17,8 @@ import { createSubagent, deleteSubagent, listSubagents } from './subagents.js';
 import { createRoom, postToRoom } from './rooms.js';
 import type { ActivityKind } from '../types.js';
 import { Cron } from 'croner';
-import { safeFetch } from '../lib/ssrf.js';
-import { resolveWithinWorkspace } from '../lib/files.js';
+import { readWebSource } from '../lib/web-source.js';
+import { resolveWithinWorkspace, writeWorkspaceFile } from '../lib/files.js';
 import { runShell } from '../lib/sandbox.js';
 
 const execAsync = promisify(exec);
@@ -40,6 +40,7 @@ export interface ToolResult {
   /** Responses API function_call_output.output: string or content array (text + images). */
   output: string | any[];
   summary?: string;
+  artifactPath?: string;
   /** Data URL thumbnail for computer actions. */
   screenshot?: string;
   /** End the turn after this tool (e.g. a question was asked). */
@@ -130,35 +131,9 @@ export const TOOLS: ToolDef[] = [
       const url = String(a.url ?? '').trim();
       if (!/^https?:\/\//i.test(url)) return { output: 'URL must start with http:// or https://' };
       try {
-        const fetched = await safeFetch(url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36', Accept: 'text/html,application/xhtml+xml,text/plain,application/json' },
-          timeoutMs: 12_000,
-          maxBytes: 1_000_000,
-        });
-        const ct = fetched.contentType;
-        const raw = fetched.text;
-        if (ct.includes('application/json')) {
-          return { output: raw.slice(0, 16000), summary: `Read JSON from ${new URL(url).hostname}` };
-        }
-        const titleM = raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-        const title = titleM ? titleM[1].replace(/\s+/g, ' ').trim() : url;
-        const text = raw
-          .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-          .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-          .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
-          .replace(/<\/(p|div|h1|h2|h3|h4|li|tr|br|section|article)>/gi, '\n')
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/&nbsp;/g, ' ')
-          .replace(/&amp;/g, '&')
-          .replace(/&quot;/g, '"')
-          .replace(/&#x27;/g, "'")
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/[ \t]+/g, ' ')
-          .replace(/\n\s*\n+/g, '\n\n')
-          .trim()
-          .slice(0, 15000);
-        return { output: JSON.stringify({ url, title, content: text }), summary: `Read ${new URL(url).hostname}` };
+        const { title, content, format } = await readWebSource(url);
+        if (format === 'json') return { output: content, summary: `Read JSON from ${new URL(url).hostname}` };
+        return { output: JSON.stringify({ url, title, content }), summary: `Read ${new URL(url).hostname}` };
       } catch (e: any) {
         return { output: `Failed to fetch ${url}: ${e?.message ?? e}` };
       }
@@ -324,9 +299,9 @@ export const TOOLS: ToolDef[] = [
       const name = String(a.filename).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file.txt';
       if (String(a.content ?? '').length > 10_000_000) return { output: 'File too large (max 10 MB).' };
       const localDir = localWorkspaceDir(ctx.botId);
-      const fullPath = resolveWithinWorkspace(localDir, name);
-      if (!fullPath) return { output: 'Invalid file path.' };
-      fs.writeFileSync(fullPath, String(a.content ?? ''), 'utf8');
+      let fullPath: string;
+      try { fullPath = writeWorkspaceFile(localDir, name, String(a.content ?? '')); }
+      catch { return { output: 'Could not write workspace file.' }; }
       const comp = db.prepare("SELECT orgo_id FROM computers WHERE user_id=? AND status='running'").get(ctx.userId) as any;
       if (env.orgoKey && comp?.orgo_id) {
         const dir = `/root/grokbot/files/${ctx.botId}`;
@@ -337,7 +312,7 @@ export const TOOLS: ToolDef[] = [
           return orgo.bash(c, s, `base64 -d ${dir}/${name}.b64 > ${dir}/${name} && rm ${dir}/${name}.b64 && wc -c ${dir}/${name}`, 30);
         }).catch(() => {});
       }
-      return { output: JSON.stringify({ ok: true, path: fullPath, filename: name }), summary: `Saved ${name}` };
+      return { output: JSON.stringify({ ok: true, path: fullPath, filename: name }), summary: `Saved ${name}`, artifactPath: name };
     },
   },
   {
@@ -510,6 +485,9 @@ export const TOOLS: ToolDef[] = [
     activity: 'working',
     label: 'Removing a routine',
     impl: async (a, ctx) => {
+      if (!db.prepare('SELECT 1 FROM routines WHERE id=? AND bot_id=?').get(a.routine_id, ctx.botId)) {
+        return { output: 'Routine not found.' };
+      }
       unscheduleRoutine(a.routine_id);
       await deleteEventTrigger(a.routine_id);
       db.prepare('DELETE FROM routines WHERE id=? AND bot_id=?').run(a.routine_id, ctx.botId);

@@ -5,11 +5,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { isPrivateIp, isLoopbackHost, assertUrlHostAllowedSync, assertPublicUrl } from '../server/dist/lib/ssrf.js';
-import { resolveWithinWorkspace } from '../server/dist/lib/files.js';
+import dns from 'node:dns/promises';
+import https from 'node:https';
+import { EventEmitter } from 'node:events';
+import { Readable } from 'node:stream';
+import { isPrivateIp, isLoopbackHost, assertUrlHostAllowedSync, assertPublicUrl, safeFetch } from '../server/dist/lib/ssrf.js';
+import { resolveWithinWorkspace, writeWorkspaceFile } from '../server/dist/lib/files.js';
 
 const fixtures = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-security-'));
 process.env.DB_PATH = path.join(fixtures, 'test.db');
+process.env.ENV_PATH = path.join(fixtures, '.env');
 const { db } = await import('../server/dist/db.js');
 after(() => {
   try { db.close(); } finally { fs.rmSync(fixtures, { recursive: true, force: true }); }
@@ -18,6 +23,90 @@ const { validateRoutineSchedule } = await import('../server/dist/routines.js');
 const { encryptSecret, decryptSecret } = await import('../server/dist/lib/secrets.js');
 const { runShell } = await import('../server/dist/lib/sandbox.js');
 const { withRetry } = await import('../server/dist/lib/retry.js');
+const { userFromCookieHeader } = await import('../server/dist/lib/auth.js');
+
+test('only the verified studio administrator can save shared provider settings', async () => {
+  fs.writeFileSync(process.env.ENV_PATH, [
+    'DEV_LOGIN=1',
+    'STUDIO_EMAIL=owner@example.test # local owner',
+    'STUDIO_PASSWORD=test-password',
+  ].join('\n'));
+  const { Hono } = await import('hono');
+  const { api } = await import('../server/dist/routes.js');
+  const { configApi } = await import('../server/dist/routes-config.js');
+  const { initSubagents } = await import('../server/dist/agent/subagents.js');
+  const { initRooms } = await import('../server/dist/agent/rooms.js');
+  initSubagents();
+  initRooms();
+  const app = new Hono();
+  app.route('/api', api);
+  app.route('/api', configApi);
+  const send = (url, method, body, cookie = '') => app.request(url, {
+    method, headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(body),
+  });
+  const changeModel = (cookie) => send('/api/llm/config', 'PUT', { defaultModel: 'fixture/model' }, cookie);
+  assert.equal((await changeModel()).status, 401);
+  for (const email of ['other@example.test', 'owner@example.test']) {
+    const dev = await send('/api/auth/dev', 'POST', { email });
+    assert.equal(dev.status, 200);
+    assert.equal((await changeModel(dev.headers.get('set-cookie').split(';')[0])).status, 403);
+  }
+  const owner = await send('/api/auth/password', 'POST', { email: 'owner@example.test', password: 'test-password' });
+  assert.equal(owner.status, 200);
+  const result = await changeModel(owner.headers.get('set-cookie').split(';')[0]);
+  assert.equal(result.status, 200);
+  assert.equal((await result.json()).defaultModel, 'fixture/model');
+
+  const ownerCookie = owner.headers.get('set-cookie').split(';')[0];
+  const { getLlmConfig } = await import('../server/dist/agent/llm.js');
+  const completed = [];
+  for (const [name, digit] of [['first', 'a'], ['second', 'b']]) {
+    const email = `${name}@example.test`;
+    const password = `fixture-password-${name}`;
+    const invited = await send('/api/account/invites', 'POST', { email }, ownerCookie);
+    assert.equal(invited.status, 201);
+    const { code } = await invited.json();
+    const registered = await send('/api/auth/accept-invite', 'POST', { code, name, password });
+    assert.equal(registered.status, 200);
+    const login = await send('/api/auth/password', 'POST', { email, password });
+    assert.equal(login.status, 200);
+    const cookie = login.headers.get('set-cookie').split(';')[0];
+    const { user: { id } } = await (await app.request('/api/auth/me', { headers: { cookie } })).json();
+    const { bots } = await (await app.request('/api/bots', { headers: { cookie } })).json();
+    assert.equal(bots.length, 1);
+    assert.equal((await send('/api/account/invites', 'POST', { email: 'other-invite@example.test' }, cookie)).status, 403);
+    assert.equal((await send('/api/auth/accept-invite', 'POST', { code, name, password })).status, 400);
+    assert.equal((await send('/api/auth/dev', 'POST', { email })).status, 403);
+    assert.equal(getLlmConfig(id).openrouterKey, '');
+    const key = 'sk-or-v1-' + digit.repeat(64);
+    const saved = await send('/api/llm/personal', 'PUT', { openrouterKey: key, defaultModel: `fixture/${name}` }, cookie);
+    assert.equal(saved.status, 200);
+    const savedBody = await saved.text();
+    assert.equal(JSON.parse(savedBody).hasKey, true);
+    assert.ok(!savedBody.includes(key));
+    assert.notEqual(db.prepare('SELECT openrouter_key FROM personal_models WHERE user_id=?').get(id).openrouter_key, key);
+    completed.push({ cookie, id, key, botId: bots[0].id });
+  }
+  for (const account of completed) assert.equal(getLlmConfig(account.id).openrouterKey, account.key);
+  assert.equal(getLlmConfig().defaultModel, 'fixture/model');
+  const [first, second] = completed;
+  assert.equal((await app.request(`/api/bots/${second.botId}/rows`, { headers: { cookie: first.cookie } })).status, 404);
+  assert.equal((await send('/api/llm/personal', 'PUT', { openrouterKey: '', defaultModel: '' }, first.cookie)).status, 200);
+  assert.equal(getLlmConfig(first.id).openrouterKey, '');
+  assert.equal(getLlmConfig(second.id).openrouterKey, second.key);
+});
+
+test('invalid session cookie encoding is treated as signed out', () => {
+  assert.equal(userFromCookieHeader('grokbot_session=%'), null);
+});
+
+test('workspace writes create and replace regular files', () => {
+  const root = fs.mkdtempSync(path.join(fixtures, 'write-'));
+  const target = writeWorkspaceFile(root, 'nested/notes.txt', 'first');
+  assert.equal(fs.readFileSync(target, 'utf8'), 'first');
+  writeWorkspaceFile(root, 'nested/notes.txt', 'second');
+  assert.equal(fs.readFileSync(target, 'utf8'), 'second');
+});
 
 test('private / reserved IPs are blocked, public IPs allowed', () => {
   for (const ip of ['10.0.0.1', '172.16.0.1', '172.31.255.1', '192.168.1.1', '169.254.169.254', '127.0.0.1', '100.64.0.1', '0.0.0.0', '224.0.0.1', '::1', 'fe80::1', 'fd00::1', '::ffff:10.0.0.1']) {
@@ -122,4 +211,25 @@ test('web fetch check blocks loopback and metadata hosts', async () => {
   assert.equal(isLoopbackHost('localhost'), true);
   await assert.rejects(() => assertPublicUrl('http://localhost:8787/api/health'), /Loopback/);
   await assert.rejects(() => assertPublicUrl('http://169.254.169.254/'), /Private/);
+});
+
+test('web fetch preserves the HTTPS hostname while connecting to validated addresses', async (t) => {
+  const addresses = [{ address: '1.1.1.1', family: 4 }];
+  const resolve = t.mock.method(dns, 'lookup', async () => addresses);
+  t.mock.method(https, 'request', (url, options, onResponse) => {
+    assert.equal(url.hostname, 'example.test');
+    options.lookup(url.hostname, { all: true }, (error, resolved) => {
+      assert.ifError(error);
+      assert.deepEqual(resolved, addresses);
+    });
+    const request = new EventEmitter();
+    request.end = () => onResponse(Object.assign(Readable.from([Buffer.from('fixture')]), {
+      statusCode: 200, headers: { 'content-type': 'text/plain' },
+    }));
+    return request;
+  });
+  assert.deepEqual(await safeFetch('https://example.test/docs'), {
+    status: 200, contentType: 'text/plain', text: 'fixture',
+  });
+  assert.equal(resolve.mock.callCount(), 1);
 });

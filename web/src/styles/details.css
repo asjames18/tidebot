@@ -80,3 +80,17 @@
 .members__dot { width: 24px; height: 24px; border-radius: 50%; background: var(--color-bg-hover); }
 .members__add { border-top: 0.5px solid var(--color-border-tertiary); margin-top: 4px; padding-top: 4px; }
 .members__hint { font-size: 12px; line-height: 16px; color: var(--color-text-tertiary); padding: 6px 8px 2px; }
+
+.run-history__list { list-style: none; padding: 0; margin: 0; }
+.run-history__item { width: 100%; text-align: left; gap: 8px; }
+.run-history__state { color: var(--color-text-secondary); font-size: 11px; text-align: right; max-width: 90px; }
+.run-history__summary, .run-history__output, .run-history__step { display: grid; gap: 6px; overflow-wrap: anywhere; }
+.run-history__summary .link-btn, .run-history__step .link-btn { justify-self: start; text-align: left; }
+.run-history__summary > span, .run-history__step > small { color: var(--color-text-secondary); }
+.run-history__output { gap: 14px; min-width: 0; }
+@media (max-width: 900px) {
+  .details__tabs .segmented:has(button:nth-child(4)) button { padding-inline: 9px; }
+}
+.run-history__actions { display: flex; gap: 6px 12px; flex-wrap: wrap; }
+.research-form label, .research-field { display: grid; gap: 4px; font-size: 12px; }
+.research-form p { margin: 0; color: var(--color-text-secondary); font-size: 12px; }

@@ -9,7 +9,8 @@ interface Transcript { generation: number; bySeq: Record<number, Row>; loaded: b
 interface State {
   user: User | null;
   devLogin: boolean;
-  studioEmail: string;
+  googleLogin: boolean;
+  localSignup: boolean;
   voiceRealtime: boolean;
   authChecked: boolean;
 
@@ -31,7 +32,7 @@ interface State {
   toasts: { id: number; text: string }[];
   notify(text: string): void;
 
-  checkAuth(): Promise<void>;
+  checkAuth(): Promise<boolean>;
   loadBots(): Promise<void>;
   selectBot(id: string): void;
   loadRows(id: string): Promise<void>;
@@ -52,7 +53,8 @@ const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } ca
 export const useStore = create<State>((set, get) => ({
   user: null,
   devLogin: false,
-  studioEmail: '',
+  googleLogin: false,
+  localSignup: false,
   voiceRealtime: false,
   authChecked: false,
   bots: [],
@@ -80,10 +82,12 @@ export const useStore = create<State>((set, get) => ({
 
   async checkAuth() {
     try {
-      const { user, devLogin, studioEmail, hasXaiKey } = await api.me();
-      set({ user, devLogin, studioEmail: studioEmail ?? '', voiceRealtime: Boolean(hasXaiKey), authChecked: true });
+      const { user, devLogin, localSignup, providers, hasXaiKey } = await api.me();
+      set({ user, devLogin, localSignup: Boolean(localSignup), googleLogin: Boolean(providers?.composio), voiceRealtime: Boolean(hasXaiKey), authChecked: true });
+      return Boolean(user);
     } catch {
       set({ user: null, authChecked: true });
+      return false;
     }
   },
 
@@ -180,6 +184,7 @@ export const useStore = create<State>((set, get) => ({
       case 'routines':
         if (s.routines[ev.botId] || ev.botId === s.selectedBotId) s.loadRoutines(ev.botId).catch(console.error);
         return;
+      case 'runs':
       case 'tasks':
       case 'memories':
         // Picked up by configStore.ts (Tasks view, Library/Tasks tabs, bot settings).

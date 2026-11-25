@@ -37,6 +37,29 @@ export interface Bot {
   createdAt: number;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  instructions: string;
+  files: { name: string; text: string }[];
+  botIds: string[];
+  revision: number;
+}
+
+export type AgentRunState = 'queued' | 'running' | 'waiting' | 'completed' | 'failed' | 'interrupted';
+
+export interface AgentRun {
+  id: string;
+  source: 'chat' | 'manual-routine' | 'schedule' | 'event' | 'research';
+  title: string;
+  routineId: string | null;
+  state: AgentRunState;
+  createdAt: number;
+  startedAt: number | null;
+  finishedAt: number | null;
+  summary: string | null;
+}
+
 /** A transcript row. `seq` orders rows; `updatedSeq` is a per-bot revision counter (rows are rewritten while streaming). */
 export interface Row {
   botId: string;
@@ -71,6 +94,7 @@ export interface MessageBody {
   /** Set when a message came from another bot, a routine or a voice call rather than the user typing. */
   from?: { kind: 'bot' | 'routine' | 'voice'; id: string; name: string };
   citations?: { url: string; title?: string }[];
+  artifactPath?: string;
 }
 
 export interface ToolCallBody {
@@ -82,6 +106,7 @@ export interface ToolCallBody {
   status: 'running' | 'done' | 'error' | 'awaiting-approval' | 'denied';
   args?: unknown;
   summary?: string;
+  artifactPath?: string;
   /** Data URL thumbnail for computer actions. */
   screenshot?: string;
 }
@@ -231,6 +256,7 @@ export type ServerEvent =
   | { type: 'bot'; bot: Bot }
   | { type: 'computer'; state: ComputerState }
   | { type: 'routines'; botId: string }
+  | { type: 'runs'; botId: string }
   | { type: 'tasks'; botId: string }
   | { type: 'memories'; botId: string }
   | { type: 'connections' }

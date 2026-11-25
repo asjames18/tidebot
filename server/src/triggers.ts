@@ -14,14 +14,7 @@ let subscribed = false;
 
 export const isEventSchedule = (schedule: string) => schedule.startsWith('event:');
 
-export function migrate() {
-  for (const col of ['trigger_id TEXT', 'trigger_config TEXT']) {
-    try { db.exec(`ALTER TABLE routines ADD COLUMN ${col}`); } catch { /* already there */ }
-  }
-}
-
 export async function initTriggers(enqueue: (botId: string, t: any) => void) {
-  migrate();
   enqueueFn = enqueue;
   const count = (db.prepare("SELECT COUNT(*) n FROM routines WHERE schedule LIKE 'event:%'").get() as any).n;
   if (count > 0) await ensureSubscribed();
@@ -54,6 +47,7 @@ function onTrigger(data: any) {
     appendRow(r.bot_id, 'event', { type: 'event', event: 'routine-run', text: `Routine triggered: ${r.name}`, ref: r.id });
     enqueueFn?.(r.bot_id, {
       type: 'routine',
+      source: 'event',
       routineId: r.id,
       name: r.name,
       prompt: `${r.prompt}\n\n[Event: ${data.triggerSlug ?? r.schedule.slice(6)}]\n${payload}`,
@@ -73,7 +67,6 @@ export async function listTriggerTypes(toolkit: string) {
 }
 
 export async function createEventRoutine(userId: string, botId: string, a: { name: string; prompt: string; trigger_slug: string; config?: Record<string, unknown> }) {
-  migrate();
   const slug = a.trigger_slug.toUpperCase();
   const res: any = await composio.triggers.create(userId, slug, { triggerConfig: a.config ?? {} } as any);
   const triggerId = res?.triggerId ?? res?.trigger_id ?? res?.id;

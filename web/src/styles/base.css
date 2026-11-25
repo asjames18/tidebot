@@ -176,6 +176,7 @@ a { color: inherit; }
 /* Release notice (RAK-41): what's-new banner fed by GitHub Releases. */
 .release-notice {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -186,8 +187,10 @@ a { color: inherit; }
   color: var(--color-info-text, inherit);
   font-size: 14px;
 }
+.release-notice-text { min-width: 0; overflow-wrap: anywhere; }
 .release-notice a { color: inherit; text-decoration: underline; }
 .release-notice-close {
+  flex-shrink: 0;
   background: none;
   border: none;
   cursor: pointer;
