@@ -221,6 +221,8 @@
     .dl-options .dl-btn { padding-inline: 16px; }
     .dl-note { text-align: center; margin-top: 24px; font-size: 13.5px; color: var(--muted); }
     .dl-note code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: rgba(255,255,255,.06); padding: 2px 7px; border-radius: 6px; color: #99f6e4; }
+    .dl-size { font-size: 12.5px; color: var(--muted-2); margin-top: 10px; }
+    .dl-options .dl-size { margin-top: 0; }
 
     /* open source */
     .os-panel { max-width: 880px; margin: 0 auto; padding: 52px 40px; border-radius: 26px; border: 1px solid rgba(45,212,191,.18); background: linear-gradient(160deg, rgba(45,212,191,.08), rgba(129,140,248,.06) 50%, rgba(52,211,153,.05)); box-shadow: 0 24px 70px rgba(0,0,0,.4); text-align: center; }
@@ -339,7 +341,7 @@
 
   <header class="hero" id="top">
     <div class="wrap">
-      <span class="eyebrow"><span class="dot"></span> v1.0.0-dev · open source · self-hosted</span>
+      <span class="eyebrow"><span class="dot"></span> <span id="hero-version">v1.0.0-dev</span> · open source · self-hosted</span>
       <h1>Your agents.<br /><span class="grad">Your models. Your machine.</span></h1>
       <p class="lede">TideBot is an open-source autonomous multi-agent studio that runs on your own hardware. Bring any model, connect 1,500+ apps, and keep every key, byte and decision under your control.</p>
       <div class="cta-row">
@@ -439,19 +441,21 @@ npm run dev <span class="cm"># studio at http://localhost:5173</span></pre>
         <p>Native desktop apps with automatic updates. Prefer source? One <code style="font-family:'JetBrains Mono',monospace;font-size:.85em">git clone</code> away.</p>
       </div>
       <div class="dl-grid">
-        <div class="dl-card reveal"><span class="os">🪟</span><h3>Windows</h3><p class="arch">Windows 10 / 11</p><a class="dl-btn" data-dl="win" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.53/TideBot-Setup-1.0.0-dev.53.exe">Download .exe</a></div>
+        <div class="dl-card reveal"><span class="os">🪟</span><h3>Windows</h3><p class="arch">Windows 10 / 11</p><a class="dl-btn" data-dl="win" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.53/TideBot-Setup-1.0.0-dev.53.exe">Download .exe</a><p class="dl-size"><span data-size="win">88.5 MB</span></p></div>
         <div class="dl-card reveal">
           <span class="os">🍎</span>
           <h3>macOS</h3>
           <p class="arch">Check your chip in  → About This Mac.</p>
           <div class="dl-options">
             <a class="dl-btn" data-dl="mac-arm" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.53/TideBot-1.0.0-dev.53-arm64.dmg">Download for Apple Silicon</a>
+            <span class="dl-size" data-size="mac-arm">103.8 MB</span>
             <a class="dl-btn" data-dl="mac-intel" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.53/TideBot-1.0.0-dev.53.dmg">Download for Intel Mac</a>
+            <span class="dl-size" data-size="mac-intel">108.0 MB</span>
           </div>
         </div>
-        <div class="dl-card reveal"><span class="os">🐧</span><h3>Linux</h3><p class="arch">AppImage &amp; <a data-dl="linux-deb" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.53/tidebot-desktop_1.0.0-dev.53_amd64.deb" style="color:var(--text);text-decoration:underline">.deb</a></p><a class="dl-btn" data-dl="linux-appimage" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.53/TideBot-1.0.0-dev.53.AppImage">Download</a></div>
+        <div class="dl-card reveal"><span class="os">🐧</span><h3>Linux</h3><p class="arch">AppImage &amp; <a data-dl="linux-deb" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.53/tidebot-desktop_1.0.0-dev.53_amd64.deb" style="color:var(--text);text-decoration:underline">.deb</a> (<span data-size="linux-deb">85.6 MB</span>)</p><a class="dl-btn" data-dl="linux-appimage" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.53/TideBot-1.0.0-dev.53.AppImage">Download</a><p class="dl-size"><span data-size="linux-appimage">108.6 MB</span></p></div>
       </div>
-      <p class="dl-note reveal">Latest build: <b id="dl-tag">v1.0.0-dev.53</b> · <a href="https://github.com/asjames18/tidebot/releases" style="color:#93c5fd">all builds &amp; changelogs</a></p>
+      <p class="dl-note reveal">Latest build: <b id="dl-tag">v1.0.0-dev.53</b> · released <span id="dl-date">Nov 25, 2026</span> · <a href="https://github.com/asjames18/tidebot/releases" style="color:#93c5fd">all builds &amp; changelogs</a></p>
       <p class="dl-note reveal">Early releases are not code-signed yet — see the README for the one-step <code>SmartScreen</code> / <code>Gatekeeper</code> bypass. Or build from source with <code>npm install && npm start</code>.</p>
     </div>
   </section>
@@ -530,6 +534,16 @@ npm run dev <span class="cm"># studio at http://localhost:5173</span></pre>
           link.href = `${releaseDownloadRoot}${release.tag_name}/${filenames[i]}`;
         });
         document.getElementById('dl-tag').textContent = release.tag_name;
+        var dlDate = document.getElementById('dl-date');
+        if (dlDate && release.published_at) dlDate.textContent = new Date(release.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        var heroVersion = document.getElementById('hero-version');
+        if (heroVersion) heroVersion.textContent = release.tag_name;
+        var sizeByName = {};
+        (release.assets || []).forEach(function (a) { sizeByName[a.name] = a.size; });
+        document.querySelectorAll('[data-size]').forEach(function (el) {
+          var file = (names[el.dataset.size] || []).find(function (n) { return sizeByName[n]; });
+          if (file) el.textContent = (sizeByName[file] / 1048576).toFixed(1) + ' MB';
+        });
         return;
       }
     }
