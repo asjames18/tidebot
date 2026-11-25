@@ -28,12 +28,12 @@ function maskKey(k: string): string {
 
 export function getPersonalModel(userId: string) {
   const row = db.prepare('SELECT openrouter_key, default_model FROM personal_models WHERE user_id=?').get(userId) as { openrouter_key: string; default_model: string } | undefined;
-  return row ? { key: decryptSecret(secretsDir(), row.openrouter_key), model: row.default_model || env.openrouterModel } : undefined;
+  return row ? { key: decryptSecret(secretsDir(), row.openrouter_key), model: normalizeOpenRouterModel(row.default_model || env.openrouterModel) } : undefined;
 }
 
 export function publicPersonalModel(userId: string) {
   const personal = getPersonalModel(userId);
-  return { active: Boolean(personal), hasKey: Boolean(personal?.key), defaultModel: personal?.model ?? env.openrouterModel };
+  return { active: Boolean(personal), hasKey: Boolean(personal?.key), defaultModel: personal?.model ?? normalizeOpenRouterModel(env.openrouterModel) };
 }
 
 export function savePersonalModel(userId: string, key: string | undefined, model: string) {
@@ -69,7 +69,7 @@ export function getLlmConfig(userId?: string): LlmRuntimeConfig {
       ? env.xaiModel || 'grok-4.7'
       : provider === 'custom'
         ? env.customModel || 'gpt-4o'
-        : env.openrouterModel || 'anthropic/claude-3.7-sonnet';
+        : env.openrouterModel;
 
   const defaultModel = (row?.default_model || defaultFallback).trim();
 
@@ -79,7 +79,7 @@ export function getLlmConfig(userId?: string): LlmRuntimeConfig {
     xaiKey,
     customBaseUrl,
     customApiKey,
-    defaultModel,
+    defaultModel: provider === 'openrouter' ? normalizeOpenRouterModel(defaultModel) : defaultModel,
     shaderStyle,
   };
 }
@@ -168,14 +168,14 @@ export const CURATED_MODELS: ModelInfo[] = [
     badge: '100% Free · Ultra Fast',
   },
   {
-    id: 'thinkingmachines/inkling-2-small:free',
-    name: 'Inkling 2 Small (Free)',
-    provider: 'Thinking Machines',
-    contextLength: 131072,
+    id: 'openrouter/free',
+    name: 'OpenRouter Free',
+    provider: 'OpenRouter',
+    contextLength: 200000,
     vision: false,
     tools: true,
     featured: true,
-    badge: '100% Free · Deep CoT Agent',
+    badge: 'Routes to available free models',
   },
   {
     id: 'deepseek/deepseek-chat-v3-0324:free',
@@ -400,19 +400,19 @@ function getClient(cfg: LlmRuntimeConfig, connectionCheck = false): { client: Op
   };
 }
 
-function normalizeModelId(m: string): string {
-  const clean = m.trim();
-  if (clean === 'thinkingmachines/inkling-small' || clean === 'thinkingmachines/inkling-2-small') {
-    return 'thinkingmachines/inkling-2-small:free';
+function normalizeOpenRouterModel(model: string): string {
+  const clean = model.trim();
+  if (clean === 'thinkingmachines/inkling-small' || clean === 'thinkingmachines/inkling-2-small'
+      || clean === 'thinkingmachines/inkling-2-small:free') {
+    return 'openrouter/free';
   }
   return clean;
 }
 
 /** Resolve the effective model ID for a bot given the current runtime config. */
 export function resolveBotModel(botRow: any, cfg = getLlmConfig(botRow?.user_id)): string {
-  const override = normalizeModelId(String(botRow?.model ?? ''));
-  if (override) return override;
-  return normalizeModelId(cfg.defaultModel);
+  const model = String(botRow?.model ?? '').trim() || cfg.defaultModel;
+  return cfg.provider === 'openrouter' ? normalizeOpenRouterModel(model) : model;
 }
 
 /** Convert stored Responses-API `llm_items` into standard OpenAI Chat Completions `messages`. */
@@ -798,7 +798,7 @@ export function testOpenRouterKey(userId: string, apiKey: string, model: string)
     ...getLlmConfig(userId),
     provider: 'openrouter',
     openrouterKey: apiKey,
-    defaultModel: model || env.openrouterModel,
+    defaultModel: normalizeOpenRouterModel(model || env.openrouterModel),
   });
 }
 

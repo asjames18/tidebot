@@ -90,6 +90,8 @@ test('setup verifies a new OpenRouter key before storing it', async (t) => {
     const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
     assert.equal(url.origin, 'https://openrouter.ai');
     assert.equal(url.pathname, '/api/v1/chat/completions');
+    const body = options?.body ? JSON.parse(options.body) : await input.clone().json();
+    assert.equal(body.model, 'openrouter/free');
     const headers = new Headers(options?.headers ?? input.headers);
     if (headers.get('authorization') === 'Bearer ' + rejectedKey) {
       return Response.json({ error: { message: 'Rejected fixture key: ' + rejectedKey } }, { status: 401 });
@@ -97,9 +99,10 @@ test('setup verifies a new OpenRouter key before storing it', async (t) => {
     assert.equal(headers.get('authorization'), 'Bearer ' + sampleKey);
     return Response.json({ choices: [{ message: { content: 'Fixture reply.' } }] });
   });
-  const connect = (openrouterKey) => call('/llm/personal/connect', 'POST', { openrouterKey, defaultModel: 'fixture/model' });
+  const connect = (openrouterKey) => call('/llm/personal/connect', 'POST', { openrouterKey, defaultModel: 'thinkingmachines/inkling-2-small:free' });
   assert.equal((await (await connect(sampleKey)).json()).ok, true);
   assert.equal(getLlmConfig(user.id).openrouterKey, sampleKey);
+  assert.equal(getLlmConfig(user.id).defaultModel, 'openrouter/free');
   const rejected = await (await connect(rejectedKey)).json();
   assert.equal(rejected.ok, false);
   assert.ok(!rejected.error.includes(rejectedKey));

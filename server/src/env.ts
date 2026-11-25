@@ -73,7 +73,7 @@ export const env = {
     return opt('LLM_PROVIDER', orKey ? 'openrouter' : cUrl ? 'custom' : xKey ? 'xai' : 'openrouter') as 'openrouter' | 'custom' | 'xai';
   },
   get openrouterKey() { return opt('OPENROUTER_API_KEY'); },
-  get openrouterModel() { return opt('OPENROUTER_MODEL', 'thinkingmachines/inkling-2-small:free'); },
+  get openrouterModel() { return opt('OPENROUTER_MODEL', 'openrouter/free'); },
   get customBaseUrl() { return opt('LLM_BASE_URL'); },
   get customApiKey() { return opt('LLM_API_KEY'); },
   get customModel() { return opt('LLM_MODEL'); },

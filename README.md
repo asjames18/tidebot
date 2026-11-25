@@ -33,7 +33,7 @@
 
 ### 🧠 Bring Your Own Model (First-Class OpenRouter & Local LLM Support)
 - **Hot-Swappable Model Engine**: Switch between **OpenRouter** (`https://openrouter.ai/api/v1`), **Custom OpenAI-Compatible Endpoints** (Ollama, LM Studio, vLLM, Groq, Together), and **xAI Responses API** directly from the UI without restarting the server.
-- **Per-Operator Model Overrides**: Assign specialized models per Operator (e.g., `anthropic/claude-3.7-sonnet` for coding, `google/gemini-2.5-pro` for 1M-context research, `deepseek/deepseek-r1` or `thinkingmachines/inkling-2-small:free` for chain-of-thought reasoning).
+- **Per-Operator Model Overrides**: Assign specialized models per Operator (e.g., `anthropic/claude-3.7-sonnet` for coding, `google/gemini-2.5-pro` for 1M-context research, `deepseek/deepseek-r1` for reasoning, or `openrouter/free` to route to available free models).
 - **Live Chain-of-Thought Drawer**: Streams `delta.reasoning` in real time into a collapsible **Thought Process** drawer with per-turn latency and model telemetry badges.
 
 ### 🔌 1,500+ Connected Apps via Composio
@@ -140,7 +140,7 @@ To add another user to a shared, self-hosted studio, open **Settings → Account
 | :--- | :---: | :--- |
 | `LLM_PROVIDER` | No | `openrouter` (default), `custom`, or `xai` |
 | `OPENROUTER_API_KEY` | Recommended | OpenRouter key (`sk-or-v1-...`) for 250+ frontier & free models |
-| `OPENROUTER_MODEL` | No | Default model ID (e.g., `thinkingmachines/inkling-2-small:free` or `anthropic/claude-3.7-sonnet`) |
+| `OPENROUTER_MODEL` | No | Default model ID (e.g., `openrouter/free` or `openrouter/auto`) |
 | `LLM_BASE_URL` | Optional | Custom OpenAI-compatible base URL (e.g., `http://localhost:11434/v1` for Ollama) |
 | `COMPOSIO_API_KEY` | Optional | Composio key (`ak_...`) for 1,500+ OAuth app integrations |
 | `ORGO_API_KEY` | Optional | Orgo key (`sk_live_...`) for cloud Linux desktops (falls back to local workspace if omitted) |

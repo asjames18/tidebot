@@ -74,7 +74,7 @@ configApi.post('/llm/personal/connect', async (c) => {
   }
   const userId = c.get('user').id;
   const result = await testOpenRouterKey(userId, openrouterKey, defaultModel);
-  if (result.ok) savePersonalModel(userId, openrouterKey, defaultModel);
+  if (result.ok) savePersonalModel(userId, openrouterKey, result.model);
   c.header('Cache-Control', 'no-store');
   return c.json(result);
 });
