@@ -1,4 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#4f46e5"/>
-  <text x="32" y="32" dy="0.35em" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="26" font-weight="600" fill="#ffffff">GC</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <mask id="wave-cut">
+      <rect width="64" height="64" fill="white"/>
+      <circle cx="46" cy="30" r="17" fill="black"/>
+    </mask>
+  </defs>
+  <!-- curling wave over the top -->
+  <circle cx="30" cy="26" r="24" fill="#14919B" mask="url(#wave-cut)"/>
+  <circle cx="50" cy="24" r="6" fill="#14919B"/>
+  <!-- bot face -->
+  <rect x="17" y="30" width="30" height="22" rx="11" fill="#FFFFFF"/>
+  <!-- eyes -->
+  <rect x="25" y="37" width="5" height="9" rx="2.5" fill="#0B1B33"/>
+  <rect x="35" y="37" width="5" height="9" rx="2.5" fill="#0B1B33"/>
+  <!-- lower swoosh -->
+  <path d="M4 52 Q32 42 60 50 Q32 61 4 52 Z" fill="#0E7C86"/>
 </svg>
