@@ -68,6 +68,8 @@ export const env = {
   desktopSignupOrigin: desktopPort ? desktopSignupOrigin : '',
   get port() { return Number(desktopPort ?? opt('PORT', '8787')); },
   get host() { return desktopPort ? '127.0.0.1' : opt('HOST', '127.0.0.1'); },
+  /** Extra proxy peers (comma-separated IPs, or `*`) whose X-Forwarded-For is trusted for rate limiting. Loopback is always trusted. */
+  get trustProxy() { return opt('TRUST_PROXY'); },
   /** Local sign-in identity from .env (STUDIO_EMAIL / STUDIO_PASSWORD). Empty disables password sign-in. */
   get studioEmail() { return opt('STUDIO_EMAIL').toLowerCase(); },
   get studioAdminEmail() { return opt('STUDIO_ADMIN_EMAIL', env.studioEmail).toLowerCase(); },
