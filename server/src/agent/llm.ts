@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { db, now } from '../db.js';
-import { env, writeEnvKeyToDisk } from '../env.js';
+import { env } from '../env.js';
 import { newId, sha256 } from '../lib/ids.js';
 import { assertUrlHostAllowedSync } from '../lib/ssrf.js';
 import { withRetry } from '../lib/retry.js';
@@ -24,6 +24,27 @@ function maskKey(k: string): string {
   if (!k) return '';
   if (k.length <= 10) return '••••••••';
   return `${k.slice(0, 6)}••••${k.slice(-4)}`;
+}
+
+export function getComposioKey(): string {
+  const row = db.prepare('SELECT composio_key FROM llm_settings WHERE id = 1').get() as { composio_key?: string } | undefined;
+  return decryptSecret(secretsDir(), (row?.composio_key || '').trim()) || (env.composioKey || '').trim();
+}
+
+export function getOrgoKey(): string {
+  const row = db.prepare('SELECT orgo_key FROM llm_settings WHERE id = 1').get() as { orgo_key?: string } | undefined;
+  return decryptSecret(secretsDir(), (row?.orgo_key || '').trim()) || (env.orgoKey || '').trim();
+}
+
+export function getConfiguredProviders() {
+  const cfg = getLlmConfig();
+  return {
+    openrouter: Boolean(cfg.openrouterKey),
+    custom: Boolean(cfg.customBaseUrl),
+    xai: Boolean(cfg.xaiKey),
+    composio: Boolean(getComposioKey()),
+    orgo: Boolean(getOrgoKey()),
+  };
 }
 
 export function getPersonalModel(userId: string) {
@@ -86,6 +107,8 @@ export function getLlmConfig(userId?: string): LlmRuntimeConfig {
 
 export function getPublicLlmConfig(userId?: string, showKeyHints = true): LlmConfigPublic {
   const cfg = getLlmConfig(userId);
+  const composioKey = getComposioKey();
+  const orgoKey = getOrgoKey();
   const isConfigured =
     (cfg.provider === 'openrouter' && Boolean(cfg.openrouterKey)) ||
     (cfg.provider === 'custom' && Boolean(cfg.customBaseUrl)) ||
@@ -102,10 +125,10 @@ export function getPublicLlmConfig(userId?: string, showKeyHints = true): LlmCon
     customKeyHint: showKeyHints ? maskKey(cfg.customApiKey) : '',
     hasXaiKey: Boolean(cfg.xaiKey),
     xaiKeyHint: showKeyHints ? maskKey(cfg.xaiKey) : '',
-    hasComposioKey: Boolean(env.composioKey),
-    composioKeyHint: showKeyHints ? maskKey(env.composioKey) : '',
-    hasOrgoKey: Boolean(env.orgoKey),
-    orgoKeyHint: showKeyHints ? maskKey(env.orgoKey) : '',
+    hasComposioKey: Boolean(composioKey),
+    composioKeyHint: showKeyHints ? maskKey(composioKey) : '',
+    hasOrgoKey: Boolean(orgoKey),
+    orgoKeyHint: showKeyHints ? maskKey(orgoKey) : '',
     isConfigured,
   };
 }
@@ -124,34 +147,43 @@ export function saveLlmConfig(patch: {
   if (patch.customBaseUrl !== undefined && patch.customBaseUrl.trim()) {
     assertUrlHostAllowedSync(patch.customBaseUrl.trim(), { allowLoopback: true });
   }
-  if (patch.composioKey !== undefined && patch.composioKey.trim()) {
-    writeEnvKeyToDisk('COMPOSIO_API_KEY', patch.composioKey.trim());
-  }
-  if (patch.orgoKey !== undefined && patch.orgoKey.trim()) {
-    writeEnvKeyToDisk('ORGO_API_KEY', patch.orgoKey.trim());
-  }
   const cur = db.prepare('SELECT * FROM llm_settings WHERE id = 1').get() as any;
   const nextProvider = patch.provider ?? cur?.provider ?? env.llmProvider ?? 'openrouter';
   const nextOrKey = patch.openrouterKey !== undefined ? patch.openrouterKey.trim() : (cur?.openrouter_key ?? '');
   const nextXaiKey = patch.xaiKey !== undefined ? patch.xaiKey.trim() : (cur?.xai_key ?? '');
   const nextCustomUrl = patch.customBaseUrl !== undefined ? patch.customBaseUrl.trim() : (cur?.custom_base_url ?? '');
   const nextCustomKey = patch.customApiKey !== undefined ? patch.customApiKey.trim() : (cur?.custom_api_key ?? '');
+  const nextComposioKey = patch.composioKey !== undefined ? patch.composioKey.trim() : (cur?.composio_key ?? '');
+  const nextOrgoKey = patch.orgoKey !== undefined ? patch.orgoKey.trim() : (cur?.orgo_key ?? '');
   const nextModel = patch.defaultModel !== undefined ? patch.defaultModel.trim() : (cur?.default_model ?? '');
   const nextShader = patch.shaderStyle ?? cur?.shader_style ?? 'aurora';
 
   db.prepare(`
-    INSERT INTO llm_settings (id, provider, openrouter_key, xai_key, custom_base_url, custom_api_key, default_model, shader_style, updated_at)
-    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO llm_settings (id, provider, openrouter_key, xai_key, custom_base_url, custom_api_key, composio_key, orgo_key, default_model, shader_style, updated_at)
+    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       provider = excluded.provider,
       openrouter_key = excluded.openrouter_key,
       xai_key = excluded.xai_key,
       custom_base_url = excluded.custom_base_url,
       custom_api_key = excluded.custom_api_key,
+      composio_key = excluded.composio_key,
+      orgo_key = excluded.orgo_key,
       default_model = excluded.default_model,
       shader_style = excluded.shader_style,
       updated_at = excluded.updated_at
-  `).run(nextProvider, encryptSecret(secretsDir(), nextOrKey), encryptSecret(secretsDir(), nextXaiKey), nextCustomUrl, encryptSecret(secretsDir(), nextCustomKey), nextModel, nextShader, now());
+  `).run(
+    nextProvider,
+    encryptSecret(secretsDir(), nextOrKey),
+    encryptSecret(secretsDir(), nextXaiKey),
+    nextCustomUrl,
+    encryptSecret(secretsDir(), nextCustomKey),
+    encryptSecret(secretsDir(), nextComposioKey),
+    encryptSecret(secretsDir(), nextOrgoKey),
+    nextModel,
+    nextShader,
+    now(),
+  );
 
   return getPublicLlmConfig();
 }

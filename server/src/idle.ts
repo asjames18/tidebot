@@ -1,6 +1,7 @@
 import { db, now as dbNow } from './db.js';
 import { getLive } from './store.js';
 import { redactSecrets } from './lib/redact.js';
+import { getOrgoKey } from './agent/llm.js';
 import { suspendComputer } from './computer.js';
 import { isBotBusy } from './agent/loop.js';
 
@@ -124,7 +125,7 @@ export function startIdleWatcher() {
     },
     { idleMs: idleConfig.idleMin * 60_000, dryRun: idleConfig.dryRun },
   );
-  const timer = setInterval(() => { watcher.sweep().catch((e) => console.warn('[idle] sweep failed', redactSecrets(e))); }, idleConfig.sweepSec * 1000);
+  const timer = setInterval(() => { watcher.sweep().catch((e) => console.warn('[idle] sweep failed', redactSecrets(e, [getOrgoKey()]))); }, idleConfig.sweepSec * 1000);
   timer.unref?.();
   console.log(`[idle] hibernation after ${idleConfig.idleMin} min without turns or viewers${idleConfig.dryRun ? ' (dry run)' : ''}`);
   return { watcher, stop: () => clearInterval(timer) };

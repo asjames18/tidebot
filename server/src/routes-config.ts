@@ -14,7 +14,7 @@ import { checkComposioConnection } from './composio.js';
 import { runInBotQueue } from './agent/loop.js';
 import { localWorkspaceDir } from './agent/tools.js';
 import { consolidateBot, historySize, maybeCompact, memoryConfig } from './agent/memory.js';
-import { completeText, fetchModelsCatalog, getPublicLlmConfig, publicPersonalModel, saveLlmConfig, savePersonalModel, testLlmConnection, testOpenRouterKey } from './agent/llm.js';
+import { completeText, fetchModelsCatalog, getComposioKey, getOrgoKey, getPublicLlmConfig, publicPersonalModel, saveLlmConfig, savePersonalModel, testLlmConnection, testOpenRouterKey } from './agent/llm.js';
 import { idleConfig, viewerCount } from './idle.js';
 import { assertPublicUrl } from './lib/ssrf.js';
 import { resolveWithinWorkspace, writeWorkspaceFile } from './lib/files.js';
@@ -113,7 +113,7 @@ configApi.post('/llm/test-composio', async (c) => {
   if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can test the Composio key.' }, 403);
   const t0 = Date.now();
   try {
-    if (!env.composioKey) return c.json({ ok: false, error: 'COMPOSIO_API_KEY is not configured.' });
+    if (!getComposioKey()) return c.json({ ok: false, error: 'COMPOSIO_API_KEY is not configured.' });
     await checkComposioConnection();
     return c.json({ ok: true, latencyMs: Date.now() - t0 });
   } catch {
@@ -326,7 +326,7 @@ configApi.get('/bots/:id/files', async (c) => {
     }
   } catch { /* ignore */ }
 
-  if (!env.orgoKey || c.req.query('local') === '1') {
+  if (!getOrgoKey() || c.req.query('local') === '1') {
     localFiles.sort((x, y) => Number(y.isDir) - Number(x.isDir) || y.modifiedAt - x.modifiedAt);
     return c.json({ status: 'ok', path: rel, files: localFiles });
   }
@@ -383,7 +383,7 @@ configApi.get('/bots/:id/files/content', async (c) => {
     const content = fs.readFileSync(localPath, 'utf8').slice(0, 150_000);
     return c.json({ ok: true, path: rel, content });
   }
-  if (env.orgoKey) {
+  if (getOrgoKey()) {
     try {
       const box = await boxFor(user.id, b.id, false);
       if (box) {
@@ -420,7 +420,7 @@ configApi.delete('/bots/:id/files', async (c) => {
   if (localPath && fs.existsSync(localPath)) {
     fs.rmSync(localPath, { recursive: true, force: true });
   }
-  if (env.orgoKey) {
+  if (getOrgoKey()) {
     const box = await boxFor(user.id, b.id, false).catch(() => null);
     if (box) await orgo.bash(box.computerId, box.screenId, `rm -rf ${shq(`${LIB_ROOT}/${b.id}/${rel}`)}`, 15).catch(() => null);
   }
@@ -438,7 +438,7 @@ configApi.post('/bots/:id/files/download', async (c) => {
   if (localPath && fs.existsSync(localPath) && !fs.statSync(localPath).isDirectory()) {
     return c.json({ url: `/api/bots/${b.id}/files/raw?path=${encodeURIComponent(rel)}` });
   }
-  if (!env.orgoKey) {
+  if (!getOrgoKey()) {
     return c.json({ error: 'File not found' }, 404);
   }
   try {

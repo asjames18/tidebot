@@ -1,4 +1,5 @@
 import { env } from './env.js';
+import { getOrgoKey } from './agent/llm.js';
 
 const BASE = 'https://www.orgo.ai/api';
 
@@ -15,7 +16,7 @@ async function call<T = any>(method: string, path: string, body?: unknown, opts:
     const res = await fetch(`${BASE}${path}`, {
       method,
       headers: {
-        Authorization: `Bearer ${env.orgoKey}`,
+        Authorization: `Bearer ${getOrgoKey()}`,
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...opts.headers,
       },

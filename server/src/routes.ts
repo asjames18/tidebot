@@ -17,7 +17,7 @@ import { researchPlan } from './research.js';
 import { getRun, listRuns } from './runs.js';
 import { allLive, appendRow, clearConversation, describeCron, emitBot, getBot, getBotRow, getRow, listBots, listRoutines, listRows, listRunRows, listTasks, toRoutine, updateRow } from './store.js';
 import { enqueue, interrupt, resolveApproval } from './agent/loop.js';
-import { getPersonalModel, getPublicLlmConfig } from './agent/llm.js';
+import { getComposioKey, getConfiguredProviders, getPersonalModel, getPublicLlmConfig } from './agent/llm.js';
 import { computerState, ensureComputer, refreshComputer, suspendComputer } from './computer.js';
 import { orgo } from './orgo.js';
 import { catalog, connectedToolkits, deleteConnection, disconnect, googleProfile, startConnect, startGoogleLogin, toolkitInfo } from './composio.js';
@@ -90,12 +90,12 @@ function desktopRequest(url: string): boolean {
 
 api.get('/auth/me', (c) => {
   const user = userFromCookieHeader(c.req.header('cookie'));
-  const providers = env.providers;
+  const providers = getConfiguredProviders();
   return c.json({ user, devLogin: env.devLogin, localSignup: desktopRequest(c.req.url), hasXaiKey: user ? getPublicLlmConfig(user.id).hasXaiKey : false, providers });
 });
 
 api.get('/auth/google/start', async (c) => {
-  if (!env.composioKey) return c.json({ error: 'A studio administrator must configure Composio before Google sign-in is available.' }, 503);
+  if (!getComposioKey()) return c.json({ error: 'A studio administrator must configure Composio before Google sign-in is available.' }, 503);
   const attemptId = newId('login');
   const provisional = newId('usr');
   const cb = `${env.serverUrl}/api/auth/google/callback?attempt=${attemptId}`;
@@ -807,7 +807,7 @@ api.get('/apps', async (c) => {
 });
 
 api.post('/apps/:slug/connect', async (c) => {
-  if (!env.composioKey) return c.json({ error: 'A studio administrator must configure Composio before connecting apps.' }, 503);
+  if (!getComposioKey()) return c.json({ error: 'A studio administrator must configure Composio before connecting apps.' }, 503);
   const user = c.get('user');
   const slug = c.req.param('slug');
   const { botId, seq } = await c.req.json<{ botId?: string; seq?: number }>().catch(() => ({} as any));

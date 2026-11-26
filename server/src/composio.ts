@@ -1,7 +1,7 @@
 import { Composio } from '@composio/core';
 import { OpenAIResponsesProvider } from '@composio/openai';
 import { db } from './db.js';
-import { env } from './env.js';
+import { getComposioKey } from './agent/llm.js';
 import type { Toolkit } from './types.js';
 
 let activeKey = '';
@@ -12,7 +12,7 @@ type CatalogItem = Omit<Toolkit, 'connected'>;
 let catalogCache: { at: number; key: string; items: CatalogItem[] } | null = null;
 
 export function getComposio(): Composio<OpenAIResponsesProvider> {
-  const key = env.composioKey || 'local-unconfigured-key';
+  const key = getComposioKey() || 'local-unconfigured-key';
   if (!clientInstance || activeKey !== key) {
     activeKey = key;
     clientInstance = new Composio({ apiKey: key, provider: new OpenAIResponsesProvider() });
@@ -32,8 +32,8 @@ export const composio = new Proxy({} as Composio<OpenAIResponsesProvider>, {
 
 const REST = 'https://backend.composio.dev/api/v3.1';
 async function rest<T = any>(path: string, timeoutMs?: number): Promise<T> {
-  const key = env.composioKey;
-  if (!key) throw new Error('COMPOSIO_API_KEY is not configured in .env');
+  const key = getComposioKey();
+  if (!key) throw new Error('COMPOSIO_API_KEY is not configured');
   const res = await fetch(`${REST}${path}`, { headers: { 'x-api-key': key }, signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined });
   if (!res.ok) throw new Error(`Composio ${path}: ${res.status} ${await res.text()}`);
   return res.json() as Promise<T>;
@@ -63,7 +63,7 @@ const FALLBACK_CATALOG: CatalogItem[] = [
 ];
 
 export async function catalog(): Promise<CatalogItem[]> {
-  const key = env.composioKey;
+  const key = getComposioKey();
   if (!key) return FALLBACK_CATALOG;
   if (catalogCache && catalogCache.key === key && Date.now() - catalogCache.at < 3600_000) return catalogCache.items;
   try {
@@ -101,14 +101,14 @@ export async function toolkitInfo(slug: string): Promise<CatalogItem | undefined
 // ---------- per-user connections ----------
 
 export async function connectedToolkits(userId: string): Promise<Set<string>> {
-  if (!env.composioKey) return new Set();
+  if (!getComposioKey()) return new Set();
   const r = await getComposio().connectedAccounts.list({ userIds: [userId], statuses: ['ACTIVE'] } as any);
   const items: any[] = (r as any).items ?? [];
   return new Set(items.map((i) => i.toolkit?.slug ?? i.toolkitSlug).filter(Boolean));
 }
 
 export async function connectionsDetail(userId: string) {
-  if (!env.composioKey) return [];
+  if (!getComposioKey()) return [];
   const r = await getComposio().connectedAccounts.list({ userIds: [userId] } as any);
   return ((r as any).items ?? []).map((i: any) => ({ id: i.id, toolkit: i.toolkit?.slug ?? i.toolkitSlug, status: i.status }));
 }
@@ -123,7 +123,7 @@ export async function disconnect(userId: string, toolkit: string) {
 // ---------- sessions (tool router) ----------
 
 export async function sessionFor(userId: string): Promise<any> {
-  if (!env.composioKey) throw new Error('COMPOSIO_API_KEY is not configured in .env');
+  if (!getComposioKey()) throw new Error('COMPOSIO_API_KEY is not configured');
   const client = getComposio();
   const cached = sessionCache.get(userId);
   if (cached) return cached;
@@ -149,7 +149,7 @@ export async function startConnect(userId: string, toolkit: string, callbackUrl:
 
 /** OpenAI-Responses-format function tools for this user's Composio session (meta tools). */
 export async function composioTools(userId: string): Promise<any[]> {
-  if (!env.composioKey) return [];
+  if (!getComposioKey()) return [];
   try {
     const session = await sessionFor(userId);
     const tools = await session.tools();
