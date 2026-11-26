@@ -18,7 +18,7 @@ For access from a phone or another computer, give the instance an HTTPS address 
 
 On your phone, sign in to that instance with the same TideBot account to see your bots, conversations, runs, and files. Use your browser's home-screen or install option if it is available. TideBot's server and model endpoint must stay reachable for replies and scheduled runs. For example, an Ollama address on `127.0.0.1` is local to the computer running the TideBot server.
 
-You can self-host on hardware you already own. Hosting and model providers may have separate costs or usage limits. TideBot can use a supported free model when one is available, or a local model that runs on your own hardware.
+You can self-host on hardware you already own. System requirements (OS versions, RAM, disk, Node version, Bubblewrap on Linux) are listed in the README under Quick Start → Prerequisites. Hosting and model providers may have separate costs or usage limits. TideBot can use a supported free model when one is available, or a local model that runs on your own hardware.
 
 ## Where your data lives
 
