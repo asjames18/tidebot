@@ -1,5 +1,7 @@
 # Orgo builder's guide for Grokbot
 
+> **Last verified:** 2026-11-26 · **Owner:** asjames18 (maintainer)
+
 How to build Grokbot (one persistent Orgo VM per user, one screen per Bot) on Orgo. Everything here comes from Orgo's official docs.
 
 - **Sources:** the full docs dump `docs.orgo.ai/llms-full.txt` (24,038 lines, every page incl. the full API reference; read 2026-11-09) and the OpenAPI spec `https://docs.orgo.ai/api-reference/openapi.json` (Orgo API 2.0.0, 101 operations).
@@ -905,3 +907,10 @@ All take `?token=<vnc_password>`.
 |---|---|---|---|
 | GET | `http://169.254.169.254/orgo/v1/identity/token[?fresh=1]` | Identity token (header `Metadata-Flavor: Orgo`) | doc |
 | GET | `http://169.254.169.254/orgo/v1/identity` | `{desktop_id, vm_id, state}` (no token) | doc |
+
+## See also
+
+- [Architecture](ARCHITECTURE.md) — how the server, agent loop, and BYOM engine fit together, including the Orgo computer tools.
+- [Self-host TideBot](self-host.md) — run the server on your own machine or server, connect devices, and back up your data.
+- [First chat with a local model](local-model.md) — smoke-test TideBot with llama.cpp or Ollama and no cloud key.
+- [xAI API and Composio](xai-and-composio.md) — builder's reference for the xAI and Composio integrations.
