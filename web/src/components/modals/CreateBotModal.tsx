@@ -3,6 +3,7 @@ import type { AvatarColor, AvatarShape, Bot } from '@shared/types';
 import { BotAvatar, PICKER_SHAPES } from '../../avatar/BotAvatar';
 import { api } from '../../lib/api';
 import { COLOR_ORDER, palette } from '../../lib/colors';
+import { nextTemplateField } from '../../lib/templateField';
 import { useConfigUI } from '../../configStore';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
@@ -116,10 +117,13 @@ export function CreateBotModal() {
     blurInputOnMobile();
     setActiveTemplate(t.id);
     const previous = STARTERS.find((starter) => starter.id === activeTemplate);
-    setName((current) => !current.trim() || current === previous?.name ? t.name : current);
-    setLabel(t.label);
-    setDescription(t.id === BLANK.id ? '' : t.description);
-    setInstructions(t.instructions);
+    // What the previous template actually applied (Blank applies '' for description).
+    const prevDescription = previous ? (previous.id === BLANK.id ? '' : previous.description) : undefined;
+    const nextDescription = t.id === BLANK.id ? '' : t.description;
+    setName((current) => nextTemplateField(current, previous?.name, t.name));
+    setLabel((current) => nextTemplateField(current, previous?.label, t.label));
+    setDescription((current) => nextTemplateField(current, prevDescription, nextDescription));
+    setInstructions((current) => nextTemplateField(current, previous?.instructions, t.instructions));
     setShape(t.shape);
     setColor(t.color);
     setMode(t.mode);
