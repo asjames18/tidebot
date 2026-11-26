@@ -310,7 +310,21 @@ async function triggerUpdateCheck() {
   }
   manualCheck = true;
   autoUpdater.allowPrerelease = settings.devUpdates;
-  await autoUpdater.checkForUpdates().catch(() => { /* The updater reports failures through its error event. */ });
+  const result = await autoUpdater.checkForUpdates().catch(() => undefined); // Failures are reported through the error event.
+  if (result !== null || !manualCheck) return;
+
+  // An inactive updater returns null without emitting an event.
+  manualCheck = false;
+  const res = await dialog.showMessageBox(mainWindow || undefined, {
+    type: 'info',
+    title: 'Manual Update Required',
+    message: 'This TideBot installation needs manual updates.',
+    detail: 'Download the installer for your system from GitHub Releases.',
+    buttons: ['Open GitHub Releases', 'Close'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (res.response === 0) await shell.openExternal(RELEASES_URL);
 }
 
 function buildMenu() {
