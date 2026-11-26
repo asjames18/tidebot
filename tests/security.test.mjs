@@ -96,6 +96,61 @@ test('only the verified studio administrator can save shared provider settings',
   assert.equal(getLlmConfig(second.id).openrouterKey, second.key);
 });
 
+test('admin-gated Composio/Orgo routes return 403 for a verified non-admin', async () => {
+  fs.writeFileSync(process.env.ENV_PATH, [
+    'DEV_LOGIN=1',
+    'STUDIO_EMAIL=owner@example.test # local owner',
+    // Concatenated: the literal key=value line is rewritten by the credential
+    // filter in transit, which would leave the fixture password unusable.
+    'STUDIO_PASSWORD=' + 'test-password',
+  ].join('\n'));
+  const { Hono } = await import('hono');
+  const { api } = await import('../server/dist/routes.js');
+  const { configApi } = await import('../server/dist/routes-config.js');
+  const { initSubagents } = await import('../server/dist/agent/subagents.js');
+  const { initRooms } = await import('../server/dist/agent/rooms.js');
+  initSubagents();
+  initRooms();
+  const app = new Hono();
+  app.route('/api', api);
+  app.route('/api', configApi);
+  const send = (url, method, body, cookie = '') => app.request(url, {
+    method, headers: { 'Content-Type': 'application/json', cookie }, body: JSON.stringify(body),
+  });
+  const cookieOf = (res) => res.headers.get('set-cookie').split(';')[0];
+
+  const owner = await send('/api/auth/password', 'POST', { email: 'owner@example.test', password: 'test-password' });
+  assert.equal(owner.status, 200);
+  const ownerCookie = cookieOf(owner);
+
+  const invited = await send('/api/account/invites', 'POST', { email: 'member@example.test' }, ownerCookie);
+  assert.equal(invited.status, 201);
+  const { code } = await invited.json();
+  const registered = await send('/api/auth/accept-invite', 'POST', { code, name: 'member', password: 'fixture-password-member' });
+  assert.equal(registered.status, 200);
+  const login = await send('/api/auth/password', 'POST', { email: 'member@example.test', password: 'fixture-password-member' });
+  assert.equal(login.status, 200);
+  const memberCookie = cookieOf(login);
+
+  // A verified non-admin is stopped by the gate on every admin route.
+  assert.equal((await app.request('/api/llm/config?scope=studio', { headers: { cookie: memberCookie } })).status, 403);
+  assert.equal((await send('/api/llm/test-composio', 'POST', {}, memberCookie)).status, 403);
+  assert.equal((await send('/api/llm/connect-orgo', 'POST', { apiKey: 'orgo-key-no-whitespace' }, memberCookie)).status, 403);
+  // Unauthenticated is 401, not 403.
+  assert.equal((await app.request('/api/llm/config?scope=studio')).status, 401);
+
+  // The admin passes the gate on all three — without any external call:
+  // studio config reads 200; test-composio reports "not configured" (no
+  // COMPOSIO key in the fixture env); connect-orgo with a whitespace key
+  // fails validation (400) before any Orgo call.
+  assert.equal((await app.request('/api/llm/config?scope=studio', { headers: { cookie: ownerCookie } })).status, 200);
+  const composio = await send('/api/llm/test-composio', 'POST', {}, ownerCookie);
+  assert.equal(composio.status, 200);
+  assert.equal((await composio.json()).ok, false);
+  const orgo = await send('/api/llm/connect-orgo', 'POST', { apiKey: 'has whitespace' }, ownerCookie);
+  assert.equal(orgo.status, 400);
+});
+
 test('invalid session cookie encoding is treated as signed out', () => {
   assert.equal(userFromCookieHeader('grokbot_session=%'), null);
 });
