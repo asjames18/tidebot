@@ -37,6 +37,24 @@ test('malformed versions never claim an update', () => {
   assert.equal(isNewerVersion('v1.0.0-dev.8', 'garbage'), false);
 });
 
+test('packaged desktop version suppresses a notice for the installed release', async (t) => {
+  const previous = process.env.TIDEBOT_DESKTOP_VERSION;
+  t.after(() => {
+    if (previous === undefined) delete process.env.TIDEBOT_DESKTOP_VERSION;
+    else process.env.TIDEBOT_DESKTOP_VERSION = previous;
+  });
+  process.env.TIDEBOT_DESKTOP_VERSION = '1.0.0-dev.42';
+  t.mock.method(globalThis, 'fetch', async () => ({
+    ok: true,
+    json: async () => [{ tag_name: 'v1.0.0-dev.42', name: 'Current release' }],
+  }));
+  const { releaseStatus: desktopReleaseStatus } = await import('../server/dist/releases.js?desktop');
+  const status = await desktopReleaseStatus();
+  assert.equal(status.current, '1.0.0-dev.42');
+  assert.equal(status.release?.tag, 'v1.0.0-dev.42');
+  assert.equal(status.updateAvailable, false);
+});
+
 test('releaseStatus flags update only when the fetched release is newer', async (t) => {
   const { resetReleaseCacheForTest } = await import('../server/dist/releases.js');
   const realFetch = globalThis.fetch;

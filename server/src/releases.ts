@@ -7,7 +7,7 @@
 // is anonymous public API data, cached in memory with stale-on-error fallback
 // so a failed or rate-limited check never breaks the app.
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = process.env.TIDEBOT_DESKTOP_VERSION || '1.0.0';
 
 const REPO = 'asjames18/tidebot';
 const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases?per_page=1`;

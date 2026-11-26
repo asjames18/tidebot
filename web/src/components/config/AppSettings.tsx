@@ -4,11 +4,13 @@ import type { LlmProvider, ShaderStyle, Toolkit } from '@shared/types';
 import { BotAvatarFor } from '../../avatar/BotAvatar';
 import { configApi, type ComputerDetails } from '../../lib/configApi';
 import { api } from '../../lib/api';
+import { desktopUpdateChecker } from '../../lib/desktop';
 import { relativeShort } from '../../lib/time';
 import { useConfigUI, type AppSection, type Theme } from '../../configStore';
 import { useStore } from '../../store';
 import { computerStatusText } from '../DetailsPanel';
 import { Icon } from '../Icon';
+import { DesktopUpdateButton } from '../DesktopUpdateButton';
 import { ShaderCanvas } from '../ShaderCanvas';
 import { ToolkitLogo } from '../ToolkitLogo';
 import { Glyph } from './glyphs';
@@ -278,6 +280,10 @@ function GeneralSection() {
   return (
     <>
       <PageHead title="General & Shaders" sub="Customize TideBot workspace appearance, real-time WebGL shaders, and system integrations." />
+      {desktopUpdateChecker() && <section className="cfg-section">
+        <h2 className="cfg-section__label">Desktop updates</h2>
+        <DesktopUpdateButton className="cfg-btn cfg-btn--secondary" />
+      </section>}
       <section className="cfg-section">
         <div className="cfg-section__label">Interface Theme</div>
         <div className="theme-tiles" role="radiogroup" aria-label="Theme">

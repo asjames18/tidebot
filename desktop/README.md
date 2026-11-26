@@ -7,6 +7,7 @@ Native desktop packaging for **TideBot** using Electron, `electron-builder`, and
 - **Development updates on every push to `main`**: Each push to `main` builds Windows (`.exe` NSIS), macOS (`.dmg` + `.zip` for `arm64` & `x64`), and Linux (`.AppImage` + `.deb`) installers and publishes a semver prerelease (`<version>-dev.<run_number>`) to GitHub Releases.
 - **Stable releases on tags**: Pushing a git tag like `v1.1.0` publishes a stable GitHub Release.
 - **In-app updater**: TideBot Desktop checks GitHub Releases on launch and every 2 hours. **Receive Development Updates (GitHub main)** is enabled by default and can be toggled in the app menu (`TideBot` on macOS, `File` on Windows/Linux).
+- **Check manually**: Open **Settings → General & Shaders → Desktop updates** or use **Check for updates** in the release banner. Both use the same updater as the app menu.
 - **User data**: Your SQLite database (`data/grokbot.db`), bot workspaces, and `.env` are stored in the OS user-data folder (`app.getPath('userData')`), so updates never overwrite your data.
 
 ## Enabling Automated Builds on GitHub

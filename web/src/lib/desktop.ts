@@ -1,9 +1,22 @@
+interface DesktopBridge {
+  platform?: string;
+  openGitReview?: () => Promise<void>;
+  checkForUpdates?: () => Promise<void>;
+}
+
+function desktopBridge(): DesktopBridge | undefined {
+  if (typeof window === 'undefined') return;
+  return (window as Window & { tidebotDesktop?: DesktopBridge }).tidebotDesktop;
+}
+
 export function hasNativeDesktopWindow(): boolean {
-  return typeof window !== 'undefined'
-    && Boolean((window as Window & { tidebotDesktop?: { platform?: string } }).tidebotDesktop?.platform);
+  return Boolean(desktopBridge()?.platform);
 }
 
 export function gitReviewLauncher(): (() => Promise<void>) | undefined {
-  if (typeof window === 'undefined') return;
-  return (window as Window & { tidebotDesktop?: { openGitReview?: () => Promise<void> } }).tidebotDesktop?.openGitReview;
+  return desktopBridge()?.openGitReview;
+}
+
+export function desktopUpdateChecker(): (() => Promise<void>) | undefined {
+  return desktopBridge()?.checkForUpdates;
 }

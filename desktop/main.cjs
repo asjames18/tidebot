@@ -140,6 +140,7 @@ async function startServer() {
   const env = {
     ...process.env,
     ELECTRON_RUN_AS_NODE: '1',
+    TIDEBOT_DESKTOP_VERSION: app.getVersion(),
     HOST: '127.0.0.1',
     PORT: String(port),
     DB_PATH: path.join(dataDir, 'grokbot.db'),
@@ -280,7 +281,7 @@ async function triggerUpdateCheck() {
   }
   manualCheck = true;
   autoUpdater.allowPrerelease = settings.devUpdates;
-  await autoUpdater.checkForUpdates();
+  await autoUpdater.checkForUpdates().catch(() => { /* The updater reports failures through its error event. */ });
 }
 
 function buildMenu() {
