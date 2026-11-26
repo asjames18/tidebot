@@ -1,7 +1,7 @@
 // After npm run build: node --test tests/rate-limit-ip.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {clientIp} from '../server/dist/lib/rateLimit.js';
+import {clientIp, defaultGateways} from '../server/dist/lib/rateLimit.js';
 
 test('ignores spoofed X-Forwarded-For from a direct, untrusted peer', () => {
   assert.equal(clientIp('203.0.113.9', '1.2.3.4'), '203.0.113.9');
@@ -38,6 +38,13 @@ test('walk stops at the first untrusted address, so client-prepended entries are
 });
 test('malformed entry in the chain stops at the last trusted address', () => {
   assert.equal(clientIp('127.0.0.1', 'junk, 192.0.2.50', '192.0.2.0/24'), '192.0.2.50');
+});
+test('defaultGateways parses /proc/net/route and ignores non-default routes', () => {
+  const route = 'Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\tMTU\tWindow\tIRTT\n' +
+    'eth0\t00000000\t010012AC\t0003\t0\t0\t0\t00000000\t0\t0\t0\n' +
+    'eth0\t000012AC\t00000000\t0001\t0\t0\t0\t0000FFFF\t0\t0\t0\n';
+  assert.deepEqual(defaultGateways(route), ['172.18.0.1']);
+  assert.deepEqual(defaultGateways(''), []);
 });
 test('* trusts every hop and uses the leftmost entry', () => {
   assert.equal(clientIp('10.0.0.5', '1.1.1.1, 2.2.2.2', '*'), '1.1.1.1');
