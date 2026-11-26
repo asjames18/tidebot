@@ -25,3 +25,5 @@ You can self-host on hardware you already own. Hosting and model providers may h
 Compose stores the SQLite database, Library files, and studio settings in the `tidebot-data` named volume. Changes saved in TideBot's Settings take precedence over the corresponding environment values in the Compose `.env`. Keep `.env` private.
 
 For a consistent backup, stop the service and back up the entire data volume along with `.env`. The source-checkout setup keeps its database and Library under `data/` by default. Back up data before rebuilding with a newer checkout. Run only one server process against the same SQLite database.
+
+TideBot makes no analytics or telemetry calls. See [Network egress](network-egress.md) for every outbound call it makes and why.
