@@ -582,8 +582,7 @@ export const TOOLS: ToolDef[] = [
     label: 'Wrapping up a helper',
     impl: async (a, ctx) => {
       const { interrupt } = await import('./loop.js');
-      interrupt(String(a.subagent_id));
-      const removed = await deleteSubagent(ctx.botId, String(a.subagent_id));
+      const removed = await deleteSubagent(ctx.botId, String(a.subagent_id), interrupt);
       return { output: removed ? 'Stopped and removed.' : 'No such subagent.' };
     },
   },
