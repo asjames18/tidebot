@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { BlockList, isIP } from 'node:net';
 import type { MiddlewareHandler } from 'hono';
 import { getConnInfo } from '@hono/node-server/conninfo';
@@ -6,12 +7,30 @@ import { env } from '../env.js';
 const strip = (ip: string) => ip.trim().replace(/^::ffff:/i, '');
 const isLoopback = (ip: string) => ip === '::1' || ip.startsWith('127.');
 
-/** Parse a TRUST_PROXY value: comma-separated IPs and/or CIDR ranges, or `*`. */
+/** IPv4 default-route gateways from the text of /proc/net/route (little-endian hex). */
+export function defaultGateways(routeText: string): string[] {
+  const out: string[] = [];
+  for (const line of routeText.split('\n').slice(1)) {
+    const c = line.trim().split(/\s+/);
+    if (c.length < 3 || c[1] !== '00000000' || !/^[0-9A-Fa-f]{8}$/.test(c[2]) || c[2] === '00000000') continue;
+    const n = parseInt(c[2], 16);
+    out.push([n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255].join('.'));
+  }
+  return out;
+}
+let gatewayCache: string[] | undefined;
+function gateways(): string[] {
+  if (!gatewayCache) { try { gatewayCache = defaultGateways(readFileSync('/proc/net/route', 'utf8')); } catch { gatewayCache = []; } }
+  return gatewayCache;
+}
+
+/** Parse a TRUST_PROXY value: comma-separated IPs and/or CIDR ranges, `gateway` (this host's IPv4 default-route gateway, e.g. the Docker bridge), or `*`. */
 function parseTrust(trustProxy: string) {
   const all = new BlockList();
   let any = false;
   for (const raw of trustProxy.split(',').map((x) => x.trim()).filter(Boolean)) {
     if (raw === '*') { any = true; continue; }
+    if (raw === 'gateway') { for (const g of gateways()) all.addAddress(g, 'ipv4'); continue; }
     const [addr, bits] = raw.split('/');
     const a = strip(addr);
     const fam = isIP(a);
