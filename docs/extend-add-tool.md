@@ -101,8 +101,8 @@ test('word_count counts words, characters, and lines', async () => {
 });
 ```
 
-Then wire it into the `test` script in `package.json`: add
-`tests/word-count.test.mjs` to the `node --test ...` list. The test imports from
+Then wire it in: append `tests/word-count.test.mjs` to `tests/node-tests.txt`
+(one file per line; `npm test` runs that list with `node --test`). The test imports from
 `server/dist/`, so it runs after the build step in `npm test` — same pattern as
 `tests/security.test.mjs`. Importing the tools module opens the local dev database
 (`data/grokbot.db`), the same database the dev server uses, creating it on first

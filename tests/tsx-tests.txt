@@ -1,0 +1,11 @@
+tests/markdown-links.test.mjs
+tests/palette.test.mjs
+tests/events.test.mjs
+tests/activity-phrase.test.mjs
+tests/vnc-watch-filter.test.mjs
+tests/template-field.test.mjs
+tests/details-focus.test.mjs
+tests/health-detail.test.mjs
+tests/activity-badge.test.mjs
+tests/secrets-key.test.mjs
+tests/pending-approvals.test.mjs

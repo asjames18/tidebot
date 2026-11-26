@@ -435,8 +435,8 @@ test('saveLlmConfig round-trips provider + groq key', () => {
 });
 ```
 
-Wire it into the `test` script in `package.json` (node group, after
-`tests/release-notice.test.mjs`), then run the gate:
+Append `tests/groq-provider.test.mjs` to `tests/node-tests.txt`
+(one file per line), then run the gate:
 
 ```bash
 npm run typecheck && npm run build && npm test
