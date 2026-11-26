@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { copyText } from '../lib/clipboard';
 import { configApi } from '../lib/configApi';
 import { botVars } from '../lib/colors';
+import { detailsBadge } from '../lib/activityBadge';
 import { displayName, sortedRows, useSelectedBot, useStore } from '../store';
 import { useConfigUI } from '../configStore';
 import { Composer } from './Composer';
@@ -122,6 +123,14 @@ export function ChatView() {
   const shortModel = activeModel.includes('/') ? activeModel.split('/').pop()! : activeModel;
   const run = recentRun?.botId === bot.id ? recentRun.run : undefined;
   const runLabel = live?.awaiting ? 'Needs your input' : live?.isRunning ? 'Working' : run && RUN_STATUS[run.state];
+  // Count badge on the Details button (issue #5): pending approvals and
+  // active runs stay visible from chat even with Details closed.
+  const badge = detailsBadge({
+    rows,
+    isRunning: !!live?.isRunning,
+    awaitingApproval: !!live?.awaiting,
+    waitingRun: run?.state === 'waiting',
+  });
   const savedFiles = new Set<string>();
   if (run?.state === 'completed' && run.startedAt !== null && run.finishedAt !== null) {
     for (const { createdAt, body } of rows) {
@@ -410,12 +419,17 @@ export function ChatView() {
               blurComposerOnMobile();
               set({ detailsOpen: !detailsOpen });
             }}
-            aria-label={detailsOpen ? 'Hide details' : 'Show details'}
+            aria-label={detailsOpen ? 'Hide details' : badge ? `Show details — ${badge.label}` : 'Show details'}
             aria-expanded={detailsOpen}
             aria-controls={detailsOpen ? 'conversation-details' : undefined}
           >
             <Icon name="sidebar" size={14} opacity={0.8} style={{ transform: 'scaleX(-1)' }} />
             <span className="new-chat-btn__label">Details</span>
+            {badge && (
+              <span className={`chat__details-badge${badge.urgent ? ' is-urgent' : ' is-dot'}`} aria-hidden="true">
+                {badge.count ?? ''}
+              </span>
+            )}
           </button>
           <button
             type="button"
