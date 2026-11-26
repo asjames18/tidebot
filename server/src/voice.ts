@@ -7,6 +7,7 @@ import OpenAI from 'openai';
 import { db, now } from './db.js';
 import { env } from './env.js';
 import { newId } from './lib/ids.js';
+import { redactSecrets } from './lib/redact.js';
 import type { AuthVars } from './lib/auth.js';
 import { appendRow, emitBot, getBotRow, getLive, listRoutines, listTasks, updateRow } from './store.js';
 import { enqueue } from './agent/loop.js';
@@ -259,7 +260,9 @@ voiceApi.post('/session', async (c) => {
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e?.message ?? e) }) as any);
   if (!r.ok) {
     const detail = await r.text().catch(() => '');
-    console.warn('[voice] client secret mint failed', r.status, detail.slice(0, 300));
+    // The mint-failure body is provider-controlled: redact before logging, and
+    // pass the DB-stored xAI key too (it may differ from the env value).
+    console.warn('[voice] client secret mint failed', r.status, redactSecrets(detail, [voiceKey()]).slice(0, 300));
     return c.json({ error: 'Could not start a voice session' }, 502);
   }
   const secret = (await r.json()) as { value: string; expires_at: number };
