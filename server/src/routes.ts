@@ -4,6 +4,7 @@ import { streamSSE } from 'hono/streaming';
 import fs from 'node:fs';
 import nodePath from 'node:path';
 import { localWorkspaceDir } from './agent/tools.js';
+import { pendingApprovalCounts } from './lib/approvals.js';
 import { resolveWithinWorkspace } from './lib/files.js';
 import { db, now } from './db.js';
 import { env } from './env.js';
@@ -27,7 +28,6 @@ import { voiceApi } from './voice.js';
 import type { AvatarColor, AvatarShape, RowBody, Toolkit } from './types.js';
 import { Cron } from 'croner';
 import { releaseStatus } from './releases.js';
-import { botStats } from './bot-stats.js';
 import crypto from 'node:crypto';
 
 const callbackSig = (userId: string, botId: string, slug: string, exp: number) =>
@@ -315,6 +315,10 @@ api.get('/preview/:botId/*', (c) => {
 
 api.get('/bots', (c) => c.json({ bots: listBots(c.get('user').id), live: allLive(c.get('user').id) }));
 
+// Pending tool-approval counts per bot (issue #5): the sidebar badge reads
+// this so a waiting approval on another bot stays visible from chat.
+api.get('/bots/pending-approvals', (c) => c.json({ counts: pendingApprovalCounts(db, c.get('user').id) }));
+
 api.post('/bots', async (c) => {
   const body = await c.req.json();
   return c.json({ bot: createBot(c.get('user').id, body) });
@@ -411,12 +415,6 @@ api.get('/bots/:id/export', (c) => {
 });
 
 api.get('/releases/latest', async (c) => c.json(await releaseStatus()));
-
-api.get('/bots/:id/stats', (c) => {
-  const stats = botStats(c.get('user').id, c.req.param('id'));
-  if (!stats) return c.json({ error: 'not found' }, 404);
-  return c.json(stats);
-});
 
 api.get('/system/status', async (c) => {
   const user = c.get('user');

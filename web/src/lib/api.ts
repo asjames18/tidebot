@@ -30,13 +30,6 @@ export interface LatestReleaseResponse {
   updateAvailable: boolean;
 }
 
-export interface BotStats {
-  messages: number;
-  tasksOpen: number;
-  tasksDone: number;
-  memories: number;
-}
-
 export interface SearchResults {
   messages: { botId: string; botName: string; seq: number; role: string; snippet: string; createdAt: number }[];
   memories: { id: string; botId: string; botName: string; text: string; createdAt: number }[];
@@ -53,10 +46,10 @@ export const api = {
   logout: () => req<{ ok: true }>('POST', '/auth/logout'),
 
   bots: () => req<{ bots: Bot[]; live: LiveState[] }>('GET', '/bots'),
+  pendingApprovals: () => req<{ counts: Record<string, number> }>('GET', '/bots/pending-approvals'),
   createBot: (b: Pick<Bot, 'name' | 'avatarShape' | 'avatarColor' | 'mode'> & Partial<Pick<Bot, 'label' | 'description' | 'instructions' | 'model'>>) => req<{ bot: Bot }>('POST', '/bots', b),
   cloneBot: (id: string) => req<{ bot: Bot }>('POST', `/bots/${id}/clone`),
   exportBotUrl: (id: string) => `/api/bots/${id}/export`,
-  botStats: (id: string) => req<BotStats>('GET', `/bots/${id}/stats`),
   latestRelease: () => req<LatestReleaseResponse>('GET', '/releases/latest'),
   systemStatus: () => req<{ botsCount: number; tasksOpen: number; tasksDone: number; memoriesCount: number; routinesCount: number; canManageStudio: boolean; connectedAppsCount: number; connectedApps: string[]; serverTime: number }>('GET', '/system/status'),
   markRead: (id: string) => req<{ ok: true }>('POST', `/bots/${id}/read`),
