@@ -9,6 +9,8 @@ Thanks for helping make TideBot better! This guide covers what you need to know 
 - **UI/UX**: shader presets, keyboard flow improvements, accessibility.
 - **Triage**: reproducing issues, confirming fixes, labeling.
 
+New here? Start with the [`good first issue`](https://github.com/asjames18/tidebot/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) list. A good first issue is small, self-contained, and clearly scoped so you can finish it without deep knowledge of the whole codebase. If one of those looks too large or ambiguous, check [`help wanted`](https://github.com/asjames18/tidebot/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) for issues the maintainers would like help with. Before starting, comment on the issue to say you'd like to work on it — that prevents two people doing the same work.
+
 ## Development setup
 
 Prerequisites: **Node.js ≥ 22.22.3** and npm. No other services required — data lives in a local SQLite database.
