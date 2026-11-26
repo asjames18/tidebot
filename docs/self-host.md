@@ -25,3 +25,25 @@ You can self-host on hardware you already own. Hosting and model providers may h
 Compose stores the SQLite database, Library files, and studio settings in the `tidebot-data` named volume. Changes saved in TideBot's Settings take precedence over the corresponding environment values in the Compose `.env`. Keep `.env` private.
 
 For a consistent backup, stop the service and back up the entire data volume along with `.env`. The source-checkout setup keeps its database and Library under `data/` by default. Back up data before rebuilding with a newer checkout. Run only one server process against the same SQLite database.
+
+## Updating TideBot
+
+### Source checkout
+
+1. Stop the server, then back up your data first — TideBot does not take a backup for you before an update. See "Data and updates" above for what to copy.
+2. `git pull`
+3. `npm install`
+4. `npm run build`
+5. Start the server again with `npm start` (or restart it under your service manager).
+
+Database migrations run automatically when the server starts: the schema is created with `CREATE TABLE IF NOT EXISTS` and missing columns are added idempotently (`server/src/db.ts`), so there is no separate migration step and no manual SQL to run.
+
+If an update fails to start, roll back: restore the backup from step 1, check out the previous commit (`git checkout <previous-commit>`), run `npm install && npm run build`, and start the server again.
+
+### Docker Compose
+
+1. Stop the service and back up the `tidebot-data` volume along with `.env` — see "Data and updates" above.
+2. `git pull`
+3. `docker compose up -d --build` (the Compose file builds the image from the checkout, so this picks up the new code and restarts the service).
+
+Desktop installs update themselves: the app checks for updates and prompts you when a new build is available.
