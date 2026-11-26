@@ -46,6 +46,7 @@ export const api = {
   logout: () => req<{ ok: true }>('POST', '/auth/logout'),
 
   bots: () => req<{ bots: Bot[]; live: LiveState[] }>('GET', '/bots'),
+  pendingApprovals: () => req<{ counts: Record<string, number> }>('GET', '/bots/pending-approvals'),
   createBot: (b: Pick<Bot, 'name' | 'avatarShape' | 'avatarColor' | 'mode'> & Partial<Pick<Bot, 'label' | 'description' | 'instructions' | 'model'>>) => req<{ bot: Bot }>('POST', '/bots', b),
   cloneBot: (id: string) => req<{ bot: Bot }>('POST', `/bots/${id}/clone`),
   exportBotUrl: (id: string) => `/api/bots/${id}/export`,
