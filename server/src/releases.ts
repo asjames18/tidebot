@@ -1,16 +1,18 @@
 // In-app release notices for self-hosters (RAK-41).
 //
-// The server checks the public GitHub Releases API for the newest published
+// The server checks GitHub's Atom feed and Releases API for the newest published
 // release — including dev-channel prereleases, which are TideBot's primary
 // distribution — and the UI shows a dismissible "what's new" notice when the
 // running install is behind. No secrets, no third-party service: the endpoint
-// is anonymous public API data, cached in memory with stale-on-error fallback
+// uses public data, cached in memory with stale-on-error fallback
 // so a failed or rate-limited check never breaks the app.
 
 export const APP_VERSION = process.env.TIDEBOT_DESKTOP_VERSION || '1.0.0';
 
 const REPO = 'asjames18/tidebot';
-const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases?per_page=1`;
+const RELEASES_URL = `https://github.com/${REPO}/releases`;
+const RELEASES_API = `https://api.github.com/repos/${REPO}/releases`;
+const USER_AGENT = `tidebot/${APP_VERSION}`;
 const TTL_MS = 30 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 5000;
 
@@ -89,20 +91,45 @@ export function resetReleaseCacheForTest(): void {
   inFlight = null;
 }
 
+async function fetchPublishedTag(signal: AbortSignal): Promise<string | undefined> {
+  try {
+    const res = await fetch(`${RELEASES_URL}.atom`, {
+      headers: { Accept: 'application/atom+xml', 'User-Agent': USER_AGENT },
+      signal,
+    });
+    if (!res.ok) return;
+    const tagPrefix = `${RELEASES_URL}/tag/`;
+    const feed = await res.text();
+    // The Atom feed puts the newest publication first. The REST list can
+    // put an older release ahead of a recently published draft.
+    for (const [, href] of feed.matchAll(/<link\b[^>]*\bhref="([^"]+)"/g)) {
+      if (!href.startsWith(tagPrefix)) continue;
+      const tag = href.slice(tagPrefix.length);
+      if (parseVersion(tag)) return tag;
+    }
+  } catch {
+    // Try the public REST list if the feed is unavailable.
+  }
+}
+
 async function fetchLatest(): Promise<ReleaseInfo | null> {
   try {
-    const res = await fetch(RELEASES_URL, {
-      headers: { Accept: 'application/vnd.github+json', 'User-Agent': `tidebot/${APP_VERSION}` },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+    const tag = await fetchPublishedTag(signal);
+    const url = tag ? `${RELEASES_API}/tags/${encodeURIComponent(tag)}` : `${RELEASES_API}?per_page=1`;
+    const res = await fetch(url, {
+      headers: { Accept: 'application/vnd.github+json', 'User-Agent': USER_AGENT },
+      signal,
     });
     if (!res.ok) return null;
     const data = (await res.json()) as unknown;
-    const r = Array.isArray(data) ? (data[0] as Record<string, unknown> | undefined) : undefined;
+    const release = tag ? data : Array.isArray(data) ? data[0] : undefined;
+    const r = release && typeof release === 'object' ? release as Record<string, unknown> : undefined;
     if (!r || typeof r.tag_name !== 'string') return null;
     return {
       tag: r.tag_name,
       name: typeof r.name === 'string' && r.name.trim() ? r.name.trim() : r.tag_name,
-      url: typeof r.html_url === 'string' ? r.html_url : `https://github.com/${REPO}/releases`,
+      url: typeof r.html_url === 'string' ? r.html_url : RELEASES_URL,
       publishedAt: typeof r.published_at === 'string' ? r.published_at : null,
       notes: typeof r.body === 'string' ? r.body.slice(0, 2000) : '',
     };
