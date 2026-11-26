@@ -1,5 +1,7 @@
 # xAI API (Grok 4.7) and Composio: builder's reference for Grokbot
 
+> **Last verified:** 2026-11-26 · **Owner:** asjames18 (maintainer)
+
 Researched 2026-11-09 from the official docs only: `docs.x.ai` (its `llms.txt` index plus per-page `.md` endpoints) and `docs.composio.dev` (its `llms.txt`, `llms-index.txt` and per-page `.md` endpoints), plus `composio.dev/pricing` for plan prices. No accounts were created and no authenticated calls were made, so nothing here has been run against a live key.
 
 Labels: **[D]** = stated in the docs (a URL is given). **[I]** = inferred by us. Verify these before relying on them. **[R]** = our recommendation for Grokbot.
@@ -686,3 +688,10 @@ Sessions are free to create. Triggers are billed per **delivered** event, and po
 4. Whether the `OpenAIResponsesProvider` tool output drops straight into xAI unchanged. In particular, check any `strict` field and root schema shapes. Some Composio tools may have schemas whose root is not an object, which xAI rejects with 400.
 5. The exact camelCase SDK params for `composio.toolkits.get()` list filters (`sortBy`, `category`, `search`). The REST names are documented; the TypeScript `ToolkitListParams` field names are not shown.
 6. The current `@composio/openai` version.
+
+## See also
+
+- [Architecture](ARCHITECTURE.md) — how the server, agent loop, and BYOM engine fit together, including the xAI and Composio integrations.
+- [Self-host TideBot](self-host.md) — run the server on your own machine or server, connect devices, and back up your data.
+- [First chat with a local model](local-model.md) — smoke-test TideBot with llama.cpp or Ollama and no cloud key.
+- [Orgo builder's guide](orgo-builder-guide.md) — how the Orgo cloud desktops behind the computer tools work.
