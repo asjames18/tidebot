@@ -79,8 +79,8 @@ export function ApprovalCard({ body }: { body: Card<'approval'> }) {
       </div>
       {!argumentsText && body.detail && <div className="card__body">{body.detail}</div>}
       {argumentsText && <details className="card__arguments" open={pending}>
-        <summary>View action details</summary>
-        <pre>{argumentsText}</pre>
+        <summary aria-label={`View action details for ${toolName}`}>View action details</summary>
+        <pre tabIndex={0} role="region" aria-label={`Action details for ${toolName}`}>{argumentsText}</pre>
       </details>}
       {pending ? (
         <>

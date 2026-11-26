@@ -19,6 +19,7 @@
 
 .approval-card .card__actions .btn:focus-visible,
 .approval-card .card__arguments summary:focus-visible,
+.approval-card .card__arguments pre:focus-visible,
 .approval-card .card__outcome:focus-visible { outline: 2px solid var(--color-ink); }
 .approval-card .card__actions .btn--primary { background: var(--color-primary); color: var(--color-on-primary); }
 .approval-card .card__outcome { color: var(--color-text-secondary); }
