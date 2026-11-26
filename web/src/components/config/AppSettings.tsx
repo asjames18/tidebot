@@ -1172,7 +1172,7 @@ function AppsSection() {
       setComposioKey('');
       const st = useStore.getState();
       st.set({ connectionsVersion: st.connectionsVersion + 1 });
-      setKeyNote({ ok: true, text: 'Saved Composio API key to .env and reloaded catalog.' });
+      setKeyNote({ ok: true, text: 'Saved Composio API key and reloaded catalog.' });
     } catch (e: any) {
       setKeyNote({ ok: false, text: e?.message ?? 'Failed to save key' });
     } finally {

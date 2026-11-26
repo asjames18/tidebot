@@ -4,6 +4,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { db, now } from '../db.js';
 import { env } from '../env.js';
+import { getOrgoKey } from './llm.js';
 import { newId } from '../lib/ids.js';
 import { hub } from '../lib/hub.js';
 import { orgo } from '../orgo.js';
@@ -303,7 +304,7 @@ export const TOOLS: ToolDef[] = [
       try { fullPath = writeWorkspaceFile(localDir, name, String(a.content ?? '')); }
       catch { return { output: 'Could not write workspace file.' }; }
       const comp = db.prepare("SELECT orgo_id FROM computers WHERE user_id=? AND status='running'").get(ctx.userId) as any;
-      if (env.orgoKey && comp?.orgo_id) {
+      if (getOrgoKey() && comp?.orgo_id) {
         const dir = `/root/grokbot/files/${ctx.botId}`;
         const b64 = Buffer.from(String(a.content), 'utf8').toString('base64');
         await onScreen(ctx, async (c, s) => {
@@ -345,7 +346,7 @@ export const TOOLS: ToolDef[] = [
     impl: async (a, ctx) => {
       const timeoutSec = Math.min(Math.max(a.timeout_seconds ?? 60, 1), 290);
       const comp = db.prepare("SELECT orgo_id FROM computers WHERE user_id=? AND status='running'").get(ctx.userId) as any;
-      if (!env.orgoKey || !comp?.orgo_id) {
+      if (!getOrgoKey() || !comp?.orgo_id) {
         const cwd = localWorkspaceDir(ctx.botId);
         const r = await runShell(String(a.command), cwd, timeoutSec);
         const out = r.output.trim().slice(-20000);
@@ -656,7 +657,7 @@ const ORGO_ONLY_TOOLS = new Set([
 ]);
 
 export function functionSchemas() {
-  const active = env.orgoKey ? TOOLS : TOOLS.filter((t) => !ORGO_ONLY_TOOLS.has(t.name));
+  const active = getOrgoKey() ? TOOLS : TOOLS.filter((t) => !ORGO_ONLY_TOOLS.has(t.name));
   return active.map((t) => ({ type: 'function', name: t.name, description: t.description, parameters: t.parameters }));
 }
 

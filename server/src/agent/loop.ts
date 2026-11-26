@@ -11,7 +11,7 @@ import { systemPrompt } from './prompt.js';
 import { repairHistory } from './history.js';
 import { maybeCompact, noteUsage } from './memory.js';
 import { noteCheckinOutcome } from '../proactive.js';
-import { resolveBotModel, getLlmConfig, streamModelTurn } from './llm.js';
+import { resolveBotModel, getLlmConfig, getComposioKey, getOrgoKey, streamModelTurn } from './llm.js';
 import { redactSecrets } from '../lib/redact.js';
 import { activityFor, functionSchemas, humanizeSlug, policyFor, runComposioTool, toolMap, type ToolCtx, type ToolResult } from './tools.js';
 
@@ -41,13 +41,13 @@ const KEEP_IMAGES = 3;
 const queues = new Map<string, Promise<void>>();
 const aborts = new Map<string, AbortController>();
 
-/** DB-stored LLM keys, so a turn error can never leak a key the operator set
+/** DB-stored provider keys, so a turn error can never leak a key the operator set
  *  in the studio UI (it may differ from the env value). Error path only; a
  *  missing/unreadable DB just means no extra values to redact. */
 function llmKeyValues(): string[] {
   try {
     const cfg = getLlmConfig();
-    return [cfg.openrouterKey, cfg.xaiKey, cfg.customApiKey];
+    return [cfg.openrouterKey, cfg.xaiKey, cfg.customApiKey, getComposioKey(), getOrgoKey()];
   } catch {
     return [];
   }
