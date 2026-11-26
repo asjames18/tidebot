@@ -92,14 +92,20 @@ jobs:
           TARGET_ARCH: ${{ matrix.target_arch }}
         run: npm run stage
 
-      - name: Package and publish to GitHub Releases
+      # No build leg publishes anymore: every leg packages with
+      # `--publish never` (electron-builder still writes the updater
+      # metadata — latest.yml / latest-linux.yml — into dist/) and saves
+      # its output as an artifact. The publish job uploads everything
+      # only after all four legs succeed, so a release never becomes the
+      # updater's "latest" while incomplete (the dev.75 incident: the
+      # release went live with only 4 assets while macOS was still
+      # building, and Antonio's Mac updater 404'd on latest-mac.yml).
+      - name: Package installer (no publish — the publish job owns releases)
         if: matrix.platform != 'mac'
         working-directory: desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >
           node scripts/eb-cli.mjs ${{ matrix.args }}
-          --publish always
+          --publish never
           --release-type ${{ steps.ver.outputs.release_type }}
 
       - name: Package macOS installer
@@ -107,11 +113,26 @@ jobs:
         working-directory: desktop
         run: node scripts/eb-cli.mjs ${{ matrix.args }} --publish never
 
+      - name: Save Windows/Linux release assets
+        if: matrix.platform != 'mac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.exe.blockmap
+            desktop/dist/latest.yml
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+            desktop/dist/latest-linux.yml
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Save macOS release assets
         if: matrix.platform == 'mac'
         uses: actions/upload-artifact@v4
         with:
-          name: mac-${{ matrix.target_arch }}
+          name: release-mac-${{ matrix.target_arch }}
           path: |
             desktop/dist/*.dmg
             desktop/dist/*.zip
@@ -119,8 +140,8 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  publish-mac:
-    name: Publish both macOS installers and updater manifest
+  publish:
+    name: Publish complete release (draft first, then publish)
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -130,18 +151,102 @@ jobs:
           node-version: 22.22.3
       - uses: actions/download-artifact@v4
         with:
-          pattern: mac-*
-          path: mac-release
-      - name: Publish macOS assets as a single update
+          pattern: release-*
+          path: release-assets
+      - name: Derive release version
+        id: ver
+        shell: bash
+        run: |
+          BASE_VER=$(node -p "require('./package.json').version")
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VER="${GITHUB_REF#refs/tags/v}"
+            RELEASE_TYPE="release"
+          else
+            VER="${BASE_VER}-dev.${GITHUB_RUN_NUMBER}"
+            RELEASE_TYPE="prerelease"
+          fi
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "release_type=${RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "Releasing TideBot Desktop v${VER} (${RELEASE_TYPE})"
+      - name: Build macOS updater manifest
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          node desktop/scripts/mac-update-manifest.mjs "$VERSION" release-assets/release-mac-x64 release-assets/release-mac-arm64 release-assets/latest-mac.yml
+      - name: Check release completeness (fail loudly if any asset is missing)
+        shell: bash
+        run: |
+          missing=0
+          check() {
+            if ! compgen -G "$1" > /dev/null; then
+              echo "MISSING: $1" >&2
+              missing=1
+            fi
+          }
+          check "release-assets/release-win/*.exe"
+          check "release-assets/release-win/*.exe.blockmap"
+          check "release-assets/release-win/latest.yml"
+          check "release-assets/release-linux/*.AppImage"
+          check "release-assets/release-linux/*.deb"
+          check "release-assets/release-linux/latest-linux.yml"
+          check "release-assets/release-mac-x64/*.dmg"
+          check "release-assets/release-mac-x64/*.zip"
+          check "release-assets/release-mac-x64/*.blockmap"
+          check "release-assets/release-mac-arm64/*.dmg"
+          check "release-assets/release-mac-arm64/*.zip"
+          check "release-assets/release-mac-arm64/*.blockmap"
+          check "release-assets/latest-mac.yml"
+          if [ "$missing" -ne 0 ]; then
+            echo "Release is incomplete — refusing to publish. See MISSING lines above." >&2
+            exit 1
+          fi
+          echo "All expected assets present."
+      - name: Create draft release, upload assets, publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.build.outputs.version }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          RELEASE_TYPE: ${{ steps.ver.outputs.release_type }}
         run: |
           tag="v$VERSION"
-          published_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$tag" --jq .sha)
-          test "$published_sha" = "$GITHUB_SHA"
-          intel=mac-release/mac-x64
-          apple=mac-release/mac-arm64
-          node desktop/scripts/mac-update-manifest.mjs "$VERSION" "$intel" "$apple" mac-release/latest-mac.yml
-          gh release upload "$tag" "$intel"/* "$apple"/* --clobber
-          gh release upload "$tag" mac-release/latest-mac.yml --clobber
+          # Never clobber a published release. A stale draft from an
+          # earlier run of this same release (e.g. a re-run after a
+          # failure) is removed first so the create below succeeds.
+          if gh release view "$tag" >/dev/null 2>&1; then
+            if [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" = "true" ]; then
+              echo "Removing stale draft $tag from an earlier run of this release."
+              gh release delete "$tag" -y --cleanup-tag
+            else
+              echo "Release $tag already exists and is published — refusing to overwrite it." >&2
+              exit 1
+            fi
+          fi
+          args=(--draft --title "$tag")
+          if [ "$RELEASE_TYPE" = "prerelease" ]; then args+=(--prerelease); fi
+          gh release create "$tag" "${args[@]}"
+          # Upload by explicit glob, not by directory: electron-builder may
+          # also write a per-arch latest-mac.yml into the mac dist dirs, and
+          # only the combined manifest built above may be published.
+          files=(
+            release-assets/release-win/*.exe
+            release-assets/release-win/*.exe.blockmap
+            release-assets/release-win/latest.yml
+            release-assets/release-linux/*.AppImage
+            release-assets/release-linux/*.deb
+            release-assets/release-linux/latest-linux.yml
+            release-assets/release-mac-x64/*.dmg
+            release-assets/release-mac-x64/*.zip
+            release-assets/release-mac-x64/*.blockmap
+            release-assets/release-mac-arm64/*.dmg
+            release-assets/release-mac-arm64/*.zip
+            release-assets/release-mac-arm64/*.blockmap
+            release-assets/latest-mac.yml
+          )
+          expected=${#files[@]}
+          gh release upload "$tag" "${files[@]}" --clobber
+          actual=$(gh release view "$tag" --json assets --jq '.assets | length')
+          if [ "$actual" -ne "$expected" ]; then
+            echo "Uploaded $expected files but release $tag has $actual assets — leaving it as a draft for inspection." >&2
+            exit 1
+          fi
+          gh release edit "$tag" --draft=false
+          echo "Published $tag with $actual assets."
