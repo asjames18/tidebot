@@ -173,6 +173,14 @@ npm start
 
 In production mode (`npm start`), the Hono server serves both the compiled SPA and `/api/*` on `http://localhost:8787`. See [Self-host TideBot](docs/self-host.md) for Docker Compose, persistent data, and desktop and phone access.
 
+### Health check
+
+```bash
+npm run doctor
+```
+
+Reports the running server's Node version, whether the database file is readable/writable, whether Bubblewrap sandboxing is available (Linux only — local shell commands are refused without it), and which provider keys are configured — as yes/no flags, never the keys themselves. It needs the server running (`npm run dev -w server` or `npm start`). The same detail is available as JSON at `GET /api/health?detail=1`; plain `/api/health` still returns just `{ "ok": true }`.
+
 ---
 
 ## Runs, research, and projects

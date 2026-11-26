@@ -20,6 +20,7 @@ import { checkinsApi } from './routes-proactive.js';
 import { roomsApi } from './routes-rooms.js';
 import { enqueue } from './agent/loop.js';
 import { desSelfTest } from './lib/des.js';
+import { buildHealthDetail } from './lib/health.js';
 import { configApi } from './routes-config.js';
 import { startIdleWatcher } from './idle.js';
 import { startMemoryConsolidation } from './agent/memory.js';
@@ -54,7 +55,14 @@ app.use('*', async (c, next) => {
   if (c.req.path === '/api/events') { await next(); return; }
   return compressor(c, next);
 });
-app.get('/api/health', (c) => c.json({ ok: true }));
+app.get('/api/health', (c) => {
+  // Plain /api/health keeps returning exactly { ok: true } (desktop updater
+  // and smoke tests depend on it); ?detail=1 adds the diagnostic payload.
+  if (c.req.query('detail') === '1') {
+    return c.json(buildHealthDetail({ nodeVersion: process.version, dbPath: env.dbPath, providers: env.providers }));
+  }
+  return c.json({ ok: true });
+});
 app.use('/api/auth/*', rateLimit({ limit: 30, windowMs: 60_000 }));
 app.use('/api/llm/*', rateLimit({ limit: 60, windowMs: 60_000 }));
 app.use('/api/voice/*', rateLimit({ limit: 60, windowMs: 60_000 }));
