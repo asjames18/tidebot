@@ -70,6 +70,7 @@ npm run dev -w web      # http://localhost:5173 (proxies /api to :8787)
 ## 4. Adding New Capabilities
 
 ### Adding a New Built-in Agent Tool
+Worked tutorial with a runnable example: [docs/extend-add-tool.md](docs/extend-add-tool.md).
 1. Define the tool in `TOOLS` inside `server/src/agent/tools.ts` with a clear `name`, `description`, JSON Schema `parameters`, `activity` (`ActivityKind`), and `label`.
 2. Return `{ output: string | any[], summary?: string, endTurn?: boolean }`.
 3. If the tool renders an interactive UI card, call `appendRow(ctx.botId, 'card', ...)` and match one of the `CardBody` variants in `server/src/types.ts` and `web/src/components/cards/Cards.tsx`.
