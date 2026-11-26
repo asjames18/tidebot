@@ -25,3 +25,5 @@ You can self-host on hardware you already own. Hosting and model providers may h
 Compose stores the SQLite database, Library files, and studio settings in the `tidebot-data` named volume. Changes saved in TideBot's Settings take precedence over the corresponding environment values in the Compose `.env`. Keep `.env` private.
 
 For a consistent backup, stop the service and back up the entire data volume along with `.env`. The source-checkout setup keeps its database and Library under `data/` by default. Back up data before rebuilding with a newer checkout. Run only one server process against the same SQLite database.
+
+TideBot checks the public GitHub Releases API about once every 30 minutes to show an in-app notice when a newer release exists. Set `TIDEBOT_RELEASE_NOTICES=0` in `.env` to turn that check off entirely — the server then makes no release request at all.
