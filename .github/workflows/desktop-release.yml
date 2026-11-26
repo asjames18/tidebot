@@ -122,6 +122,10 @@ jobs:
   publish-mac:
     name: Publish both macOS installers and updater manifest
     needs: build
+    # A failed Windows/Linux leg must not block the macOS publish: run
+    # even when `build` failed, then refuse loudly if either macOS
+    # artifact set is missing instead of publishing a partial manifest.
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -132,11 +136,28 @@ jobs:
         with:
           pattern: mac-*
           path: mac-release
+      - name: Verify both macOS builds produced installers
+        run: |
+          for arch in x64 arm64; do
+            dir="mac-release/mac-$arch"
+            test -d "$dir" || { echo "::error::Missing $dir — a macOS build leg failed; refusing to publish a partial manifest."; exit 1; }
+            ls "$dir"/*.dmg "$dir"/*.zip >/dev/null || { echo "::error::No installer files in $dir — refusing to publish a partial manifest."; exit 1; }
+          done
       - name: Publish macOS assets as a single update
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
+          # `needs.build.outputs.version` is empty if the build job failed
+          # before publishing outputs; re-derive it the same way the
+          # build job does so the macOS publish can still proceed.
+          if [ -z "$VERSION" ]; then
+            if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+              VERSION="${GITHUB_REF#refs/tags/v}"
+            else
+              VERSION="$(node -p "require('./package.json').version")-dev.${GITHUB_RUN_NUMBER}"
+            fi
+          fi
           tag="v$VERSION"
           published_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$tag" --jq .sha)
           test "$published_sha" = "$GITHUB_SHA"
