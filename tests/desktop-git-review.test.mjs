@@ -1,10 +1,24 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import test from 'node:test';
 import review from '../desktop/git-repository.cjs';
+
+// The sandbox's git wrapper (hatch-git) rewrites a repository's config and
+// drops filter entries before git reads them, so a filter set in a fixture
+// can never be observed by the guard under test. Skip that one test there;
+// the other two tests need no filter config and still run.
+let gitWrapperStripsFilters = false;
+try {
+  gitWrapperStripsFilters = realpathSync(
+    execFileSync('which', ['git'], { encoding: 'utf8' }).trim(),
+  ).includes('hatch-git');
+} catch {
+  // No git on PATH, or no `which`: run the test normally and let it fail honestly.
+}
 
 async function fixture(t) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'tidebot-git-review-')));
@@ -66,7 +80,11 @@ test('creates a clean, sibling Git worktree from HEAD while keeping the source c
   assert.equal(git('branch', '--show-current').trim(), 'main');
 });
 
-test('leaves operations that may run content filters to the Git client', async (t) => {
+test('leaves operations that may run content filters to the Git client', {
+  skip: gitWrapperStripsFilters
+    ? 'sandbox git wrapper strips filter config before git reads it'
+    : false,
+}, async (t) => {
   const { root, repo, git } = await fixture(t);
   git('config', 'filter.fixture.smudge', 'cat');
   assert.deepEqual((await review.changes(repo)).files, []);
