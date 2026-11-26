@@ -115,7 +115,7 @@ jobs:
 
       - name: Save Windows/Linux release assets
         if: matrix.platform != 'mac'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.platform }}
           path: |
@@ -130,7 +130,7 @@ jobs:
 
       - name: Save macOS release assets
         if: matrix.platform == 'mac'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-mac-${{ matrix.target_arch }}
           path: |
