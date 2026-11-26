@@ -10,7 +10,7 @@ import https from 'node:https';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
 import { isPrivateIp, isLoopbackHost, assertUrlHostAllowedSync, assertPublicUrl, safeFetch } from '../server/dist/lib/ssrf.js';
-import { resolveWithinWorkspace, writeWorkspaceFile } from '../server/dist/lib/files.js';
+import { listWorkspaceDirectory, resolveWithinWorkspace, resolveWorkspaceEntryForDelete, writeWorkspaceFile } from '../server/dist/lib/files.js';
 
 const fixtures = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-security-'));
 process.env.DB_PATH = path.join(fixtures, 'test.db');
@@ -305,4 +305,131 @@ test('web fetch preserves the HTTPS hostname while connecting to validated addre
     status: 200, contentType: 'text/plain', text: 'fixture',
   });
   assert.equal(resolve.mock.callCount(), 1);
+});
+
+test('workspace resolution rejects dangling symlinks, symlinked parents, loops, and absolute paths', () => {
+  const root = fs.mkdtempSync(path.join(fixtures, 'ws-dangling-'));
+  const outside = fs.mkdtempSync(path.join(fixtures, 'out-dangling-'));
+  fs.mkdirSync(path.join(root, 'sub'));
+  fs.writeFileSync(path.join(root, 'sub', 'inside.txt'), 'inside');
+  fs.symlinkSync(path.join(outside, 'not-yet-created.txt'), path.join(root, 'dangling-file.txt'));
+  fs.symlinkSync(path.join(outside, 'not-yet-created-dir'), path.join(root, 'dangling-dir'));
+  fs.symlinkSync(outside, path.join(root, 'escaped-dir'));
+  fs.symlinkSync('loop-a', path.join(root, 'loop-a'));
+  fs.symlinkSync(path.join(root, 'sub'), path.join(root, 'internal-link'));
+
+  assert.equal(resolveWithinWorkspace(root, 'dangling-file.txt'), null);
+  assert.equal(resolveWithinWorkspace(root, 'dangling-dir/nested/file.txt'), null);
+  assert.equal(resolveWithinWorkspace(root, 'escaped-dir/new.txt'), null);
+  assert.equal(resolveWithinWorkspace(root, 'loop-a'), null);
+  assert.equal(resolveWithinWorkspace(root, '/etc/passwd'), null);
+  assert.equal(resolveWithinWorkspace(root, 'sub/inside.txt/child'), null);
+  assert.equal(resolveWithinWorkspace(root, 'internal-link/inside.txt'), path.join(fs.realpathSync(root), 'sub', 'inside.txt'));
+});
+
+test('workspace delete resolution blocks parent-symlink escapes and allows unlinking dangling leaf symlinks', () => {
+  const root = fs.mkdtempSync(path.join(fixtures, 'ws-del-'));
+  const outside = fs.mkdtempSync(path.join(fixtures, 'out-del-'));
+  fs.writeFileSync(path.join(outside, 'victim.txt'), 'keep');
+  fs.symlinkSync(path.join(outside, 'victim.txt'), path.join(outside, 'nested-link'));
+  fs.symlinkSync(outside, path.join(root, 'escaped-dir'));
+  fs.symlinkSync(path.join(outside, 'missing-target'), path.join(root, 'dangling-leaf'));
+  fs.symlinkSync(path.join(outside, 'victim.txt'), path.join(root, 'escape-leaf'));
+
+  // Refuses workspace root and any path traversing a symlinked parent outside root.
+  assert.equal(resolveWorkspaceEntryForDelete(root, '.'), null);
+  assert.equal(resolveWorkspaceEntryForDelete(root, ''), null);
+  assert.equal(resolveWorkspaceEntryForDelete(root, 'escaped-dir/victim.txt'), null);
+  assert.equal(resolveWorkspaceEntryForDelete(root, 'escaped-dir/nested-link'), null);
+
+  // Allows removing dangling or escaping symlinks sitting directly in the workspace without following them.
+  const dangling = resolveWorkspaceEntryForDelete(root, 'dangling-leaf');
+  assert.equal(dangling, path.join(fs.realpathSync(root), 'dangling-leaf'));
+  fs.rmSync(dangling, { recursive: true, force: true });
+  assert.throws(() => fs.lstatSync(path.join(root, 'dangling-leaf')), { code: 'ENOENT' });
+
+  const escapeLeaf = resolveWorkspaceEntryForDelete(root, 'escape-leaf');
+  assert.equal(escapeLeaf, path.join(fs.realpathSync(root), 'escape-leaf'));
+  fs.rmSync(escapeLeaf, { recursive: true, force: true });
+  assert.equal(fs.readFileSync(path.join(outside, 'victim.txt'), 'utf8'), 'keep');
+});
+
+test('workspace listing skips broken and escaping symlinks without hiding valid files', () => {
+  const root = fs.mkdtempSync(path.join(fixtures, 'ws-list-'));
+  const outside = fs.mkdtempSync(path.join(fixtures, 'out-list-'));
+  fs.writeFileSync(path.join(outside, 'secret.txt'), 'secret');
+  fs.mkdirSync(path.join(root, 'real-dir'));
+  fs.writeFileSync(path.join(root, 'a-before.txt'), 'before');
+  fs.symlinkSync(path.join(outside, 'does-not-exist'), path.join(root, 'b-broken'));
+  fs.symlinkSync(path.join(outside, 'secret.txt'), path.join(root, 'c-escape'));
+  fs.symlinkSync(path.join(root, 'real-dir'), path.join(root, 'd-internal-dir'));
+  fs.writeFileSync(path.join(root, 'z-after.txt'), 'after');
+
+  const entries = listWorkspaceDirectory(root);
+  assert.ok(Array.isArray(entries));
+  const names = entries.map((e) => e.name).sort();
+  assert.deepEqual(names, ['a-before.txt', 'd-internal-dir', 'real-dir', 'z-after.txt']);
+  assert.equal(entries.find((e) => e.name === 'd-internal-dir')?.isDir, true);
+  assert.equal(listWorkspaceDirectory(root, 'b-broken'), null);
+});
+
+test('files API handles broken symlinks safely on list and blocks parent-symlink escapes on delete', async () => {
+  fs.writeFileSync(process.env.ENV_PATH, [
+    'DEV_LOGIN=1',
+    'STUDIO_EMAIL=owner@example.test',
+    'STUDIO_PASSWORD=' + 'test-password',
+  ].join('\n'));
+  const { Hono } = await import('hono');
+  const { api } = await import('../server/dist/routes.js');
+  const { configApi } = await import('../server/dist/routes-config.js');
+  const { localWorkspaceDir } = await import('../server/dist/agent/tools.js');
+  const app = new Hono();
+  app.route('/api', api);
+  app.route('/api', configApi);
+
+  const login = await app.request('/api/auth/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'owner@example.test', password: 'test-password' }),
+  });
+  assert.equal(login.status, 200);
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const botsRes = await app.request('/api/bots', { headers: { cookie } });
+  const { bots } = await botsRes.json();
+  const botId = bots[0].id;
+
+  const ws = localWorkspaceDir(botId);
+  const outside = fs.mkdtempSync(path.join(fixtures, 'out-api-'));
+  fs.writeFileSync(path.join(outside, 'keep.txt'), 'keep');
+  fs.symlinkSync(path.join(outside, 'keep.txt'), path.join(outside, 'target-link'));
+  fs.writeFileSync(path.join(ws, 'good.txt'), 'ok');
+  fs.symlinkSync(path.join(outside, 'missing'), path.join(ws, 'dangling'));
+  fs.symlinkSync(outside, path.join(ws, 'escaped-dir'));
+
+  // Listing still returns good.txt even with a broken symlink present, and does not create dirs on GET.
+  const listed = await app.request(`/api/bots/${botId}/files?local=1`, { headers: { cookie } });
+  assert.equal(listed.status, 200);
+  const { files } = await listed.json();
+  assert.ok(files.some((f) => f.name === 'good.txt'));
+  assert.ok(!files.some((f) => f.name === 'dangling'));
+  assert.ok(!files.some((f) => f.name === 'escaped-dir'));
+
+  const missingDir = await app.request(`/api/bots/${botId}/files?local=1&path=does-not-exist`, { headers: { cookie } });
+  assert.equal(missingDir.status, 200);
+  assert.equal(fs.existsSync(path.join(ws, 'does-not-exist')), false);
+
+  // Deleting through a symlinked parent directory must NOT touch files/symlinks outside the workspace.
+  const badDel = await app.request(`/api/bots/${botId}/files?path=escaped-dir/target-link`, {
+    method: 'DELETE', headers: { cookie },
+  });
+  assert.equal(badDel.status, 200);
+  assert.ok(fs.lstatSync(path.join(outside, 'target-link')).isSymbolicLink());
+  assert.equal(fs.readFileSync(path.join(outside, 'keep.txt'), 'utf8'), 'keep');
+
+  // Deleting a dangling leaf symlink directly in the workspace succeeds cleanly.
+  const delDangling = await app.request(`/api/bots/${botId}/files?path=dangling`, {
+    method: 'DELETE', headers: { cookie },
+  });
+  assert.equal(delDangling.status, 200);
+  assert.throws(() => fs.lstatSync(path.join(ws, 'dangling')), { code: 'ENOENT' });
 });
