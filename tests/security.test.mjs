@@ -22,7 +22,7 @@ after(() => {
 const { validateRoutineSchedule } = await import('../server/dist/routines.js');
 const { encryptSecret, decryptSecret } = await import('../server/dist/lib/secrets.js');
 const { runShell } = await import('../server/dist/lib/sandbox.js');
-const { withRetry } = await import('../server/dist/lib/retry.js');
+const { parseRetryAfterMs, withRetry } = await import('../server/dist/lib/retry.js');
 const { userFromCookieHeader } = await import('../server/dist/lib/auth.js');
 
 test('only the verified studio administrator can save shared provider settings', async () => {
@@ -278,6 +278,51 @@ test('provider retry recovers from 429 but not from 400', async () => {
     const e = new Error('bad request'); e.status = 400; throw e;
   }, undefined, [1, 1, 1]));
   assert.equal(attempts400, 1);
+});
+
+test('provider retry aborts promptly during backoff sleep when AbortSignal fires', async () => {
+  const ac = new AbortController();
+  let attempts = 0;
+  const started = Date.now();
+  setTimeout(() => ac.abort(new Error('stopped by user')), 25);
+  await assert.rejects(() => withRetry(async () => {
+    attempts++;
+    const e = new Error('rate limited');
+    e.status = 429;
+    throw e;
+  }, ac.signal, [30_000]));
+  const elapsed = Date.now() - started;
+  assert.equal(attempts, 1);
+  assert.ok(elapsed < 1000, `expected prompt abort during backoff, waited ${elapsed}ms`);
+
+  // Already-aborted signal must reject without invoking fn.
+  let invoked = 0;
+  await assert.rejects(() => withRetry(async () => { invoked++; return 'ok'; }, ac.signal, [1]));
+  assert.equal(invoked, 0);
+});
+
+test('provider retry does not retry AbortError or APIUserAbortError', async () => {
+  for (const name of ['AbortError', 'APIUserAbortError']) {
+    let attempts = 0;
+    await assert.rejects(() => withRetry(async () => {
+      attempts++;
+      const e = new Error('aborted');
+      e.name = name;
+      throw e;
+    }, undefined, [1, 1]));
+    assert.equal(attempts, 1, `${name} must not be retried`);
+  }
+});
+
+test('parseRetryAfterMs handles Fetch Headers, case-insensitive maps, HTTP-dates, and 30s cap', () => {
+  const base = Date.parse('2026-11-26T23:00:00Z');
+  assert.equal(parseRetryAfterMs({ headers: new Headers({ 'Retry-After': '4' }) }, base), 4000);
+  assert.equal(parseRetryAfterMs({ headers: { 'Retry-After': '120' } }, base), 30_000);
+  assert.equal(parseRetryAfterMs({ response: { headers: new Headers({ 'retry-after': 'Thu, 26 Nov 2026 23:00:12 GMT' }) } }, base), 12_000);
+  assert.equal(parseRetryAfterMs({ headers: { 'retry-after': 'Thu, 26 Nov 2026 22:59:00 GMT' } }, base), null);
+  assert.equal(parseRetryAfterMs({ headers: { 'retry-after': '0' } }, base), null);
+  assert.equal(parseRetryAfterMs({ headers: { 'retry-after': 'garbage' } }, base), null);
+  assert.equal(parseRetryAfterMs(new Error('plain')), null);
 });
 
 test('web fetch check blocks loopback and metadata hosts', async () => {
