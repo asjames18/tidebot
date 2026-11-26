@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TideBot — Self-hosted Autonomous Multi-Agent Studio</title>
+  <meta name="description" content="TideBot is an open-source autonomous multi-agent studio you self-host. Bring your own model (OpenRouter, Ollama, vLLM), connect 1,500+ apps via Composio, and run agents in a local sandbox or cloud Linux desktops. Free desktop app for Windows, macOS and Linux." />
+  <meta name="theme-color" content="#05070B" />
+  <meta property="og:title" content="TideBot — Self-hosted Autonomous Multi-Agent Studio" />
+  <meta property="og:description" content="Open source. Bring your own model. 1,500+ app integrations. Local sandbox + cloud Linux desktops. Download the free desktop app." />
+  <meta property="og:image" content="https://raw.githubusercontent.com/asjames18/tidebot/main/assets/social-preview.png" />
+  <meta property="og:image:width" content="1280" />
+  <meta property="og:image:height" content="640" />
+  <meta property="og:image:alt" content="TideBot — self-hosted autonomous multi-agent studio. Bring your own model, 1,500+ integrations." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://tidebot.melanatedintech.com/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TideBot — Self-hosted Autonomous Multi-Agent Studio" />
+  <meta name="twitter:description" content="Open source. Bring your own model. 1,500+ app integrations. Download the free desktop app." />
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/asjames18/tidebot/main/assets/social-preview.png" />
+  <link rel="canonical" href="https://tidebot.melanatedintech.com/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "TideBot",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Windows, macOS, Linux",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "license": "https://github.com/asjames18/tidebot/blob/main/LICENSE",
+    "url": "https://tidebot.melanatedintech.com/",
+    "author": { "@type": "Organization", "name": "Melanated in Tech", "url": "https://melanatedintech.com" },
+    "softwareVersion": "1.0.0-dev.99",
+    "description": "TideBot is an open-source autonomous multi-agent studio you self-host. Bring your own model (OpenRouter, Ollama, vLLM), connect 1,500+ apps via Composio, and run agents in a local sandbox or cloud Linux desktops."
+  }
+  </script>
+
+  <noscript><style>.reveal { opacity: 1 !important; transform: none !important; }</style></noscript>
+  <script>
+    // Hosted waitlist signup.
+    document.addEventListener('DOMContentLoaded', function () {
+      var form = document.getElementById('wl-form');
+      if (!form) return;
+      var email = document.getElementById('wl-email');
+      var btn = document.getElementById('wl-btn');
+      var status = document.getElementById('wl-status');
+      form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var value = (email.value || '').trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
+          status.textContent = 'Enter a valid email address.';
+          status.className = 'wl-status err';
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = 'Joining…';
+        fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: value, company: form.company ? form.company.value : '' })
+        })
+          .then(function (res) { return res.json().catch(function () { return {}; }).then(function (data) { return { res: res, data: data }; }); })
+          .then(function (out) {
+            if (out.res.ok && out.data.ok) {
+              status.textContent = "You're on the list — we'll email you the day hosted TideBot opens.";
+              status.className = 'wl-status ok';
+              form.reset();
+            } else if (out.res.status === 429) {
+              status.textContent = 'Too many attempts from this address — try again in a bit.';
+              status.className = 'wl-status err';
+            } else {
+              status.textContent = (out.data && out.data.error) || 'Something went wrong — try again.';
+              status.className = 'wl-status err';
+            }
+          })
+          .catch(function () {
+            status.textContent = 'Network error — check your connection and try again.';
+            status.className = 'wl-status err';
+          })
+          .finally(function () {
+            btn.disabled = false;
+            btn.textContent = 'Join the waitlist';
+          });
+      });
+    });
+  </script>
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #060a10;
+      --bg-soft: #0b1120;
+      --card: rgba(255, 255, 255, 0.035);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(255, 255, 255, 0.055);
+      --text: #eef2f8;
+      --muted: #94a3b8;
+      --muted-2: #64748b;
+      --teal: #2dd4bf;
+      --cyan: #22d3ee;
+      --indigo: #818cf8;
+      --emerald: #34d399;
+      --grad: linear-gradient(92deg, #2dd4bf 0%, #22d3ee 48%, #818cf8 100%);
+      --ring: rgba(45, 212, 191, 0.35);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: rgba(45, 212, 191, 0.32); color: #fff; }
+    h1, h2, h3, .eyebrow, .logo { font-family: "Space Grotesk", "Inter", system-ui, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
+    .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+    section { scroll-margin-top: 84px; }
+
+    /* ---------- ambient background ---------- */
+    .bg-fx { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.55; }
+    .orb-1 { width: 620px; height: 620px; left: -160px; top: -200px; background: radial-gradient(circle, rgba(45,212,191,.28), transparent 70%); animation: drift 26s ease-in-out infinite alternate; }
+    .orb-2 { width: 680px; height: 680px; right: -220px; top: 8%; background: radial-gradient(circle, rgba(129,140,248,.24), transparent 70%); animation: drift 32s ease-in-out infinite alternate-reverse; }
+    .orb-3 { width: 520px; height: 520px; left: 32%; bottom: -240px; background: radial-gradient(circle, rgba(34,211,238,.16), transparent 70%); animation: drift 38s ease-in-out infinite alternate; }
+    @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(60px,40px) scale(1.12); } }
+    .grid-lines {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 30%, transparent 75%);
+    }
+
+    /* ---------- nav ---------- */
+    nav { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); background: rgba(6,10,16,.68); border-bottom: 1px solid rgba(255,255,255,.06); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+    .logo { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 18px; letter-spacing: .01em; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 9px; box-shadow: 0 4px 16px rgba(45,212,191,.35), 0 0 0 1px rgba(255,255,255,.12); }
+    .nav-links { display: flex; gap: 30px; align-items: center; font-size: 14.5px; color: var(--muted); }
+    .nav-links a { transition: color .18s ease; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { padding: 9px 18px; border-radius: 999px; background: var(--grad); color: #04121a !important; font-weight: 600; box-shadow: 0 4px 18px rgba(45,212,191,.28); transition: transform .18s ease, box-shadow .18s ease; }
+    .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 26px rgba(45,212,191,.4); }
+
+    /* ---------- hero ---------- */
+    .hero { padding: 108px 0 80px; text-align: center; position: relative; }
+    .hero::before { content: ""; position: absolute; left: 50%; top: -40px; transform: translateX(-50%); width: 720px; height: 420px; background: radial-gradient(ellipse at center, rgba(45,212,191,.14), transparent 65%); pointer-events: none; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: #99f6e4; padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(45,212,191,.28); background: rgba(45,212,191,.07); margin-bottom: 30px; }
+    .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 12px var(--teal); animation: pulse 2.2s infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
+    h1 { font-size: clamp(44px, 7.4vw, 84px); line-height: 1.02; letter-spacing: -0.04em; font-weight: 700; }
+    h1 .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p.lede { max-width: 660px; margin: 26px auto 0; font-size: clamp(16.5px, 2.2vw, 20px); line-height: 1.65; color: var(--muted); }
+    .cta-row { display: flex; gap: 14px; justify-content: center; margin-top: 38px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 9px; padding: 15px 30px; border-radius: 14px; font-weight: 600; font-size: 15.5px; transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease; }
+    .btn-primary { background: var(--grad); color: #04121a; box-shadow: 0 10px 34px rgba(45,212,191,.32); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 46px rgba(45,212,191,.45); }
+    .btn-ghost { border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04); color: var(--text); backdrop-filter: blur(6px); }
+    .btn-ghost:hover { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.22); transform: translateY(-2px); }
+    .hero-note { margin-top: 18px; font-size: 13.5px; color: var(--muted-2); }
+    .works-with { margin-top: 44px; font-size: 12.5px; color: var(--muted-2); letter-spacing: .08em; text-transform: uppercase; }
+    .works-with b { color: #cbd5e1; font-weight: 600; margin: 4px 5px 0; padding: 6px 13px; border: 1px solid rgba(255,255,255,.1); border-radius: 999px; background: rgba(255,255,255,.03); display: inline-block; font-size: 13px; letter-spacing: 0; text-transform: none; transition: border-color .18s ease, background .18s ease; }
+    .works-with b:hover { border-color: var(--ring); background: rgba(45,212,191,.07); }
+
+    /* ---------- console mock ---------- */
+    .console { max-width: 780px; margin: 68px auto 0; border-radius: 20px; border: 1px solid var(--card-border); background: rgba(10,15,26,.88); backdrop-filter: blur(10px); box-shadow: 0 32px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.02) inset, 0 0 80px rgba(45,212,191,.06); overflow: hidden; text-align: left; }
+    .console-bar { display: flex; align-items: center; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--card-border); background: rgba(255,255,255,.025); }
+    .console-bar i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .console-bar i:nth-child(1) { background: #f87171; } .console-bar i:nth-child(2) { background: #fbbf24; } .console-bar i:nth-child(3) { background: #34d399; }
+    .console-bar span { margin-left: auto; font-size: 12px; color: var(--muted); font-family: "JetBrains Mono", monospace; }
+    .console-body { padding: 24px 26px 28px; font-family: "JetBrains Mono", monospace; font-size: 13.5px; line-height: 2.05; }
+    .console-body .ln { opacity: 0; animation: rise .5s ease forwards; }
+    .console-body .ln:nth-child(1) { animation-delay: .15s; } .console-body .ln:nth-child(2) { animation-delay: .55s; }
+    .console-body .ln:nth-child(3) { animation-delay: .95s; } .console-body .ln:nth-child(4) { animation-delay: 1.35s; }
+    .console-body .ln:nth-child(5) { animation-delay: 1.75s; } .console-body .ln:nth-child(6) { animation-delay: 2.15s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .c-user { color: #93c5fd; } .c-agent { color: #a7f3d0; } .c-tool { color: #c4b5fd; } .c-dim { color: #64748b; }
+
+    /* ---------- stats strip ---------- */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); margin: 72px 0 8px; border: 1px solid var(--card-border); border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015)); overflow: hidden; }
+    .stat { text-align: center; padding: 30px 14px 28px; }
+    .stat + .stat { border-left: 1px solid var(--card-border); }
+    .stat b { display: block; font-family: "Space Grotesk"; font-size: clamp(28px, 3.4vw, 40px); letter-spacing: -0.02em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .stat span { font-size: 13.5px; color: var(--muted); }
+
+    /* ---------- sections ---------- */
+    section { padding: 96px 0; }
+    .sec-head { text-align: center; max-width: 640px; margin: 0 auto 58px; }
+    .sec-head h2 { font-size: clamp(30px, 4.4vw, 46px); letter-spacing: -0.03em; line-height: 1.1; }
+    .sec-head p { color: var(--muted); margin-top: 16px; font-size: 17px; line-height: 1.65; }
+    .kicker { display: block; font-size: 12.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin-bottom: 14px; }
+
+    /* bento */
+    .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; }
+    .b-card { grid-column: span 2; padding: 30px; border-radius: 22px; border: 1px solid var(--card-border); background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)); transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease; position: relative; overflow: hidden; }
+    .b-card:hover { transform: translateY(-4px); border-color: rgba(45,212,191,.4); box-shadow: 0 20px 50px rgba(0,0,0,.45), 0 0 40px rgba(45,212,191,.07); }
+    .b-card::before { content: ""; position: absolute; inset: 0; background: radial-gradient(600px 140px at var(--mx,50%) 0%, rgba(45,212,191,.12), transparent 60%); opacity: 0; transition: opacity .22s; pointer-events: none; }
+    .b-card:hover::before { opacity: 1; }
+    .b-card.wide { grid-column: span 3; }
+    .b-icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; font-size: 21px; margin-bottom: 18px; background: linear-gradient(145deg, rgba(45,212,191,.16), rgba(129,140,248,.14)); border: 1px solid rgba(45,212,191,.25); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+    .b-card h3 { font-size: 18px; letter-spacing: -0.01em; margin-bottom: 9px; }
+    .b-card p { font-size: 14.5px; line-height: 1.65; color: var(--muted); }
+
+    /* download */
+    .dl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 880px; margin: 0 auto; }
+    .dl-card { text-align: center; padding: 38px 22px 34px; border-radius: 22px; border: 1px solid var(--card-border); background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)); transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease; }
+    .dl-card:hover { transform: translateY(-4px); border-color: rgba(45,212,191,.45); box-shadow: 0 20px 50px rgba(0,0,0,.45); }
+    .dl-card .os { font-size: 30px; display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; margin-bottom: 16px; background: linear-gradient(145deg, rgba(45,212,191,.14), rgba(129,140,248,.12)); border: 1px solid rgba(255,255,255,.1); }
+    .dl-card h3 { font-size: 18px; letter-spacing: -0.01em; margin-bottom: 4px; }
+    .dl-card .arch { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .dl-btn { display: inline-block; padding: 11px 24px; border-radius: 999px; font-weight: 600; font-size: 14px; color: #04121a; background: var(--grad); box-shadow: 0 6px 22px rgba(45,212,191,.25); transition: transform .18s ease, box-shadow .18s ease; }
+    .dl-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(45,212,191,.4); }
+    .dl-options { display: grid; gap: 10px; max-width: 230px; margin-inline: auto; }
+    .dl-options .dl-btn { padding-inline: 16px; }
+    .dl-note { text-align: center; margin-top: 24px; font-size: 13.5px; color: var(--muted); }
+    .dl-note code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: rgba(255,255,255,.06); padding: 2px 7px; border-radius: 6px; color: #99f6e4; }
+    .dl-size { font-size: 12.5px; color: var(--muted-2); margin-top: 10px; }
+    .dl-options .dl-size { margin-top: 0; }
+
+    /* open source */
+    .os-panel { max-width: 880px; margin: 0 auto; padding: 52px 40px; border-radius: 26px; border: 1px solid rgba(45,212,191,.18); background: linear-gradient(160deg, rgba(45,212,191,.08), rgba(129,140,248,.06) 50%, rgba(52,211,153,.05)); box-shadow: 0 24px 70px rgba(0,0,0,.4); text-align: center; }
+    .os-panel h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.03em; line-height: 1.1; }
+    .os-panel > p { color: var(--muted); max-width: 560px; margin: 16px auto 32px; font-size: 16.5px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .chip { padding: 12px 21px; border-radius: 999px; border: 1px solid var(--card-border); background: rgba(6,10,16,.65); font-size: 14px; font-weight: 500; transition: border-color .2s, transform .2s, background .2s; }
+    .chip:hover { border-color: rgba(45,212,191,.5); transform: translateY(-2px); background: rgba(45,212,191,.09); }
+    .mit { margin-top: 28px; font-size: 13px; color: var(--muted); }
+    .mit b { color: #cbd5e1; }
+
+    footer { border-top: 1px solid rgba(255,255,255,.06); padding: 44px 0 52px; }
+    .foot { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; color: var(--muted); font-size: 13.5px; }
+    .foot a { transition: color .18s ease; }
+    .foot a:hover { color: var(--text); }
+    .foot-links { display: flex; gap: 24px; }
+
+    /* reveal on scroll */
+    .reveal { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .orb, .eyebrow .dot, .console-body .ln { animation: none !important; opacity: 1; }
+      html { scroll-behavior: auto; }
+    }
+
+    /* ---------- how it works ---------- */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 960px; margin: 0 auto 44px; }
+    .step { padding: 30px; border-radius: 22px; border: 1px solid var(--card-border); background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)); transition: transform .22s ease, border-color .22s ease; }
+    .step:hover { transform: translateY(-4px); border-color: rgba(45,212,191,.4); }
+    .step-num { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #04121a; background: var(--grad); margin-bottom: 18px; font-family: "Space Grotesk"; box-shadow: 0 6px 18px rgba(45,212,191,.3); }
+    .step h3 { font-size: 18px; letter-spacing: -0.01em; margin-bottom: 9px; }
+    .step p { font-size: 14.5px; line-height: 1.65; color: var(--muted); }
+    .terminal { max-width: 780px; margin: 0 auto; border-radius: 20px; border: 1px solid var(--card-border); background: rgba(10,15,26,.88); box-shadow: 0 24px 70px rgba(0,0,0,.5); overflow: hidden; text-align: left; }
+    .terminal-bar { display: flex; align-items: center; gap: 8px; padding: 13px 20px; border-bottom: 1px solid var(--card-border); background: rgba(255,255,255,.025); }
+    .terminal-bar i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .terminal-bar i:nth-child(1) { background: #f87171; } .terminal-bar i:nth-child(2) { background: #fbbf24; } .terminal-bar i:nth-child(3) { background: #34d399; }
+    .terminal-bar span { margin-left: auto; font-size: 12px; color: var(--muted); font-family: "JetBrains Mono", monospace; }
+    .terminal pre { padding: 22px 26px 24px; font-family: "JetBrains Mono", monospace; font-size: 13.5px; line-height: 2.05; color: #cbd5e1; overflow-x: auto; }
+    .terminal pre .cm { color: #64748b; }
+    .stars-line { margin-top: 20px; font-size: 13px; color: var(--muted); }
+    .stars-line img { vertical-align: -4px; margin-right: 6px; }
+
+    /* ---------- waitlist ---------- */
+    .wl-panel { max-width: 700px; margin: 0 auto; text-align: center; padding: 52px 34px; border-radius: 26px; border: 1px solid rgba(45,212,191,.18); background: linear-gradient(160deg, rgba(45,212,191,.08), rgba(129,140,248,.06)); box-shadow: 0 24px 70px rgba(0,0,0,.4); }
+    .wl-panel h2 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.03em; line-height: 1.1; }
+    .wl-panel > p { color: var(--muted); margin: 14px auto 28px; max-width: 480px; font-size: 16px; }
+    .wl-form { display: flex; gap: 10px; max-width: 480px; margin: 0 auto; }
+    .wl-form input[type="email"] { flex: 1; min-width: 0; padding: 14px 18px; border-radius: 13px; border: 1px solid var(--card-border); background: rgba(6,10,16,.75); color: var(--text); font-size: 15px; font-family: inherit; transition: border-color .18s ease, box-shadow .18s ease; }
+    .wl-form input[type="email"]:focus { outline: none; border-color: rgba(45,212,191,.6); box-shadow: 0 0 0 3px rgba(45,212,191,.15); }
+    .wl-form button { padding: 14px 26px; border-radius: 13px; border: 0; background: var(--grad); color: #04121a; font-weight: 700; font-size: 15px; cursor: pointer; white-space: nowrap; box-shadow: 0 6px 22px rgba(45,212,191,.25); transition: transform .18s ease, box-shadow .18s ease; }
+    .wl-form button:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(45,212,191,.4); }
+    .wl-form button:disabled { opacity: .6; cursor: default; transform: none; }
+    .wl-status { margin-top: 16px; font-size: 14px; min-height: 22px; }
+    .wl-status.ok { color: var(--emerald); }
+    .wl-status.err { color: #f87171; }
+    .wl-privacy { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+    .skip-link { position: absolute; left: 12px; top: -48px; z-index: 100; background: var(--teal); color: #05070B; padding: 8px 14px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+    .skip-link:focus { top: 12px; }
+    .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+    /* ---------- screenshots ---------- */
+    .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 980px; margin: 0 auto; }
+    .shot { margin: 0; }
+    .shot-frame { border-radius: 18px; border: 1px solid var(--card-border); overflow: hidden; background: rgba(10,15,26,.9); box-shadow: 0 24px 60px rgba(0,0,0,.5); transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+    .shot-frame:hover { transform: translateY(-4px); border-color: rgba(45,212,191,.35); box-shadow: 0 30px 70px rgba(0,0,0,.55); }
+    .shot-bar { display: flex; align-items: center; gap: 7px; padding: 11px 16px; border-bottom: 1px solid var(--card-border); background: rgba(255,255,255,.025); }
+    .shot-bar i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .shot-bar i:nth-child(1) { background: #f87171; } .shot-bar i:nth-child(2) { background: #fbbf24; } .shot-bar i:nth-child(3) { background: #34d399; }
+    .shot-bar span { margin-left: auto; font-size: 11.5px; color: var(--muted-2); font-family: "JetBrains Mono", monospace; }
+    .shot img { width: 100%; display: block; }
+    .shot figcaption { text-align: center; color: var(--muted); font-size: 13.5px; margin-top: 14px; }
+    .shot figcaption b { color: var(--text); }
+    @media (max-width: 860px) {
+      .shots { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 860px) {
+      .steps { grid-template-columns: 1fr; }
+      .wl-form { flex-direction: column; }
+      .terminal pre { font-size: 12px; line-height: 1.9; padding: 18px 18px 20px; }
+    }
+    @media (max-width: 860px) {
+      .nav-links .hide-m { display: none; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .stat:nth-child(3) { border-left: none; }
+      .stat:nth-child(n+3) { border-top: 1px solid var(--card-border); }
+      .bento { grid-template-columns: repeat(2, 1fr); }
+      .b-card, .b-card.wide { grid-column: span 2; }
+      .dl-grid { grid-template-columns: 1fr; }
+      .hero { padding: 80px 0 60px; }
+      section { padding: 68px 0; }
+      .os-panel, .wl-panel { padding: 36px 24px; }
+      .works-with b { margin-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-fx" aria-hidden="true">
+    <div class="grid-lines"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <a class="skip-link" href="#main">Skip to content</a>
+  <nav aria-label="Primary">
+    <div class="wrap nav-inner">
+      <a class="logo" href="#top"><img class="logo-mark" src="favicon.png" alt="TideBot logo" /> TideBot</a>
+      <div class="nav-links">
+        <a class="hide-m" href="#features">Features</a>
+        <a class="hide-m" href="#how">How it works</a>
+        <a class="hide-m" href="#screenshots">Screenshots</a>
+        <a class="hide-m" href="#download">Download</a>
+        <a class="hide-m" href="#open-source">Open Source</a>
+        <a href="https://github.com/asjames18/tidebot" class="nav-cta">★ Star on GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+  <header class="hero" id="top">
+    <div class="wrap">
+      <span class="eyebrow"><span class="dot"></span> <span id="hero-version">v1.0.0-dev</span> · open source · self-hosted</span>
+      <h1>Your agents.<br /><span class="grad">Your models. Your machine.</span></h1>
+      <p class="lede">TideBot is an open-source autonomous multi-agent studio that runs on your own hardware. Bring any model, connect 1,500+ apps, and keep every key, byte and decision under your control.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#download">⬇ Download for free</a>
+        <a class="btn btn-ghost" href="https://github.com/asjames18/tidebot">View source ↗</a>
+      </div>
+      <p class="hero-note">Windows · macOS · Linux — no account, no subscription, your API keys stay with you.</p>
+      <p class="works-with">Works with <b>OpenRouter</b><b>Ollama</b><b>vLLM</b><b>xAI</b><b>any OpenAI-compatible endpoint</b></p>
+      <p class="stars-line"><a href="https://github.com/asjames18/tidebot/stargazers"><img src="https://img.shields.io/github/stars/asjames18/tidebot?style=social" alt="TideBot stars on GitHub" /></a> Star it if the idea clicks.</p>
+
+      <div class="console" aria-label="Example TideBot agent session">
+        <div class="console-bar"><i></i><i></i><i></i><span>tidebot — agent session</span></div>
+        <div class="console-body">
+          <div class="ln c-user">▸ you: "watch the repo, triage new issues, draft fixes"</div>
+          <div class="ln c-tool">◇ tool · composio/github → 3 new issues fetched</div>
+          <div class="ln c-agent">◆ agent · classified #41 as bug, #42 as feature…</div>
+          <div class="ln c-tool">◇ tool · sandbox → patch written & typechecked ✓</div>
+          <div class="ln c-agent">◆ agent · draft PR ready for your review</div>
+          <div class="ln c-dim">…every step logged locally, nothing leaves your machine</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="stats reveal">
+      <div class="stat"><b>1,500+</b><span>app integrations</span></div>
+      <div class="stat"><b>250+</b><span>models via OpenRouter</span></div>
+      <div class="stat"><b>100%</b><span>open source · MIT</span></div>
+      <div class="stat"><b>0</b><span>data sent to us — ever</span></div>
+    </div>
+  </div>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="kicker">Why TideBot</span>
+        <h2>A studio, not a chatbot</h2>
+        <p>Everything a serious agent operator needs — designed for people who want to own their stack.</p>
+      </div>
+      <div class="bento">
+        <div class="b-card wide reveal"><div class="b-icon">🧠</div><h3>Bring your own model</h3><p>OpenRouter, Ollama, vLLM, xAI or any OpenAI-compatible endpoint. Swap providers per bot, per task — no lock-in, no markup on tokens.</p></div>
+        <div class="b-card wide reveal"><div class="b-icon">🔌</div><h3>1,500+ integrations, zero glue code</h3><p>Composio-powered tools for GitHub, Slack, Notion, Gmail and hundreds more. Agents call real APIs with scoped credentials you control.</p></div>
+        <div class="b-card reveal"><div class="b-icon">🔒</div><h3>Sandboxed by default</h3><p>File operations are confined to per-bot workspaces. Model output is treated as untrusted data — always.</p></div>
+        <div class="b-card reveal"><div class="b-icon">🖥️</div><h3>Local-first + cloud option</h3><p>Run in a local sandbox, or give agents ephemeral cloud Linux desktops when a task needs a real machine.</p></div>
+        <div class="b-card reveal"><div class="b-icon">⏰</div><h3>Routines & triggers</h3><p>Cron schedules, webhooks and event triggers — agents that act while you sleep and report back on their own schedule.</p></div>
+        <div class="b-card wide reveal"><div class="b-icon">🎛️</div><h3>A UI built for supervising agents</h3><p>Live streaming sessions, tool-call timelines, approvals for sensitive actions, and full local logs. You always see what your agents are doing.</p></div>
+        <div class="b-card wide reveal"><div class="b-icon">🛠️</div><h3>Yours to fork</h3><p>MIT licensed with an agent-engineering guide (AGENTS.md) so AI contributors — and humans — can extend it safely.</p></div>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="how">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="kicker">How it works</span>
+        <h2>From install to working agents in minutes</h2>
+        <p>No sales call, no account, no cloud to configure. Three steps and your agents are on the job.</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><div class="step-num">1</div><h3>Connect a model</h3><p>Paste an OpenRouter key for 250+ models, or point TideBot at Ollama running on your own machine. Your keys never leave your hardware.</p></div>
+        <div class="step reveal"><div class="step-num">2</div><h3>Spin up operators</h3><p>Give each operator a job, a model, and its tools — GitHub, Gmail, Slack, Notion — with a sandboxed workspace of its own.</p></div>
+        <div class="step reveal"><div class="step-num">3</div><h3>Agents work, you supervise</h3><p>Watch sessions stream live, approve sensitive actions before they run, and read every step in the local log.</p></div>
+      </div>
+      <div class="terminal reveal">
+        <div class="terminal-bar"><i></i><i></i><i></i><span>quick start — from source</span></div>
+        <pre><span class="cm"># clone &amp; install</span>
+git clone https://github.com/asjames18/tidebot.git
+cd tidebot &amp;&amp; npm install
+<span class="cm"># add your OpenRouter key to .env, then</span>
+npm run dev <span class="cm"># studio at http://localhost:5173</span></pre>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="screenshots">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="kicker">See it in action</span>
+        <h2>The real studio, running</h2>
+        <p>Screenshots from the actual app — no mockups. Your operators, your models, your machine.</p>
+      </div>
+      <div class="shots">
+        <figure class="shot reveal"><div class="shot-frame"><div class="shot-bar"><i></i><i></i><i></i><span>tidebot — studio</span></div><img src="screenshots/01-studio-home.png" alt="TideBot studio home with the Quinn operator, suggested prompts and composer" loading="lazy" /></div><figcaption><b>Studio home</b> — Quinn, Chief of Staff, ready for your next job</figcaption></figure>
+        <figure class="shot reveal"><div class="shot-frame"><div class="shot-bar"><i></i><i></i><i></i><span>tidebot — models</span></div><img src="screenshots/03-models-settings.png" alt="TideBot Models and OpenRouter settings with provider cards and the 265-model catalog" loading="lazy" /></div><figcaption><b>Bring your own model</b> — OpenRouter, custom endpoints, xAI, 265-model catalog</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="kicker">Download</span>
+        <h2>Running in minutes</h2>
+        <p>Native desktop apps with automatic updates. Prefer source? One <code style="font-family:'JetBrains Mono',monospace;font-size:.85em">git clone</code> away.</p>
+      </div>
+      <div class="dl-grid">
+        <div class="dl-card reveal"><span class="os">🪟</span><h3>Windows</h3><p class="arch">Windows 10 / 11</p><a class="dl-btn" data-dl="win" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.99/TideBot-Setup-1.0.0-dev.99.exe">Download .exe</a><p class="dl-size"><span data-size="win">106.9 MB</span></p></div>
+        <div class="dl-card reveal">
+          <span class="os">🍎</span>
+          <h3>macOS</h3>
+          <p class="arch">Check your chip in  → About This Mac.</p>
+          <div class="dl-options">
+            <a class="dl-btn" data-dl="mac-arm" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.99/TideBot-1.0.0-dev.99-arm64.dmg">Download for Apple Silicon</a>
+            <span class="dl-size" data-size="mac-arm">124.1 MB</span>
+            <a class="dl-btn" data-dl="mac-intel" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.99/TideBot-1.0.0-dev.99.dmg">Download for Intel Mac</a>
+            <span class="dl-size" data-size="mac-intel">128.3 MB</span>
+          </div>
+        </div>
+        <div class="dl-card reveal"><span class="os">🐧</span><h3>Linux</h3><p class="arch">AppImage &amp; <a data-dl="linux-deb" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.99/tidebot-desktop_1.0.0-dev.99_amd64.deb" style="color:var(--text);text-decoration:underline">.deb</a> (<span data-size="linux-deb">99.5 MB</span>)</p><a class="dl-btn" data-dl="linux-appimage" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.99/TideBot-1.0.0-dev.99.AppImage">Download</a><p class="dl-size"><span data-size="linux-appimage">130.5 MB</span></p></div>
+      </div>
+      <p class="dl-note reveal">Latest build: <b id="dl-tag">v1.0.0-dev.99</b> · released <span id="dl-date">Nov 26, 2026</span> · <a href="https://github.com/asjames18/tidebot/releases" style="color:#93c5fd">all builds &amp; changelogs</a></p>
+      <p class="dl-note reveal">Early releases are not code-signed yet — see the README for the one-step <code>SmartScreen</code> / <code>Gatekeeper</code> bypass. Or build from source with <code>npm install && npm start</code>.</p>
+    </div>
+  </section>
+
+  <section id="open-source">
+    <div class="wrap">
+      <div class="os-panel reveal">
+        <span class="kicker">Open source, for real</span>
+        <h2>Read it. Fork it. Ship it.</h2>
+        <p>No open-core bait, no telemetry, no "contact sales". The whole studio — server, studio UI and desktop shell — is on GitHub under MIT.</p>
+        <div class="chip-row">
+          <a class="chip" href="https://github.com/asjames18/tidebot">⭐ Repository</a>
+          <a class="chip" href="https://github.com/asjames18/tidebot/blob/main/AGENTS.md">📘 Architecture guide</a>
+          <a class="chip" href="https://github.com/asjames18/tidebot/blob/main/CONTRIBUTING.md">🤝 Contributing</a>
+          <a class="chip" href="https://github.com/asjames18/tidebot/discussions">💬 Discussions</a>
+          <a class="chip" href="https://github.com/asjames18/tidebot/issues">🐛 Issues</a>
+          <a class="chip" href="https://github.com/asjames18/tidebot/security/policy">🔒 Security policy</a>
+        </div>
+        <p class="mit">Released under the <b>MIT License</b> — commercial use, fork and self-host freely.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="hosted">
+    <div class="wrap">
+      <div class="wl-panel reveal">
+        <span class="kicker">Managed hosting — coming soon</span>
+        <h2>Don&rsquo;t want to run a server?</h2>
+        <p>We&rsquo;re building a hosted TideBot: your operators, our infrastructure, same open-source core. Leave your email and we&rsquo;ll tell you the day it opens.</p>
+        <form class="wl-form" id="wl-form" novalidate>
+          <input type="email" id="wl-email" name="email" placeholder="you@company.com" required autocomplete="email" aria-label="Email address" />
+          <input type="text" name="company" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <button type="submit" id="wl-btn">Join the waitlist</button>
+        </form>
+        <p class="wl-status" id="wl-status" role="status"></p>
+        <p class="wl-privacy">One email when hosted TideBot launches. Nothing else, ever. No spam, no sharing.</p>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <span><img src="favicon.png" alt="" style="width:18px;height:18px;border-radius:5px;vertical-align:-4px" /> <b style="color:var(--text)">TideBot</b> — autonomous multi-agent studio</span>
+      <div class="foot-links">
+        <a href="https://github.com/asjames18/tidebot">GitHub</a>
+        <a href="https://github.com/asjames18/tidebot/releases">Releases</a>
+        <a href="https://github.com/asjames18/tidebot/discussions">Community</a>
+      </div>
+      <span>Built by <a href="https://melanatedintech.com" style="color:var(--text)">Melanated in Tech</a> · MIT © 2026</span>
+    </div>
+  </footer>
+
+  <script>
+    const releaseDownloadRoot = 'https://github.com/asjames18/tidebot/releases/download/';
+
+    async function refreshDownloads() {
+      const response = await fetch('https://api.github.com/repos/asjames18/tidebot/releases?per_page=5');
+      if (!response.ok) return;
+      const releases = await response.json();
+      const links = Array.from(document.querySelectorAll('[data-dl]'));
+      for (const release of releases) {
+        if (release.draft || !/^v\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(release.tag_name)) continue;
+        const version = release.tag_name.slice(1);
+        const names = {
+          win: [`TideBot-Setup-${version}.exe`],
+          'mac-arm': [`TideBot-${version}-arm64.dmg`],
+          'mac-intel': [`TideBot-${version}.dmg`, `TideBot-${version}-x64.dmg`],
+          'linux-appimage': [`TideBot-${version}.AppImage`],
+          'linux-deb': [`tidebot-desktop_${version}_amd64.deb`],
+        };
+        const published = new Set(release.assets?.map((asset) => asset.name));
+        const filenames = links.map((link) => names[link.dataset.dl]?.find((name) => published.has(name)));
+        if (filenames.some((name) => !name)) continue;
+        links.forEach((link, i) => {
+          link.href = `${releaseDownloadRoot}${release.tag_name}/${filenames[i]}`;
+        });
+        document.getElementById('dl-tag').textContent = release.tag_name;
+        var dlDate = document.getElementById('dl-date');
+        if (dlDate && release.published_at) dlDate.textContent = new Date(release.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        var heroVersion = document.getElementById('hero-version');
+        if (heroVersion) heroVersion.textContent = release.tag_name;
+        var sizeByName = {};
+        (release.assets || []).forEach(function (a) { sizeByName[a.name] = a.size; });
+        document.querySelectorAll('[data-size]').forEach(function (el) {
+          var file = (names[el.dataset.size] || []).find(function (n) { return sizeByName[n]; });
+          if (file) el.textContent = (sizeByName[file] / 1048576).toFixed(1) + ' MB';
+        });
+        return;
+      }
+    }
+
+    refreshDownloads().catch(() => {
+      // The pinned installer links remain available if GitHub cannot be reached.
+    });
+
+    // Scroll-reveal (respects prefers-reduced-motion via CSS above).
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+    // Pointer-tracked glow on bento cards.
+    for (const card of document.querySelectorAll('.b-card')) {
+      card.addEventListener('pointermove', (ev) => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', ((ev.clientX - r.left) / r.width) * 100 + '%');
+      });
+    }
+  </script>
+</body>
+</html>
