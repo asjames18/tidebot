@@ -39,6 +39,7 @@ Row kinds:
 The loop checks policy before executing each tool call:
 - `shell`, `create_routine`, and `create_event_routine` ask by default. A saved block denies the call; a saved always-allow permits it without another prompt. Other built-ins do not require approval from this policy check.
 - Composio tools whose slug reads as read-only (`*_GET`, `*_LIST`, `*_SEARCH`, …) run automatically.
+- Full policy table, including every built-in and the findings from the 2026-11-26 audit: [docs/approval-policy.md](approval-policy.md).
 - A call that needs approval posts an **approval card** and pauses the turn, saving the pending calls in `pending_turns`. The turn resumes when the user answers.
   - **Allow** runs the call once.
   - **Always allow** stores a per-tool policy.
