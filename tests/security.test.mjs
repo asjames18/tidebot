@@ -162,8 +162,26 @@ test('missing Bubblewrap refuses shell commands without executing them', async (
   t.mock.method(fs, 'existsSync', p => String(p).endsWith('/bwrap') ? false : exists(p));
   const result = await isolated.runShell('touch ran', ws, 5);
   assert.notEqual(result.code, 0);
+  assert.equal(result.sandboxed, false);
   assert.match(result.output, /Command was not run/);
   assert.equal(exists(path.join(ws, 'ran')), false);
+});
+
+test('Bubblewrap probe failure refuses shell commands without executing them', async (t) => {
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-probe-fail-'));
+  t.after(() => fs.rmSync(ws, { recursive: true, force: true }));
+  // bwrap is present on this machine, but the isolation probe fails (e.g. user
+  // namespaces unavailable): the shell must still refuse, never run unsandboxed.
+  // The probe is forced to fail through runShell's test seam — no mocking of
+  // node:child_process (non-configurable) and no experimental test flags.
+  const result = await runShell('touch ran', ws, 5, {
+    findBwrap: () => '/usr/bin/bwrap',
+    probeBwrap: async () => false,
+  });
+  assert.notEqual(result.code, 0);
+  assert.equal(result.sandboxed, false);
+  assert.match(result.output, /Command was not run/);
+  assert.equal(fs.existsSync(path.join(ws, 'ran')), false);
 });
 
 test('shell cannot read outside its workspace or see server secrets', async (t) => {
