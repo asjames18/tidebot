@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar';
 import { Toasts } from './Toasts';
 import { ReleaseNotice } from './ReleaseNotice';
 import { useConfigUI } from '../configStore';
+import { configApi } from '../lib/configApi';
 
 const ConnectAppsModal = lazy(() => import('./modals/ConnectAppsModal').then((m) => ({ default: m.ConnectAppsModal })));
 const CreateBotModal = lazy(() => import('./modals/CreateBotModal').then((m) => ({ default: m.CreateBotModal })));
@@ -86,7 +87,17 @@ export function Shell() {
     st.loadBots().catch(() => st.notify('Could not load your operators'));
     st.loadComputer().catch(() => {});
     const cfgSt = useConfigUI.getState();
-    cfgSt.loadLlmConfig().catch(console.error);
+    let active = true;
+    const accountId = st.user?.id;
+    void cfgSt.loadLlmConfig().then(async () => {
+      if (!accountId || !active || useConfigUI.getState().llmConfig?.isConfigured) return;
+      const seenKey = `tidebot.setup-seen:${accountId}`;
+      try { if (localStorage.getItem(seenKey)) return; } catch { /* storage disabled */ }
+      await configApi.personalModel();
+      if (!active || useStore.getState().user?.id !== accountId || useConfigUI.getState().appSettings) return;
+      try { localStorage.setItem(seenKey, '1'); } catch { /* setup is still available */ }
+      useConfigUI.getState().openAppSettings('setup');
+    }).catch(() => {});
     cfgSt.loadModels().catch(console.error);
     const stop = startEvents();
     // OAuth popups post back here; refresh connection-dependent views and the open transcript.
@@ -97,7 +108,7 @@ export function Shell() {
       if (s.selectedBotId) s.loadRows(s.selectedBotId).catch(() => {});
     };
     window.addEventListener('message', onMsg);
-    return () => { stop(); window.removeEventListener('message', onMsg); };
+    return () => { active = false; stop(); window.removeEventListener('message', onMsg); };
   }, []);
 
   // Global shortcuts: ⌘K search, ⌘B sidebar, ⇧⌘, details, ⌘, settings, ⇧⌘O / Alt+N new bot.
@@ -173,9 +184,11 @@ export function Shell() {
           aria-hidden="true"
         />
       )}
-      <ReleaseNotice />
       <Toasts />
-      {view === 'tasks' ? <Suspense fallback={null}><TasksView /></Suspense> : <ChatView />}
+      <div className="app__main">
+        <ReleaseNotice />
+        {view === 'tasks' ? <Suspense fallback={null}><TasksView /></Suspense> : <ChatView />}
+      </div>
       {detailsOpen && hasBot && view === 'chat' && <Suspense fallback={null}><DetailsPanel /></Suspense>}
       <Suspense fallback={null}>
         {modal === 'create' && <CreateBotModal />}

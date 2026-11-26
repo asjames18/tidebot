@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ShaderStyle } from '@shared/types';
 import { BotAvatar } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
@@ -16,9 +16,13 @@ const SHADER_PRESETS: { id: ShaderStyle; label: string }[] = [
 
 export function SignIn() {
   const checkAuth = useStore((s) => s.checkAuth);
-  const studioEmail = useStore((s) => s.studioEmail);
+  const googleLogin = useStore((s) => s.googleLogin);
+  const localSignup = useStore((s) => s.localSignup);
   const [email, setEmail] = useState('');
-  useEffect(() => { if (studioEmail && !email) setEmail(studioEmail); }, [studioEmail]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [mode, setMode] = useState<'signin' | 'invite' | 'local'>('signin');
+  const inviteMode = mode === 'invite';
+  const creating = mode !== 'signin';
+  const [invite, setInvite] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,11 +34,11 @@ export function SignIn() {
     new URLSearchParams(location.search).get('login') === 'failed' ? 'Sign-in didn’t finish. Try again.' : null,
   );
 
-  const dev = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-    if (!email.includes('@')) {
+    if (!inviteMode && !email.includes('@')) {
       setError('Enter an email address');
       return;
     }
@@ -45,12 +49,20 @@ export function SignIn() {
     setBusy(true);
     setError(null);
     try {
-      await api.passwordLogin(email.trim(), password, name.trim() || undefined);
-      await checkAuth();
+      if (inviteMode) await api.acceptInvite(invite.trim(), password, name.trim() || undefined);
+      else if (mode === 'local') await api.createLocalAccount(email.trim(), password, name.trim() || undefined);
+      else await api.passwordLogin(email.trim(), password, name.trim() || undefined);
+      if (!await checkAuth()) throw new Error('TideBot could not load your session. Try signing in again.');
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
     }
+  };
+  const changeMode = (next: typeof mode) => {
+    setMode(next);
+    setPassword('');
+    setShowPassword(false);
+    setError(null);
   };
 
   return (
@@ -84,7 +96,6 @@ export function SignIn() {
       <div className="signin__card">
         <div className="signin__badge-row">
           <span className="tidebot-pill tideos-pill tideos-pill--glow">TIDEBOT · BYOM EDITION</span>
-          <span className="tidebot-pill tideos-pill">LOCAL MODEL READY</span>
         </div>
         <div className="signin__hero">
           <BotAvatar shape="hex" color="cyan" size={76} ring />
@@ -93,7 +104,7 @@ export function SignIn() {
         <p className="signin__sub">
           Run agents with persistent memory using your own local model or a hosted provider such as OpenRouter.
         </p>
-        <a
+        {googleLogin && <a
           className="btn btn--primary signin__google"
           href="/api/auth/google/start"
           onClick={() => {
@@ -101,10 +112,11 @@ export function SignIn() {
           }}
         >
           <GoogleG /> Continue with Google
-        </a>
-        <form className="signin__dev" onSubmit={dev}>
-          <div className="signin__divider"><span>Local Studio Access</span></div>
-          <input
+        </a>}
+        <form className="signin__dev" onSubmit={submit}>
+          <div className="signin__divider"><span>{mode === 'local' ? 'Create a local account' : inviteMode ? 'Create your account' : 'Local Studio Access'}</span></div>
+          {inviteMode ? <input className="text-input" aria-label="Invite code" placeholder="Invite code" required
+            value={invite} onChange={(e) => setInvite(e.target.value)} autoComplete="off" /> : <input
             className="text-input"
             type="email"
             inputMode="email"
@@ -112,7 +124,7 @@ export function SignIn() {
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="next"
-            placeholder="Email (from .env)"
+            placeholder="Email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }}
             onKeyDown={(e) => {
@@ -123,7 +135,7 @@ export function SignIn() {
             }}
             aria-label="Email"
             autoComplete="email"
-          />
+          />}
           <input
             ref={nameRef}
             className="text-input"
@@ -150,11 +162,13 @@ export function SignIn() {
               autoCorrect="off"
               spellCheck={false}
               enterKeyHint="go"
-              placeholder="Password (from .env)"
+              placeholder={creating ? 'Choose a password (12 characters or more)' : 'Password'}
+              minLength={creating ? 12 : undefined}
+              maxLength={creating ? 256 : 1024}
               value={password}
               onChange={(e) => { setPassword(e.target.value); if (error) setError(null); }}
               aria-label="Password"
-              autoComplete="current-password"
+              autoComplete={creating ? 'new-password' : 'current-password'}
               style={{ width: '100%', paddingRight: 64 }}
             />
             <button
@@ -186,8 +200,12 @@ export function SignIn() {
             </button>
           </div>
           <button type="submit" className="btn btn--cta" disabled={busy}>
-            {busy ? 'Initializing Studio…' : 'Launch TideBot Studio →'}
+            {busy ? 'Signing in…' : creating ? 'Create account' : 'Launch TideBot Studio →'}
           </button>
+          {creating ? <button type="button" className="btn" disabled={busy} onClick={() => changeMode('signin')}>Back to sign in</button> : <>
+            {localSignup && <button type="button" className="btn" disabled={busy} onClick={() => changeMode('local')}>Create local account</button>}
+            <button type="button" className="btn" disabled={busy} onClick={() => changeMode('invite')}>Use an invite code</button>
+          </>}
         </form>
         {error && <div className="card__error signin__error" role="alert">{error}</div>}
         <div className="signin__foot-grid">

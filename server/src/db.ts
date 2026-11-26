@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   token TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL,
-  expires_at INTEGER NOT NULL
+  expires_at INTEGER NOT NULL,
+  verified INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS login_attempts (
   id TEXT PRIMARY KEY,
@@ -146,10 +147,73 @@ function addColumn(table: string, col: string, ddl: string) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!cols.some((c) => c.name === col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${ddl}`);
 }
+db.exec(`
+CREATE TABLE IF NOT EXISTS agent_runs (
+  id TEXT PRIMARY KEY,
+  bot_id TEXT NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
+  source TEXT NOT NULL,
+  title TEXT NOT NULL,
+  routine_id TEXT,
+  state TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  started_at INTEGER,
+  finished_at INTEGER,
+  summary TEXT
+);
+CREATE INDEX IF NOT EXISTS agent_runs_bot ON agent_runs(bot_id);
+`);
+addColumn('rows', 'run_id', 'TEXT');
+db.exec('CREATE INDEX IF NOT EXISTS rows_run ON rows(bot_id, run_id, seq) WHERE run_id IS NOT NULL');
+db.exec(`
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  instructions TEXT NOT NULL,
+  files TEXT NOT NULL,
+  revision INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS projects_owner ON projects(user_id);
+`);
+addColumn('bots', 'project_id', 'TEXT REFERENCES projects(id) ON DELETE SET NULL');
 addColumn('bots', 'voice', "TEXT NOT NULL DEFAULT 'luna'");
 addColumn('bots', 'voice_speed', 'REAL NOT NULL DEFAULT 1');
 addColumn('bots', 'voice_language', "TEXT NOT NULL DEFAULT 'auto'");
 addColumn('bots', 'model', "TEXT NOT NULL DEFAULT ''");
+addColumn('auth_sessions', 'verified', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('users', 'verified_account', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('routines', 'trigger_id', 'TEXT');
+addColumn('routines', 'trigger_config', 'TEXT');
+db.exec('UPDATE users SET verified_account=1 WHERE verified_account=0 AND id IN (SELECT user_id FROM auth_sessions WHERE verified=1)');
+db.exec(`
+  CREATE TABLE IF NOT EXISTS local_passwords (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    password_hash TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS account_invites (
+    token_hash TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    expires_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS personal_models (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    openrouter_key TEXT NOT NULL DEFAULT '',
+    default_model TEXT NOT NULL DEFAULT ''
+  );
+`);
+addColumn('local_passwords', 'desktop_only', 'INTEGER NOT NULL DEFAULT 0');
+// Older builds could attach an existing workspace desktop to more than one account.
+// Disconnect those ambiguous assignments without touching the remote desktops.
+db.transaction(() => {
+  const shared = db.prepare('SELECT orgo_id FROM computers WHERE orgo_id IS NOT NULL GROUP BY orgo_id HAVING COUNT(*) > 1').all() as { orgo_id: string }[];
+  const clearScreens = db.prepare('DELETE FROM screens WHERE user_id IN (SELECT user_id FROM computers WHERE orgo_id=?)');
+  const detach = db.prepare("UPDATE computers SET orgo_id=NULL,status='absent',error=NULL WHERE orgo_id=?");
+  for (const { orgo_id } of shared) {
+    clearScreens.run(orgo_id);
+    detach.run(orgo_id);
+  }
+})();
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS llm_settings (

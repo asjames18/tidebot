@@ -54,3 +54,7 @@
 .draft-card__subject { padding-top: 12px; font-size: 14px; font-weight: 600; line-height: 20px; }
 .draft-card__text { padding-top: 12px; font-size: 14px; line-height: 20px; letter-spacing: 0.14px; color: var(--color-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
 .draft-card__actions { display: flex; gap: 8px; padding: 10px 16px 16px; }
+
+.card__arguments { margin: 9px 16px 0; color: var(--color-text-secondary); font-size: 13px; }
+.card__arguments summary { cursor: pointer; }
+.card__arguments pre { max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }

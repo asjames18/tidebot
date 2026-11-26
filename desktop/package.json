@@ -27,6 +27,7 @@
   "build": {
     "appId": "com.tidebot.desktop",
     "productName": "TideBot",
+    "afterPack": "./scripts/check-server-bundle.cjs",
     "directories": {
       "buildResources": "build",
       "output": "dist"
@@ -34,6 +35,15 @@
     "files": [
       "main.cjs",
       "preload.cjs",
+      "connection.cjs",
+      "connection-preload.cjs",
+      "connection.html",
+      "connection.js",
+      "git-repository.cjs",
+      "git-review.cjs",
+      "git-review-preload.cjs",
+      "git-review.html",
+      "git-review.js",
       "package.json",
       "build/icon.png"
     ],
@@ -42,7 +52,17 @@
         "from": "staged/server",
         "to": "server",
         "filter": [
-          "**/*"
+          "dist/**/*",
+          "package.json"
+        ]
+      },
+      {
+        "from": "staged/server/node_modules",
+        "to": "server/node_modules",
+        "filter": [
+          "**/*",
+          "!**/.bin/**",
+          "!**/.package-lock.json"
         ]
       },
       {
@@ -81,22 +101,7 @@
     "mac": {
       "icon": "build/icon.png",
       "category": "public.app-category.productivity",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        }
-      ]
+      "target": ["dmg", "zip"]
     },
     "linux": {
       "icon": "build/icon.png",

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>Choose a TideBot server</title>
+  <style>
+    :root { color-scheme: dark; background: #101620; color: #eaf0f6; font: 15px system-ui, sans-serif; }
+    body { margin: 0; padding: 24px; }
+    h1 { margin: 0 0 18px; font-size: 22px; }
+    h2 { font-size: 16px; margin: 0 0 6px; }
+    section, form { border: 1px solid #364253; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+    p { color: #b5c4d4; margin: 6px 0 12px; }
+    input, button { box-sizing: border-box; font: inherit; padding: 8px 10px; border-radius: 6px; }
+    input { display: block; width: 100%; margin-top: 5px; margin-bottom: 10px; border: 1px solid #57677a; }
+    button { border: 1px solid #6eb7db; cursor: pointer; }
+    button:disabled { cursor: wait; }
+    #status { min-height: 1.5em; }
+    #status[data-error] { color: #ffb4ae; }
+  </style>
+  <script src="connection.js" defer></script>
+</head>
+<body>
+  <h1>Choose a TideBot server</h1>
+  <section>
+    <h2>This computer</h2>
+    <p>Run TideBot here with your local account and data.</p>
+    <button id="local" type="button">Use this computer</button>
+  </section>
+  <form id="remote">
+    <h2>Existing server</h2>
+    <p>Sign in to a TideBot server you already run.</p>
+    <label for="address">Server address</label>
+    <input id="address" type="url" placeholder="https://tidebot.example.com" required maxlength="2048" autocomplete="url" spellcheck="false">
+    <button id="connect" type="submit">Check and connect</button>
+  </form>
+  <p id="status" role="status" aria-live="polite"></p>
+</body>
+</html>

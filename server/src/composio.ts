@@ -31,12 +31,16 @@ export const composio = new Proxy({} as Composio<OpenAIResponsesProvider>, {
 });
 
 const REST = 'https://backend.composio.dev/api/v3.1';
-async function rest<T = any>(path: string): Promise<T> {
+async function rest<T = any>(path: string, timeoutMs?: number): Promise<T> {
   const key = env.composioKey;
   if (!key) throw new Error('COMPOSIO_API_KEY is not configured in .env');
-  const res = await fetch(`${REST}${path}`, { headers: { 'x-api-key': key } });
+  const res = await fetch(`${REST}${path}`, { headers: { 'x-api-key': key }, signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined });
   if (!res.ok) throw new Error(`Composio ${path}: ${res.status} ${await res.text()}`);
   return res.json() as Promise<T>;
+}
+
+export async function checkComposioConnection(): Promise<void> {
+  await rest('/toolkits?limit=1', 12_000);
 }
 
 // ---------- catalog (user-independent, cached) ----------

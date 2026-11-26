@@ -1,5 +1,7 @@
 /* ---------- window grid: sidebar 350 · chat · details 320 (screen 01) ---------- */
 .app { display: flex; height: 100%; width: 100%; background: var(--color-bg-chrome); overflow: hidden; }
+.app__main { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; min-height: 0; }
+.app__main > .chat, .app__main > .tasks-view { flex: 1 1 0; min-width: 0; min-height: 0; }
 
 .traffic-lights { position: absolute; left: 10px; top: 10px; display: flex; gap: 8px; }
 .traffic-lights span { width: 12px; height: 12px; border-radius: 50%; box-shadow: #00000026 0 0 0 0.5px inset; }
@@ -13,6 +15,7 @@
 .sidebar.is-collapsed { width: 88px; }
 .sidebar__titlebar { position: relative; display: flex; align-items: center; justify-content: space-between; height: 60px; flex-shrink: 0; padding: 12px 16px 12px 14px; border-bottom: 1px solid var(--color-border-tertiary); }
 .sidebar__brand { display: flex; align-items: center; gap: 10px; padding-left: 58px; }
+.sidebar__brand--native { padding-left: 10px; }
 .sidebar__brand-mark {
   font-family: var(--font-mono-stack);
   font-size: 13px;

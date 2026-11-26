@@ -38,11 +38,19 @@ export const humanizeToolkit = (slug: string) => KNOWN[slug.toLowerCase()] ?? sl
 
 const APPROVAL_OUTCOME: Record<string, string> = { allowed: 'Allowed once', always: 'Always allowed', denied: 'Not allowed', expired: 'Expired' };
 
+function approvalArguments(args: unknown) {
+  if (!args || typeof args !== 'object' || Object.keys(args).length === 0) return '';
+  return JSON.stringify(args, (key, value) =>
+    /(?:api[_-]?key|access[_-]?token|authorization|credential|cookie|password|secret)/i.test(key)
+      ? '[Hidden]' : value, 2);
+}
+
 export function ApprovalCard({ body }: { body: Card<'approval'> }) {
   const { busy, error, run } = useBusy();
   const pending = body.status === 'pending';
   const decide = (d: 'allow' | 'always' | 'deny') => run(d, () => api.approve(body.approvalId, d));
   const name = body.toolkit ? humanizeToolkit(body.toolkit) : prettyTool(body.tool);
+  const argumentsText = approvalArguments(body.args);
   return (
     <div className={`card approval-card${pending ? '' : ' is-resolved'}`}>
       <div className="card__head">
@@ -52,13 +60,17 @@ export function ApprovalCard({ body }: { body: Card<'approval'> }) {
           <div className="card__sub">{name}</div>
         </div>
       </div>
-      {body.detail && <div className="card__body">{body.detail}</div>}
+      {!argumentsText && body.detail && <div className="card__body">{body.detail}</div>}
+      {argumentsText && <details className="card__arguments" open={pending}>
+        <summary>View action details</summary>
+        <pre>{argumentsText}</pre>
+      </details>}
       {pending ? (
         <>
           <div className="card__actions">
             <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('deny')}>{busy === 'deny' ? 'Denying…' : "Don't allow"}</button>
-            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('always')}>{busy === 'always' ? 'Saving…' : 'Always allow'}</button>
-            <button type="button" className="btn btn--primary" disabled={!!busy} onClick={() => decide('allow')}>{busy === 'allow' ? 'Allowing…' : 'Allow'}</button>
+            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('always')} title={`Always allow this tool: ${prettyTool(body.tool)}`}>{busy === 'always' ? 'Saving…' : 'Always allow'}</button>
+            <button type="button" className="btn btn--primary" disabled={!!busy} onClick={() => decide('allow')}>{busy === 'allow' ? 'Allowing…' : 'Allow once'}</button>
           </div>
           {error && <div className="card__error" role="alert">{error}</div>}
         </>

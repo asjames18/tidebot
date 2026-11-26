@@ -75,10 +75,10 @@ const components: Components = {
 };
 
 /** Assistant message markdown: paragraphs, lists, blockquotes, inline code, code blocks (screen 02), tables. */
-export const Markdown = memo(function Markdown({ text }: { text: string }) {
+export const Markdown = memo(function Markdown({ text, allowImages = true }: { text: string; allowImages?: boolean }) {
   return (
     <div className="md">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{text}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components} disallowedElements={allowImages ? undefined : ['img']}>{text}</ReactMarkdown>
     </div>
   );
 });

@@ -1,13 +1,20 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
+const { createHash } = require('node:crypto');
+const { pathToFileURL } = require('node:url');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
 const { autoUpdater } = require('electron-updater');
+const { openGitReview } = require('./git-review.cjs');
+const { checkServer, serverOrigin } = require('./connection.cjs');
 
 const RELEASES_URL = 'https://github.com/asjames18/tidebot/releases';
 
 let mainWindow = null;
+let connectionWindow = null;
+let connectionError = '';
+let switchingServer = false;
 let serverProc = null;
 let serverPort = null;
 let quitting = false;
@@ -22,9 +29,10 @@ if (!gotLock) {
 }
 
 app.on('second-instance', () => {
-  if (!mainWindow) return;
-  if (mainWindow.isMinimized()) mainWindow.restore();
-  mainWindow.focus();
+  const window = connectionWindow || mainWindow;
+  if (!window) return;
+  if (window.isMinimized()) window.restore();
+  window.focus();
 });
 
 function settingsPath() {
@@ -35,7 +43,10 @@ function loadSettings() {
   try {
     const raw = fs.readFileSync(settingsPath(), 'utf8');
     const parsed = JSON.parse(raw);
-    return { devUpdates: parsed.devUpdates !== false };
+    const port = Number.isInteger(parsed.port) && parsed.port >= 1024 && parsed.port <= 65535 ? parsed.port : undefined;
+    let remoteOrigin;
+    try { if (parsed.remoteOrigin) remoteOrigin = serverOrigin(parsed.remoteOrigin); } catch { /* ignore old invalid addresses */ }
+    return { devUpdates: parsed.devUpdates !== false, port, remoteOrigin };
   } catch {
     return { devUpdates: true };
   }
@@ -52,17 +63,26 @@ function saveSettings(next) {
 
 let settings = { devUpdates: true };
 
-function findFreePort() {
+function findFreePort(preferredPort = 0) {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
     srv.unref();
     srv.on('error', reject);
-    srv.listen(0, '127.0.0.1', () => {
+    srv.listen(preferredPort, '127.0.0.1', () => {
       const addr = srv.address();
       const port = typeof addr === 'object' && addr ? addr.port : 8787;
       srv.close(() => resolve(port));
     });
   });
+}
+
+async function chooseServerPort(preferredPort) {
+  try {
+    return await findFreePort(preferredPort);
+  } catch (error) {
+    if (!preferredPort || !['EADDRINUSE', 'EACCES'].includes(error.code)) throw error;
+    return findFreePort();
+  }
 }
 
 function resolvePaths() {
@@ -81,15 +101,15 @@ function resolvePaths() {
   };
 }
 
-async function waitForHealth(port, timeoutMs = 20_000) {
+async function waitForHealth(port, child, timeoutMs = 20_000) {
   const deadline = Date.now() + timeoutMs;
   const url = `http://127.0.0.1:${port}/api/health`;
   while (Date.now() < deadline) {
-    if (serverProc && serverProc.exitCode !== null) {
-      throw new Error(`TideBot server exited early with code ${serverProc.exitCode}`);
+    if (!child.pid || child.exitCode !== null || child.signalCode !== null) {
+      throw new Error('The local TideBot server stopped before it was ready.');
     }
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: AbortSignal.timeout(1000) });
       if (res.ok) return;
     } catch {
       // still starting
@@ -100,7 +120,12 @@ async function waitForHealth(port, timeoutMs = 20_000) {
 }
 
 async function startServer() {
-  const port = await findFreePort();
+  if (serverProc?.pid && !serverProc.killed && serverProc.exitCode === null && serverProc.signalCode === null && serverPort) {
+    const port = serverPort;
+    await waitForHealth(port, serverProc);
+    return `http://127.0.0.1:${port}`;
+  }
+  const port = await chooseServerPort(settings.port);
   serverPort = port;
   const userData = app.getPath('userData');
   const dataDir = path.join(userData, 'data');
@@ -122,25 +147,35 @@ async function startServer() {
     WEB_DIST_DIR: webDistDir,
     APP_URL: baseUrl,
     SERVER_URL: baseUrl,
-    DEV_LOGIN: process.env.DEV_LOGIN ?? '1',
+    TIDEBOT_DESKTOP_SIGNUP_ORIGIN: baseUrl,
+    DEV_LOGIN: process.env.DEV_LOGIN ?? '0',
   };
 
   let stderrTail = '';
+  let ready = false;
   serverProc = spawn(process.execPath, [serverEntry], {
     cwd: serverCwd,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  serverProc.stdout.on('data', (chunk) => {
+  const child = serverProc;
+  child.on('error', (err) => {
+    console.error('[desktop] could not start local server:', err.message);
+  });
+  child.stdout.on('data', (chunk) => {
     process.stdout.write(`[server] ${chunk}`);
   });
-  serverProc.stderr.on('data', (chunk) => {
+  child.stderr.on('data', (chunk) => {
     stderrTail = (stderrTail + String(chunk)).slice(-4000);
     process.stderr.write(`[server] ${chunk}`);
   });
-  serverProc.on('exit', (code) => {
-    if (!quitting && code !== 0) {
+  child.on('close', (code) => {
+    if (serverProc === child) {
+      serverProc = null;
+      serverPort = null;
+    }
+    if (!quitting && ready && code !== 0) {
       dialog.showErrorBox(
         'TideBot Server Stopped',
         `The local TideBot server exited unexpectedly (code ${code}).\n\n${stderrTail}`,
@@ -148,7 +183,12 @@ async function startServer() {
     }
   });
 
-  await waitForHealth(port);
+  await waitForHealth(port, child);
+  ready = true;
+  if (settings.port !== port) {
+    settings = { ...settings, port };
+    saveSettings(settings);
+  }
   return baseUrl;
 }
 
@@ -247,6 +287,16 @@ function buildMenu() {
   const isMac = process.platform === 'darwin';
   const updateItems = [
     {
+      label: 'Git Review…',
+      click: openGitReview,
+    },
+    {
+      label: 'Change Server…',
+      accelerator: 'CmdOrCtrl+Shift+K',
+      click: () => showConnectionWindow(),
+    },
+    { type: 'separator' },
+    {
       label: 'Check for Updates…',
       click: () => void triggerUpdateCheck(),
     },
@@ -307,63 +357,172 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-function createWindow(url) {
+const connectionPage = pathToFileURL(path.join(__dirname, 'connection.html')).href;
+
+function showConnectionWindow(error = '') {
+  if (connectionWindow) {
+    connectionWindow.focus();
+    return;
+  }
+  connectionError = error;
+  const window = new BrowserWindow({
+    width: 510,
+    height: 480,
+    minWidth: 390,
+    minHeight: 400,
+    title: 'Choose a TideBot server',
+    backgroundColor: '#101620',
+    parent: mainWindow || undefined,
+    modal: !!mainWindow,
+    webPreferences: {
+      preload: path.join(__dirname, 'connection-preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  connectionWindow = window;
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  window.webContents.on('will-navigate', (event) => event.preventDefault());
+  window.on('closed', () => { connectionWindow = null; });
+  void window.loadURL(connectionPage);
+}
+
+async function openWorkspace(origin, local) {
   const iconPath = path.join(__dirname, 'build', 'icon.png');
-  mainWindow = new BrowserWindow({
+  const window = new BrowserWindow({
     width: 1280,
     height: 840,
     minWidth: 390,
     minHeight: 600,
     title: 'TideBot',
+    show: false,
     backgroundColor: '#0b0e14',
     icon: fs.existsSync(iconPath) ? iconPath : undefined,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
+      ...(local ? { preload: path.join(__dirname, 'preload.cjs') }
+        : { partition: 'persist:tidebot-server-' + createHash('sha256').update(origin).digest('hex') }),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
     },
   });
 
-  mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
+  const isSameOrigin = (target) => {
+    try { return new URL(target).origin === origin; } catch { return false; }
+  };
+  const openLink = (target) => {
     try {
-      const parsed = new URL(targetUrl);
-      const isLocal = (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') && String(parsed.port) === String(serverPort);
-      if (isLocal) return { action: 'allow' };
-    } catch {
-      // fall through to external
-    }
-    void shell.openExternal(targetUrl);
+      const url = new URL(target);
+      if (['https:', 'http:', 'mailto:'].includes(url.protocol)) {
+        void shell.openExternal(url.href).catch((error) => console.error('[desktop] could not open link:', error.message));
+      }
+    } catch { /* Ignore invalid links. */ }
+  };
+  const keepNavigationOnServer = (event, target) => {
+    if (isSameOrigin(target)) return;
+    event.preventDefault();
+    if (mainWindow === window) openLink(target);
+  };
+  if (!local) {
+    // Remote sites never inherit the desktop bridge or unrestricted browser permissions.
+    const session = window.webContents.session;
+    session.setPermissionCheckHandler((_contents, permission, requester, details) =>
+      isSameOrigin(requester) && (permission === 'clipboard-sanitized-write' ||
+        (permission === 'media' && details.mediaType === 'audio')));
+    session.setPermissionRequestHandler((_contents, permission, callback, details) =>
+      callback(isSameOrigin(details.requestingUrl) && (permission === 'clipboard-sanitized-write' ||
+        (permission === 'media' && details.mediaTypes?.length === 1 && details.mediaTypes[0] === 'audio'))));
+  }
+  window.webContents.on('will-navigate', keepNavigationOnServer);
+  window.webContents.on('will-redirect', keepNavigationOnServer);
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (local && isSameOrigin(url)) return { action: 'allow' };
+    openLink(url);
     return { action: 'deny' };
   });
+  window.on('closed', () => { if (mainWindow === window) mainWindow = null; });
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
-
-  void mainWindow.loadURL(url);
+  try {
+    await window.loadURL(origin);
+  } catch {
+    window.destroy();
+    throw new Error('TideBot could not load the selected server.');
+  }
+  const previous = mainWindow;
+  mainWindow = window;
+  connectionWindow?.close();
+  previous?.close();
+  window.show();
 }
 
-ipcMain.handle('tidebot:check-updates', () => triggerUpdateCheck());
-ipcMain.handle('tidebot:get-version', () => app.getVersion());
+function fromConnectionWindow(event) {
+  return connectionWindow && event.sender === connectionWindow.webContents &&
+    event.senderFrame === connectionWindow.webContents.mainFrame && event.senderFrame.url === connectionPage;
+}
 
-app.whenReady().then(async () => {
-  settings = loadSettings();
-  buildMenu();
+ipcMain.handle('tidebot:connection-settings', (event) => {
+  if (!fromConnectionWindow(event)) throw new Error('Unexpected window.');
+  return { origin: settings.remoteOrigin, error: connectionError };
+});
+ipcMain.handle('tidebot:connect-server', async (event, address) => {
+  if (!fromConnectionWindow(event)) throw new Error('Unexpected window.');
+  if (switchingServer) return { error: 'TideBot is already connecting.' };
+  switchingServer = true;
   try {
-    const url = await startServer();
-    createWindow(url);
-    setupAutoUpdater();
+    const local = address === null;
+    const origin = local ? await startServer() : await checkServer(address);
+    await openWorkspace(origin, local);
+    settings = { ...settings, remoteOrigin: local ? undefined : origin };
+    saveSettings(settings);
+    return {};
   } catch (err) {
-    dialog.showErrorBox('Failed to Start TideBot', String(err?.message || err));
-    app.quit();
+    return { error: err.message };
+  } finally {
+    switchingServer = false;
   }
 });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0 && serverPort) {
-    createWindow(`http://127.0.0.1:${serverPort}`);
+function fromLocalWorkspace(event) {
+  return mainWindow && !settings.remoteOrigin && event.sender === mainWindow.webContents &&
+    event.senderFrame === mainWindow.webContents.mainFrame &&
+    new URL(event.senderFrame.url).origin === `http://127.0.0.1:${serverPort}`;
+}
+
+ipcMain.handle('tidebot:open-git-review', (event) => {
+  if (fromLocalWorkspace(event)) openGitReview();
+});
+
+ipcMain.handle('tidebot:check-updates', (event) => {
+  if (fromLocalWorkspace(event)) return triggerUpdateCheck();
+});
+ipcMain.handle('tidebot:get-version', (event) => {
+  if (fromLocalWorkspace(event)) return app.getVersion();
+});
+
+async function restoreWorkspace() {
+  if (switchingServer) return;
+  switchingServer = true;
+  try {
+    if (settings.remoteOrigin) await openWorkspace(await checkServer(settings.remoteOrigin), false);
+    else if (settings.port) await openWorkspace(await startServer(), true);
+    else showConnectionWindow();
+  } catch (err) {
+    showConnectionWindow(err.message);
+  } finally {
+    switchingServer = false;
   }
+}
+
+app.whenReady().then(() => {
+  settings = loadSettings();
+  buildMenu();
+  setupAutoUpdater();
+  void restoreWorkspace();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) void restoreWorkspace();
 });
 
 app.on('before-quit', () => {
@@ -373,5 +532,5 @@ app.on('before-quit', () => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin' && !switchingServer) app.quit();
 });

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { streamSSE } from 'hono/streaming';
 import fs from 'node:fs';
 import nodePath from 'node:path';
@@ -6,12 +7,16 @@ import { localWorkspaceDir } from './agent/tools.js';
 import { resolveWithinWorkspace } from './lib/files.js';
 import { db, now } from './db.js';
 import { env } from './env.js';
-import { newId } from './lib/ids.js';
+import { newId, sha256, token } from './lib/ids.js';
 import { hub } from './lib/hub.js';
 import { createSession, destroySession, requireUser, userFromCookieHeader, type AuthVars } from './lib/auth.js';
-import { allLive, appendRow, clearConversation, describeCron, emitBot, getBot, getBotRow, getRow, listBots, listRoutines, listRows, listTasks, toRoutine, updateRow } from './store.js';
+import { hashPassword, verifyPassword } from './lib/passwords.js';
+import { deleteProject, listProjects, projectDraft, saveProject } from './projects.js';
+import { researchPlan } from './research.js';
+import { getRun, listRuns } from './runs.js';
+import { allLive, appendRow, clearConversation, describeCron, emitBot, getBot, getBotRow, getRow, listBots, listRoutines, listRows, listRunRows, listTasks, toRoutine, updateRow } from './store.js';
 import { enqueue, interrupt, resolveApproval } from './agent/loop.js';
-import { getPublicLlmConfig } from './agent/llm.js';
+import { getPersonalModel, getPublicLlmConfig } from './agent/llm.js';
 import { computerState, ensureComputer, refreshComputer, suspendComputer } from './computer.js';
 import { orgo } from './orgo.js';
 import { catalog, connectedToolkits, deleteConnection, disconnect, googleProfile, startConnect, startGoogleLogin, toolkitInfo } from './composio.js';
@@ -58,14 +63,38 @@ function findOrCreateUser(email: string, name?: string, preferId?: string) {
   return { id, isNew: true };
 }
 
+function emailAddress(input: unknown): string | undefined {
+  if (typeof input !== 'string') return;
+  const value = input.trim().toLowerCase();
+  if (value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return value;
+}
+
+function accountAvailable(email: string): boolean {
+  return email !== env.studioEmail && email !== env.studioAdminEmail
+    && !db.prepare('SELECT 1 FROM users WHERE lower(email)=?').get(email);
+}
+
+function savePasswordAccount(email: string, hash: string, name: unknown, desktopOnly: boolean) {
+  const { id } = findOrCreateUser(email, typeof name === 'string' ? name.trim().slice(0, 100) || undefined : undefined);
+  db.prepare('INSERT INTO local_passwords (user_id,password_hash,desktop_only) VALUES (?,?,?)').run(id, hash, Number(desktopOnly));
+  db.prepare('INSERT INTO personal_models (user_id) VALUES (?)').run(id);
+  return id;
+}
+
+function desktopRequest(url: string): boolean {
+  return Boolean(env.desktopSignupOrigin && new URL(url).origin === env.desktopSignupOrigin);
+}
+
 // ---------- auth ----------
 
 api.get('/auth/me', (c) => {
   const user = userFromCookieHeader(c.req.header('cookie'));
-  return c.json({ user, devLogin: env.devLogin, studioEmail: env.studioEmail || undefined, hasXaiKey: getPublicLlmConfig().hasXaiKey, providers: env.providers });
+  const providers = env.providers;
+  return c.json({ user, devLogin: env.devLogin, localSignup: desktopRequest(c.req.url), hasXaiKey: user ? getPublicLlmConfig(user.id).hasXaiKey : false, providers });
 });
 
 api.get('/auth/google/start', async (c) => {
+  if (!env.composioKey) return c.json({ error: 'A studio administrator must configure Composio before Google sign-in is available.' }, 503);
   const attemptId = newId('login');
   const provisional = newId('usr');
   const cb = `${env.serverUrl}/api/auth/google/callback?attempt=${attemptId}`;
@@ -77,15 +106,18 @@ api.get('/auth/google/start', async (c) => {
 api.get('/auth/google/callback', async (c) => {
   const attempt = db.prepare('SELECT * FROM login_attempts WHERE id=?').get(c.req.query('attempt') ?? '') as any;
   const caId = c.req.query('connected_account_id') ?? attempt?.connected_account_id;
-  if (!attempt || c.req.query('status') === 'failed' || !caId) return c.redirect(`${env.appUrl}/?login=failed`);
-  if (attempt.connected_account_id && caId !== attempt.connected_account_id) return c.redirect(`${env.appUrl}/?login=failed`);
+  if (!attempt?.connected_account_id || caId !== attempt.connected_account_id || c.req.query('status') === 'failed') return c.redirect(`${env.appUrl}/?login=failed`);
   db.prepare('DELETE FROM login_attempts WHERE id=?').run(attempt.id);
   try {
     const profile = await googleProfile(caId);
+    if (db.prepare('SELECT 1 FROM local_passwords p JOIN users u ON u.id=p.user_id WHERE lower(u.email)=lower(?) AND p.desktop_only=1').get(profile.email)) {
+      await deleteConnection(caId);
+      return c.redirect(`${env.appUrl}/?login=failed`);
+    }
     const { id, isNew } = findOrCreateUser(profile.email, profile.name, attempt.provisional_user_id);
     // Existing user: the Gmail connection made for sign-in belongs to a throwaway id; remove it.
     if (!isNew && id !== attempt.provisional_user_id) await deleteConnection(caId);
-    createSession(c, id);
+    createSession(c, id, true);
     return c.redirect(`${env.appUrl}/`);
   } catch (e: any) {
     console.error('[auth] google callback', e);
@@ -94,16 +126,63 @@ api.get('/auth/google/callback', async (c) => {
 });
 
 api.post('/auth/password', async (c) => {
-  // Local single-operator sign-in: credentials come from STUDIO_EMAIL / STUDIO_PASSWORD in .env.
-  if (!env.studioEmail || !env.studioPassword) return c.json({ error: 'Password sign-in is not configured (set STUDIO_EMAIL and STUDIO_PASSWORD in .env)' }, 403);
-  const { email, password, name } = await c.req.json<{ email: string; password: string; name?: string }>().catch(() => ({} as any));
-  const emailOk = String(email ?? '').trim().toLowerCase() === env.studioEmail;
-  const given = crypto.createHash('sha256').update(String(password ?? '')).digest();
-  const expected = crypto.createHash('sha256').update(env.studioPassword).digest();
-  const passwordOk = crypto.timingSafeEqual(given, expected);
-  if (!emailOk || !passwordOk) return c.json({ error: 'Invalid email or password' }, 401);
-  const { id } = findOrCreateUser(env.studioEmail, name);
-  createSession(c, id);
+  const { email, password, name } = (await c.req.json<{ email?: unknown; password?: unknown; name?: unknown }>().catch(() => null)) ?? {};
+  const identity = emailAddress(email);
+  if (!identity || typeof password !== 'string' || !password.length || password.length > 1024) {
+    return c.json({ error: 'Invalid email or password' }, 401);
+  }
+  const account = db.prepare('SELECT u.id, p.password_hash, p.desktop_only FROM users u JOIN local_passwords p ON p.user_id=u.id WHERE lower(u.email)=?').get(identity) as { id: string; password_hash: string; desktop_only: number } | undefined;
+  const matchesAccount = await verifyPassword(password, account?.password_hash);
+  const studioPassword = env.studioPassword;
+  const given = crypto.createHash('sha256').update(password).digest();
+  const expected = crypto.createHash('sha256').update(studioPassword).digest();
+  const matchesStudio = !account && identity === env.studioEmail && !!studioPassword && crypto.timingSafeEqual(given, expected);
+  const userId = matchesStudio ? findOrCreateUser(identity, typeof name === 'string' ? name.trim().slice(0, 100) : undefined).id
+    : matchesAccount && account && (!account.desktop_only || desktopRequest(c.req.url)) ? account.id : undefined;
+  if (!userId) return c.json({ error: 'Invalid email or password' }, 401);
+  createSession(c, userId, true);
+  return c.json({ ok: true });
+});
+
+api.post('/auth/create-local-account', async (c) => {
+  if (!desktopRequest(c.req.url) || c.req.header('Origin') !== env.desktopSignupOrigin) {
+    return c.json({ error: 'Local account creation is available in the TideBot desktop app.' }, 403);
+  }
+  const { email, password, name } = (await c.req.json<{ email?: unknown; password?: unknown; name?: unknown }>().catch(() => null)) ?? {};
+  const identity = emailAddress(email);
+  if (!identity) return c.json({ error: 'Enter a valid email address.' }, 400);
+  if (typeof password !== 'string' || password.length < 12 || password.length > 256) {
+    return c.json({ error: 'Use a password of 12 to 256 characters.' }, 400);
+  }
+  const hash = await hashPassword(password);
+  const userId = db.transaction(() => {
+    if (!accountAvailable(identity) || db.prepare('SELECT 1 FROM account_invites WHERE email=? AND expires_at>?').get(identity, now())) return;
+    return savePasswordAccount(identity, hash, name, true);
+  })();
+  if (!userId) return c.json({ error: 'This email is already registered or reserved. Sign in or use another email.' }, 409);
+  createSession(c, userId, true);
+  return c.json({ ok: true }, 201);
+});
+
+api.post('/auth/accept-invite', async (c) => {
+  const body = (await c.req.json<{ code?: unknown; password?: unknown; name?: unknown }>().catch(() => null)) ?? {};
+  if (typeof body.code !== 'string' || !/^[\w-]{43}$/.test(body.code.trim())) return c.json({ error: 'Invalid invite code.' }, 400);
+  if (typeof body.password !== 'string' || body.password.length < 12 || body.password.length > 256) {
+    return c.json({ error: 'Use a password of 12 to 256 characters.' }, 400);
+  }
+  const inviteHash = sha256(body.code.trim());
+  const findInvite = () => db.prepare('SELECT email FROM account_invites WHERE token_hash=? AND expires_at>?').get(inviteHash, now()) as { email: string } | undefined;
+  if (!findInvite()) return c.json({ error: 'This invite has expired or was already used.' }, 400);
+  const hash = await hashPassword(body.password);
+  const userId = db.transaction(() => {
+    const invite = findInvite();
+    if (!invite || !accountAvailable(invite.email)) return;
+    const id = savePasswordAccount(invite.email, hash, body.name, false);
+    db.prepare('DELETE FROM account_invites WHERE token_hash=?').run(inviteHash);
+    return id;
+  })();
+  if (!userId) return c.json({ error: 'This invite is no longer available.' }, 400);
+  createSession(c, userId, true);
   return c.json({ ok: true });
 });
 
@@ -111,8 +190,10 @@ api.post('/auth/dev', async (c) => {
   if (!env.devLogin) return c.json({ error: 'disabled' }, 403);
   const { email, name } = await c.req.json<{ email: string; name?: string }>();
   if (!email?.includes('@')) return c.json({ error: 'email required' }, 400);
+  const protectedAccount = db.prepare('SELECT 1 FROM users WHERE lower(email)=lower(?) AND verified_account=1').get(email);
+  if (protectedAccount) return c.json({ error: 'Use the sign-in method for this account.' }, 403);
   const { id } = findOrCreateUser(email, name);
-  createSession(c, id);
+  createSession(c, id, false);
   return c.json({ ok: true });
 });
 
@@ -122,6 +203,22 @@ api.post('/auth/logout', (c) => { destroySession(c); return c.json({ ok: true })
 api.use('/*', async (c, next) => {
   if (c.req.path.startsWith('/api/auth/') || c.req.path.startsWith('/api/apps/callback') || c.req.path === '/api/health') return next();
   return requireUser(c, next);
+});
+
+api.post('/account/invites', async (c) => {
+  if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can invite users.' }, 403);
+  const { email } = (await c.req.json<{ email?: unknown }>().catch(() => null)) ?? {};
+  const address = emailAddress(email);
+  if (!address) return c.json({ error: 'Enter a valid email address.' }, 400);
+  if (address === env.studioEmail || address === env.studioAdminEmail || db.prepare('SELECT 1 FROM users WHERE lower(email)=?').get(address)) {
+    return c.json({ error: 'This email already has an account.' }, 409);
+  }
+  const code = token();
+  const expiresAt = now() + 24 * 60 * 60_000;
+  db.prepare('INSERT INTO account_invites (token_hash,email,expires_at) VALUES (?,?,?) ON CONFLICT(email) DO UPDATE SET token_hash=excluded.token_hash,expires_at=excluded.expires_at')
+    .run(sha256(code), address, expiresAt);
+  c.header('Cache-Control', 'no-store');
+  return c.json({ code, expiresAt }, 201);
 });
 
 // ---------- events (SSE) ----------
@@ -152,6 +249,38 @@ const ownBot = (userId: string, id: string) => {
   const b = getBotRow(id);
   return b && b.user_id === userId ? b : null;
 };
+
+api.get('/projects', (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json({ projects: listProjects(c.get('user').id) });
+});
+
+const limitProjectBody = bodyLimit({
+  maxSize: 384 * 1024,
+  onError: (c) => c.json({ error: 'Project data is too large.' }, 413),
+});
+
+api.post('/projects', limitProjectBody, async (c) => {
+  const draft = projectDraft.safeParse(await c.req.json().catch(() => null));
+  if (!draft.success) return c.json({ error: draft.error.issues[0].message }, 400);
+  const result = saveProject(c.get('user').id, draft.data);
+  return 'error' in result ? c.json({ error: result.error }, result.status) : c.json(result, 201);
+});
+
+api.put('/projects/:id', limitProjectBody, async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const draft = projectDraft.safeParse(body);
+  if (!draft.success) return c.json({ error: draft.error.issues[0].message }, 400);
+  const revision = body.revision;
+  if (!Number.isSafeInteger(revision) || revision < 1) return c.json({ error: 'Invalid project revision.' }, 400);
+  const result = saveProject(c.get('user').id, draft.data, { id: c.req.param('id'), revision });
+  return 'error' in result ? c.json({ error: result.error }, result.status) : c.json(result);
+});
+
+api.delete('/projects/:id', (c) => {
+  if (!deleteProject(c.get('user').id, c.req.param('id'))) return c.json({ error: 'Project not found.' }, 404);
+  return c.json({ ok: true });
+});
 
 // ---------- workspace previews (agent-built sites, served by TideBot itself) ----------
 
@@ -295,6 +424,7 @@ api.get('/system/status', async (c) => {
     tasksOpen,
     tasksDone,
     memoriesCount,
+    canManageStudio: c.get('studioAdmin'),
     routinesCount,
     connectedAppsCount: connected.size,
     connectedApps: [...connected],
@@ -320,6 +450,34 @@ api.get('/bots/:id/rows', (c) => {
   return c.json({ generation: b.generation, rows: listRows(b.id, { beforeSeq, limit: Number(c.req.query('limit') ?? 200) }) });
 });
 
+api.get('/bots/:id/runs', (c) => {
+  const bot = ownBot(c.get('user').id, c.req.param('id'));
+  if (!bot) return c.json({ error: 'not found' }, 404);
+  c.header('Cache-Control', 'no-store');
+  return c.json({ runs: listRuns(bot.id) });
+});
+
+api.post('/bots/:id/research', bodyLimit({ maxSize: 128 * 1024, onError: (c) => c.json({ error: 'Research plan is too large.' }, 413) }), async (c) => {
+  const bot = ownBot(c.get('user').id, c.req.param('id'));
+  if (!bot || bot.kind === 'room') return c.json({ error: 'not found' }, 404);
+  const result = researchPlan.safeParse(await c.req.json().catch(() => null));
+  if (!result.success) return c.json({ error: result.error.issues[0].message }, 400);
+  if (db.prepare('SELECT 1 FROM pending_turns WHERE bot_id=?').get(bot.id)) {
+    return c.json({ error: 'Resolve the pending approval before starting research.' }, 409);
+  }
+  const runId = enqueue(bot.id, { type: 'research', plan: result.data });
+  if (!runId) return c.json({ error: 'Research could not be queued.' }, 500);
+  return c.json({ runId }, 202);
+});
+
+api.get('/bots/:id/runs/:runId', (c) => {
+  const bot = ownBot(c.get('user').id, c.req.param('id'));
+  const run = bot && getRun(bot.id, c.req.param('runId'));
+  if (!run) return c.json({ error: 'not found' }, 404);
+  c.header('Cache-Control', 'no-store');
+  return c.json({ run, rows: listRunRows(bot.id, run.id) });
+});
+
 api.post('/bots/:id/messages', async (c) => {
   const b = ownBot(c.get('user').id, c.req.param('id'));
   if (!b) return c.json({ error: 'not found' }, 404);
@@ -329,7 +487,7 @@ api.post('/bots/:id/messages', async (c) => {
   // Group chats dispatch to their member Bots instead of running their own loop.
   if (b.kind === 'room') dispatchRoomMessage(b.id, text.trim(), enqueue);
   // Any pending question card is answered by a free-text message.
-  else enqueue(b.id, { type: 'user', text: text.trim() });
+  else enqueue(b.id, { type: 'user', text: text.trim(), requestSeq: row.seq });
   return c.json({ row });
 });
 
@@ -466,7 +624,7 @@ api.patch('/routines/:id', async (c) => {
 api.post('/routines/:id/run', (c) => {
   const r = db.prepare('SELECT r.* FROM routines r JOIN bots b ON b.id=r.bot_id WHERE r.id=? AND b.user_id=?').get(c.req.param('id'), c.get('user').id) as any;
   if (!r) return c.json({ error: 'not found' }, 404);
-  runRoutine(r.id);
+  runRoutine(r.id, 'manual-routine', enqueue);
   return c.json({ ok: true });
 });
 
@@ -644,6 +802,7 @@ api.get('/apps', async (c) => {
 });
 
 api.post('/apps/:slug/connect', async (c) => {
+  if (!env.composioKey) return c.json({ error: 'A studio administrator must configure Composio before connecting apps.' }, 503);
   const user = c.get('user');
   const slug = c.req.param('slug');
   const { botId, seq } = await c.req.json<{ botId?: string; seq?: number }>().catch(() => ({} as any));
@@ -712,4 +871,8 @@ api.delete('/policies/:tool', (c) => {
   return c.json({ ok: true });
 });
 
+api.use('/voice/*', async (c, next) => {
+  if (getPersonalModel(c.get('user').id)) return c.json({ error: 'Studio xAI voice is unavailable when using a personal OpenRouter account.' }, 403);
+  await next();
+});
 api.route('/voice', voiceApi);

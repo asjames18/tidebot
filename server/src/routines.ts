@@ -59,10 +59,10 @@ export function unscheduleRoutine(id: string) {
   jobs.delete(id);
 }
 
-export function runRoutine(id: string) {
+export function runRoutine(id: string, source: 'schedule' | 'manual-routine' = 'schedule', enqueue = enqueueFn) {
   const r = db.prepare('SELECT * FROM routines WHERE id=?').get(id) as any;
-  if (!r || !enqueueFn) return;
+  if (!r || !enqueue) return;
   db.prepare('UPDATE routines SET last_run_at=? WHERE id=?').run(now(), id);
   appendRow(r.bot_id, 'event', { type: 'event', event: 'routine-run', text: `Running routine: ${r.name}`, ref: id });
-  enqueueFn(r.bot_id, { type: 'routine', routineId: id, name: r.name, prompt: r.prompt });
+  enqueue(r.bot_id, { type: 'routine', routineId: id, name: r.name, prompt: r.prompt, source });
 }

@@ -129,7 +129,7 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
         ) : b.text && b.streaming ? (
           <div className="bubble__plain">{b.text}</div>
         ) : b.text ? (
-          <Markdown text={b.text} />
+          <Markdown text={b.text} allowImages={!b.artifactPath} />
         ) : isThinkingNow ? null : (
           <Markdown text=" " />
         )}

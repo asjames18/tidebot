@@ -32,12 +32,12 @@ jobs:
             args: --win
             target_arch: ""
           - name: macOS (arm64)
-            os: macos-latest
+            os: macos-15
             platform: mac
             args: --mac --arm64
             target_arch: arm64
           - name: macOS (x64)
-            os: macos-latest
+            os: macos-15-intel
             platform: mac
             args: --mac --x64
             target_arch: x64

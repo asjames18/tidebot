@@ -11,6 +11,7 @@ import { MembersCard } from './MembersCard';
 import { useConfigUI } from '../configStore';
 import { Glyph } from './config/glyphs';
 import { LibraryTab } from './config/LibraryTab';
+import { RunHistory } from './config/RunHistory';
 import { BotTasks } from './config/TasksView';
 
 export function computerStatusText(c: ComputerState | null): string {
@@ -162,7 +163,7 @@ export function DetailsPanel() {
   const routines = useStore((s) => (bot ? s.routines[bot.id] : undefined));
   const set = useStore((s) => s.set);
   const llmConfig = useConfigUI((s) => s.llmConfig);
-  const [tab, setTab] = useState<'activity' | 'tasks' | 'library'>('activity');
+  const [tab, setTab] = useState<'activity' | 'tasks' | 'library' | 'runs'>('activity');
   const [slackBusy, setSlackBusy] = useState(false);
   const [hideSuggested, setHideSuggested] = useState(() => { try { return localStorage.getItem('grokbot.hideSuggested') === '1'; } catch { return false; } });
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -329,6 +330,15 @@ export function DetailsPanel() {
             >
               Tasks
             </button>
+            {bot.kind !== 'room' && <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'runs'}
+              className={tab === 'runs' ? 'is-active' : ''}
+              onClick={() => { blurActiveOnMobile(); setTab('runs'); }}
+            >
+              Runs
+            </button>}
             <button
               type="button"
               role="tab"
@@ -458,7 +468,9 @@ export function DetailsPanel() {
               </>
             )}
           </div>
-        ) : tab === 'tasks' ? <BotTasks bot={bot} /> : <LibraryTab bot={bot} />}
+        ) : tab === 'tasks' ? <BotTasks bot={bot} />
+          : tab === 'runs' && bot.kind !== 'room' ? <RunHistory key={bot.id} botId={bot.id} openLibrary={() => setTab('library')} />
+          : <LibraryTab bot={bot} />}
       </div>
     </aside>
   );

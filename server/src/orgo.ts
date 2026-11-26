@@ -51,7 +51,8 @@ export interface OrgoScreen { id: string; display: string; width: number; height
 const q = (screen?: string) => (screen && screen !== 'default' ? `?screen=${encodeURIComponent(screen)}` : '');
 
 export const orgo = {
-  workspaces: () => call<any>('GET', '/workspaces'),
+  workspaces: (candidateKey?: string) => call<any>('GET', '/workspaces', undefined,
+    candidateKey ? { timeoutMs: 12_000, headers: { Authorization: `Bearer ${candidateKey}` } } : {}),
 
   createComputer: (name: string, idempotencyKey: string) =>
     call<OrgoComputer>(

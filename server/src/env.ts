@@ -2,8 +2,11 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseEnv } from 'node:util';
 import { updateEnvFile } from './lib/envFile.js';
 
+const desktopSignupOrigin = process.env.TIDEBOT_DESKTOP_SIGNUP_ORIGIN ?? '';
+const desktopPort = /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})$/.exec(desktopSignupOrigin)?.[1];
 const envFilePath = process.env.ENV_PATH
   ? path.resolve(process.env.ENV_PATH)
   : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.env');
@@ -14,23 +17,18 @@ export function reloadEnvFromDisk(): Record<string, string> {
   try {
     const st = fs.statSync(envFilePath);
     if (st.mtimeMs !== lastMtimeMs) {
-      lastMtimeMs = st.mtimeMs;
       const raw = fs.readFileSync(envFilePath, 'utf8');
-      const parsed: Record<string, string> = {};
-      for (const line of raw.split(/\r?\n/)) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) continue;
-        const eq = trimmed.indexOf('=');
-        if (eq <= 0) continue;
-        const key = trimmed.slice(0, eq).trim();
-        let val = trimmed.slice(eq + 1).trim();
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-          val = val.slice(1, -1);
-        }
-        parsed[key] = val;
-        process.env[key] = val;
+      const parsed: Record<string, string> = Object.create(null);
+      for (const [key, value] of Object.entries(parseEnv(raw))) {
+        if (typeof value !== 'string') continue;
+        parsed[key] = value;
+        process.env[key] = value;
+      }
+      if (Object.hasOwn(diskEnv, 'STUDIO_ADMIN_EMAIL') && !Object.hasOwn(parsed, 'STUDIO_ADMIN_EMAIL')) {
+        delete process.env.STUDIO_ADMIN_EMAIL;
       }
       diskEnv = parsed;
+      lastMtimeMs = st.mtimeMs;
     }
   } catch {
     // ignore if .env doesn't exist
@@ -58,14 +56,16 @@ function opt(name: string, fallback = ''): string {
 const sessionSecretInit = opt('SESSION_SECRET', crypto.randomBytes(32).toString('hex'));
 
 export const env = {
-  get port() { return Number(opt('PORT', '8787')); },
-  get host() { return opt('HOST', '127.0.0.1'); },
+  desktopSignupOrigin: desktopPort ? desktopSignupOrigin : '',
+  get port() { return Number(desktopPort ?? opt('PORT', '8787')); },
+  get host() { return desktopPort ? '127.0.0.1' : opt('HOST', '127.0.0.1'); },
   /** Local sign-in identity from .env (STUDIO_EMAIL / STUDIO_PASSWORD). Empty disables password sign-in. */
   get studioEmail() { return opt('STUDIO_EMAIL').toLowerCase(); },
+  get studioAdminEmail() { return opt('STUDIO_ADMIN_EMAIL', env.studioEmail).toLowerCase(); },
   get studioPassword() { return opt('STUDIO_PASSWORD'); },
-  get appUrl() { return opt('APP_URL', 'http://localhost:5173'); },
+  get appUrl() { return desktopPort ? desktopSignupOrigin : opt('APP_URL', 'http://localhost:5173'); },
   /** Public URL of this server, used for OAuth callbacks. */
-  get serverUrl() { return opt('SERVER_URL', `http://localhost:${opt('PORT', '8787')}`); },
+  get serverUrl() { return desktopPort ? desktopSignupOrigin : opt('SERVER_URL', `http://localhost:${opt('PORT', '8787')}`); },
   get llmProvider(): 'openrouter' | 'custom' | 'xai' {
     const orKey = opt('OPENROUTER_API_KEY');
     const cUrl = opt('LLM_BASE_URL');
@@ -73,7 +73,7 @@ export const env = {
     return opt('LLM_PROVIDER', orKey ? 'openrouter' : cUrl ? 'custom' : xKey ? 'xai' : 'openrouter') as 'openrouter' | 'custom' | 'xai';
   },
   get openrouterKey() { return opt('OPENROUTER_API_KEY'); },
-  get openrouterModel() { return opt('OPENROUTER_MODEL', 'thinkingmachines/inkling-2-small:free'); },
+  get openrouterModel() { return opt('OPENROUTER_MODEL', 'openrouter/free'); },
   get customBaseUrl() { return opt('LLM_BASE_URL'); },
   get customApiKey() { return opt('LLM_API_KEY'); },
   get customModel() { return opt('LLM_MODEL'); },

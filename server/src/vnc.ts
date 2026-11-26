@@ -85,7 +85,9 @@ export function attachVncRelay(server: Server) {
   const wss = new WebSocketServer({ noServer: true, handleProtocols: (protocols) => (protocols.has('binary') ? 'binary' : false) });
 
   server.on('upgrade', (req: IncomingMessage, socket, head) => {
-    const url = new URL(req.url ?? '/', 'http://x');
+    let url: URL;
+    try { url = new URL(req.url ?? '/', 'http://x'); }
+    catch { socket.destroy(); return; }
     const m = url.pathname.match(/^\/api\/bots\/([^/]+)\/screen$/);
     if (!m) return; // not ours
     const user = userFromCookieHeader(req.headers.cookie);

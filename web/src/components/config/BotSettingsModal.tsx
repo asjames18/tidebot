@@ -35,7 +35,7 @@ export function BotSettingsModal() {
       const ae = document.activeElement;
       if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
     }
-    if (target) useConfigUI.setState({ botSettings: { ...target, tab } });
+    if (target) useConfigUI.setState({ botSettings: { ...target, tab, routineDraft: undefined } });
   };
   const bot = useStore((s) => s.bots.find((b) => b.id === target?.botId));
   const routines = useStore((s) => (target ? s.routines[target.botId] : undefined));
@@ -145,7 +145,7 @@ export function BotSettingsModal() {
           {target.tab === 'general' && <GeneralTab bot={bot} onClose={onClose} />}
           {target.tab === 'skills' && <SkillsTab bot={bot} skills={data?.skills} onChange={reload} />}
           {target.tab === 'memories' && <MemoriesTab bot={bot} data={data} onChange={reload} />}
-          {target.tab === 'routines' && <RoutinesTab bot={bot} routines={routines ?? data?.routines} onChange={reload} />}
+          {target.tab === 'routines' && <RoutinesTab bot={bot} routines={routines ?? data?.routines} onChange={reload} draft={target.routineDraft} />}
         </div>
       </div>
     </Modal>
@@ -1031,10 +1031,12 @@ const CRON_PRESETS: { label: string; cron: string }[] = [
   { label: 'Hourly', cron: '0 * * * *' },
 ];
 
-function RoutinesTab({ bot, routines, onChange }: { bot: Bot; routines: Routine[] | undefined; onChange: () => void }) {
+type RoutineDraft = Pick<Routine, 'name' | 'prompt'>;
+
+function RoutinesTab({ bot, routines, onChange, draft }: { bot: Bot; routines: Routine[] | undefined; onChange: () => void; draft?: RoutineDraft }) {
   const [flash, setFlash] = useState<string | null>(null);
   const flashTimerRef = useRef<number | null>(null);
-  const [editing, setEditing] = useState<string | 'new' | null>(null);
+  const [editing, setEditing] = useState<string | 'new' | null>(draft ? 'new' : null);
   useEffect(() => () => { if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current); }, []);
   const say = (t: string) => {
     setFlash(t);
@@ -1073,8 +1075,11 @@ function RoutinesTab({ bot, routines, onChange }: { bot: Bot; routines: Routine[
       {editing === 'new' && (
         <RoutineEditor
           botId={bot.id}
+          draft={draft}
           onDone={(msg) => {
             setEditing(null);
+            const { botSettings } = useConfigUI.getState();
+            if (botSettings?.routineDraft) useConfigUI.setState({ botSettings: { ...botSettings, routineDraft: undefined } });
             if (msg) say(msg);
             refresh();
           }}
@@ -1106,12 +1111,12 @@ function RoutinesTab({ bot, routines, onChange }: { bot: Bot; routines: Routine[
   );
 }
 
-function RoutineEditor({ botId, routine, onDone }: { botId: string; routine?: Routine; onDone: (msg?: string) => void }) {
+function RoutineEditor({ botId, routine, draft, onDone }: { botId: string; routine?: Routine; draft?: RoutineDraft; onDone: (msg?: string) => void }) {
   const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  const [name, setName] = useState(routine?.name ?? '');
+  const [name, setName] = useState(routine?.name ?? draft?.name ?? '');
   const [schedule, setSchedule] = useState(routine?.schedule ?? '0 9 * * 1-5');
   const [timezone, setTimezone] = useState(routine?.timezone ?? localTz);
-  const [prompt, setPrompt] = useState(routine?.prompt ?? '');
+  const [prompt, setPrompt] = useState(routine?.prompt ?? draft?.prompt ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const schedRef = useRef<HTMLInputElement>(null);

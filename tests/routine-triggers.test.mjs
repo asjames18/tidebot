@@ -11,14 +11,13 @@ import path from 'node:path';
 const fixtures = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-routine-triggers-'));
 process.env.DB_PATH = path.join(fixtures, 'test.db');
 const { db } = await import('../server/dist/db.js');
-const { migrate, deleteEventTrigger, deleteEventTriggersForBot } = await import('../server/dist/triggers.js');
+const { deleteEventTrigger, deleteEventTriggersForBot } = await import('../server/dist/triggers.js');
 const { routineScheduleChangeError } = await import('../server/dist/routines.js');
 
 after(() => {
   try { db.close(); } finally { fs.rmSync(fixtures, { recursive: true, force: true }); }
 });
 
-migrate();
 db.prepare("INSERT INTO users(id,email,name,created_at) VALUES ('u1','u1@test.local','U',1)").run();
 db.prepare("INSERT INTO bots(id,user_id,name,created_at,updated_at) VALUES ('b1','u1','B',1,1)").run();
 const insertRoutine = db.prepare(

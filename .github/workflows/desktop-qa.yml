@@ -1,0 +1,65 @@
+name: Desktop package verification
+
+on:
+  push:
+    branches: ['codex/platform-qa*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Windows x64, runner: windows-2022, flag: --win, arch: x64 }
+          - { name: Linux x64, runner: ubuntu-24.04, flag: --linux, arch: x64 }
+          - { name: macOS Intel, runner: macos-15-intel, flag: --mac, arch: x64 }
+          - { name: macOS Apple Silicon, runner: macos-15, flag: --mac, arch: arm64 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.3
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm install --no-audit --no-fund
+        working-directory: desktop
+      - run: npm run stage
+        working-directory: desktop
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+      - name: Build installers
+        run: node scripts/eb-cli.mjs ${{ matrix.flag }} --${{ matrix.arch }} --publish never '-c.directories.output=dist/qa'
+        shell: bash
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Check installer files
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.flag }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          case "$PLATFORM" in
+            --win) compgen -G 'desktop/dist/qa/*Setup*.exe' ;;
+            --mac)
+              version=$(node -p "require('./desktop/package.json').version")
+              base="desktop/dist/qa/TideBot-$version"
+              if [[ "$TARGET_ARCH" == arm64 ]]; then
+                test ! -d desktop/dist/qa/mac
+                base="$base-arm64"
+              else
+                test ! -d desktop/dist/qa/mac-arm64
+              fi
+              test -s "$base.dmg" && test -s "$base-mac.zip"
+              ;;
+            --linux) compgen -G 'desktop/dist/qa/*.AppImage' && compgen -G 'desktop/dist/qa/*.deb' ;;
+          esac
+      - run: node desktop/scripts/smoke-packaged.mjs desktop/dist/qa

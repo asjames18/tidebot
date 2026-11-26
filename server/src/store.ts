@@ -1,4 +1,5 @@
 import { db, now } from './db.js';
+import { runContext } from './runs.js';
 import { hub } from './lib/hub.js';
 import type { Bot, LiveState, Row, RowBody, RowKind, Routine, Task } from './types.js';
 import { Cron } from 'croner';
@@ -72,7 +73,10 @@ export function appendRow(botId: string, kind: RowKind, body: RowBody): Row {
     db.prepare('UPDATE bots SET next_seq = next_seq + 1 WHERE id=?').run(botId);
     const rev = bumpRev(botId);
     const t = now();
-    db.prepare('INSERT INTO rows(bot_id,generation,seq,updated_seq,kind,body,created_at) VALUES (?,?,?,?,?,?,?)').run(botId, b.generation, seq, rev, kind, JSON.stringify(body), t);
+    const activeRun = runContext.getStore();
+    const runId = activeRun?.botId === botId ? activeRun.id : null;
+    db.prepare('INSERT INTO rows(bot_id,generation,seq,updated_seq,kind,body,created_at,run_id) VALUES (?,?,?,?,?,?,?,?)')
+      .run(botId, b.generation, seq, rev, kind, JSON.stringify(body), t, runId);
     return { userId: b.user_id as string, row: { botId, generation: b.generation, seq, updatedSeq: rev, kind, body, createdAt: t } as Row };
   });
   const { userId, row } = tx();
@@ -115,12 +119,22 @@ export function listRows(botId: string, opts: { beforeSeq?: number; limit?: numb
   return rows.reverse().map(toRow);
 }
 
+export function listRunRows(botId: string, runId: string): Row[] {
+  // Keep the original request available when a long run produces many tool rows.
+  const rows = db.prepare(`SELECT * FROM rows WHERE bot_id=? AND run_id=?
+    ORDER BY (kind='message' AND json_extract(body, '$.role')='user') DESC, seq DESC LIMIT 80`)
+    .all(botId, runId) as any[];
+  return rows.sort((a, b) => a.seq - b.seq).map(toRow);
+}
+
 export function clearConversation(botId: string) {
   const b = getBotRow(botId);
   const generation = b.generation + 1;
   db.transaction(() => {
     db.prepare('UPDATE bots SET generation=?, next_seq=1 WHERE id=?').run(generation, botId);
     db.prepare('DELETE FROM pending_turns WHERE bot_id=?').run(botId);
+    db.prepare("UPDATE approvals SET status='expired', resolved_at=? WHERE bot_id=? AND status='pending'").run(now(), botId);
+    db.prepare('DELETE FROM agent_runs WHERE bot_id=?').run(botId);
     // Purge superseded generations: nothing reads them, and llm_items can hold
     // large payloads (e.g. base64 screenshots), so keeping them makes the DB
     // grow unboundedly with unreachable data.
@@ -128,6 +142,7 @@ export function clearConversation(botId: string) {
     db.prepare('DELETE FROM llm_items WHERE bot_id=? AND generation<?').run(botId, generation);
   })();
   hub.emit(b.user_id, { type: 'cleared', botId, generation });
+  hub.emit(b.user_id, { type: 'runs', botId });
 }
 
 // ---------- LLM history (Responses API input items) ----------

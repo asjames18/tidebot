@@ -1,0 +1,23 @@
+services:
+  tidebot:
+    build: .
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "8787"
+      DEV_LOGIN: "0"
+      DB_PATH: /data/grokbot.db
+      ENV_PATH: /data/studio.env
+      WEB_DIST_DIR: /app/web/dist
+      TIDEBOT_DESKTOP_SIGNUP_ORIGIN: ""
+    volumes:
+      - tidebot-data:/data
+
+volumes:
+  tidebot-data:

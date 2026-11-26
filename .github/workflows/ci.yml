@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'codex/platform-qa-release*']
   pull_request:
     branches: [main]
 
@@ -31,3 +31,35 @@ jobs:
 
       - name: Test
         run: npm test
+
+  self-hosted:
+    name: Self-hosted Compose smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the self-hosted stack
+        run: |
+          cat > .env <<'ENV'
+          STUDIO_EMAIL=compose-fixture@example.test
+          STUDIO_PASSWORD=compose-only-test-password
+          APP_URL=http://127.0.0.1:8787
+          SERVER_URL=http://127.0.0.1:8787
+          ENV
+          docker compose up --build --wait --wait-timeout 120
+      - name: Verify account and data survive a restart
+        run: |
+          base=http://127.0.0.1:8787
+          jar=$(mktemp)
+          curl -fsS "$base/api/desktop" | jq -e '.application == "tidebot" and .web and .apiVersion == 1'
+          curl -fsS -c "$jar" -H 'Content-Type: application/json' "$base/api/auth/password" \
+            --data '{"email":"compose-fixture@example.test","password":"compose-only-test-password"}' > /dev/null
+          bot=$(curl -fsS -b "$jar" "$base/api/bots" | jq -er '.bots[0].id')
+          docker compose restart
+          docker compose up --wait --wait-timeout 120
+          curl -fsS -b "$jar" "$base/api/bots" | jq -e --arg bot "$bot" '.bots[0].id == $bot'
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose logs tidebot
+      - name: Stop the fixture
+        if: always()
+        run: docker compose down

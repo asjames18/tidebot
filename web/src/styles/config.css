@@ -367,3 +367,8 @@
 }
 .byom-model-card__id { font-family: var(--font-mono-stack); font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .byom-model-card__meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+.project-form fieldset { display: grid; gap: 8px; min-width: 0; border: 0; padding: 0; }
+.project-form__file, .project-form__bot { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.project-form__file details { min-width: 0; flex: 1; }
+.project-form__file pre { max-height: 200px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
