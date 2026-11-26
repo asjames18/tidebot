@@ -25,3 +25,9 @@ You can self-host on hardware you already own. Hosting and model providers may h
 Compose stores the SQLite database, Library files, and studio settings in the `tidebot-data` named volume. Changes saved in TideBot's Settings take precedence over the corresponding environment values in the Compose `.env`. Keep `.env` private.
 
 For a consistent backup, stop the service and back up the entire data volume along with `.env`. The source-checkout setup keeps its database and Library under `data/` by default. Back up data before rebuilding with a newer checkout. Run only one server process against the same SQLite database.
+
+### Back up and restore with `npm run backup`
+
+Stop the server first, then run `npm run backup` from the checkout (or `node scripts/backup.mjs --data-dir <dir> --out <dir>` for a Docker volume or desktop data folder). It copies the whole data directory — database, workspaces, settings — into `backups/tidebot-<timestamp>/`, then verifies the copy: file inventory, SQLite header, and `PRAGMA integrity_check` on the copied database. `.env` is excluded by default; add `--include-env` only if you deliberately want keys in the backup, and store that backup somewhere private.
+
+To restore: stop the server, copy the backup's `data/` contents back over the data directory (and `.env` back to the install root if you included it), run `node scripts/backup.mjs --verify <data dir>`, then start the server. The restore path is covered by an automated test (`tests/backup.test.mjs`) that backs up a fixture install, copies it back, and reads the database — an untested backup is a hope, not a feature.
