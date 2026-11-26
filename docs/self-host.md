@@ -1,5 +1,7 @@
 # Self-host TideBot
 
+> **Last verified:** 2026-11-26 · **Owner:** asjames18 (maintainer)
+
 Run TideBot on a computer you already own or a separate server. The server holds the accounts, bots, files, and routine schedules, so their work can continue after you close the desktop client.
 
 ## Start the server
@@ -25,3 +27,10 @@ You can self-host on hardware you already own. Hosting and model providers may h
 Compose stores the SQLite database, Library files, and studio settings in the `tidebot-data` named volume. Changes saved in TideBot's Settings take precedence over the corresponding environment values in the Compose `.env`. Keep `.env` private.
 
 For a consistent backup, stop the service and back up the entire data volume along with `.env`. The source-checkout setup keeps its database and Library under `data/` by default. Back up data before rebuilding with a newer checkout. Run only one server process against the same SQLite database.
+
+## See also
+
+- [Architecture](ARCHITECTURE.md) — how the server, agent loop, and BYOM engine fit together.
+- [First chat with a local model](local-model.md) — smoke-test TideBot with llama.cpp or Ollama and no cloud key.
+- [Orgo builder's guide](orgo-builder-guide.md) — how the Orgo cloud desktops behind the computer tools work.
+- [xAI API and Composio](xai-and-composio.md) — builder's reference for the xAI and Composio integrations.
