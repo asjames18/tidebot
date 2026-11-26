@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { CardBody, Row } from '@shared/types';
 import { api, openPopup } from '../../lib/api';
 import { copyText } from '../../lib/clipboard';
@@ -51,12 +51,13 @@ export function ApprovalCard({ body }: { body: Card<'approval'> }) {
   const decide = (d: 'allow' | 'always' | 'deny') => run(d, () => api.approve(body.approvalId, d));
   const name = body.toolkit ? humanizeToolkit(body.toolkit) : prettyTool(body.tool);
   const argumentsText = approvalArguments(body.args);
+  const titleId = useId();
   return (
-    <div className={`card approval-card${pending ? '' : ' is-resolved'}`}>
+    <div className={`card approval-card${pending ? '' : ' is-resolved'}`} role="group" aria-labelledby={titleId}>
       <div className="card__head">
         <ToolkitLogo name={name} logo={body.toolkit ? `https://logos.composio.dev/api/${body.toolkit.toLowerCase()}` : undefined} size={44} />
         <div className="card__titles">
-          <div className="card__title">{body.title}</div>
+          <div className="card__title" id={titleId}>{body.title}</div>
           <div className="card__sub">{name}</div>
         </div>
       </div>
@@ -69,13 +70,13 @@ export function ApprovalCard({ body }: { body: Card<'approval'> }) {
         <>
           <div className="card__actions">
             <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('deny')}>{busy === 'deny' ? 'Denying…' : "Don't allow"}</button>
-            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('always')} title={`Always allow this tool: ${prettyTool(body.tool)}`}>{busy === 'always' ? 'Saving…' : 'Always allow'}</button>
+            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('always')} aria-label={`Always allow this tool: ${prettyTool(body.tool)}`} title={`Always allow this tool: ${prettyTool(body.tool)}`}>{busy === 'always' ? 'Saving…' : 'Always allow'}</button>
             <button type="button" className="btn btn--primary" disabled={!!busy} onClick={() => decide('allow')}>{busy === 'allow' ? 'Allowing…' : 'Allow once'}</button>
           </div>
           {error && <div className="card__error" role="alert">{error}</div>}
         </>
       ) : (
-        <div className={`card__outcome is-${body.status}`}>
+        <div className={`card__outcome is-${body.status}`} role="status">
           <Icon name={body.status === 'denied' || body.status === 'expired' ? 'close' : 'check'} size={12} opacity={0.7} />
           {APPROVAL_OUTCOME[body.status] ?? body.status}
         </div>
