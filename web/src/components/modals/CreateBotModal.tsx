@@ -96,6 +96,7 @@ export function CreateBotModal() {
   const [error, setError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const bodyTouchStartYRef = useRef<number | null>(null);
+  const customChoices = useRef({ shape: false, color: false, mode: false });
   const close = useCallback(() => setModal(null), [setModal]);
   const canCreate = name.trim().length > 0 && !busy;
 
@@ -124,11 +125,16 @@ export function CreateBotModal() {
     setLabel((current) => nextTemplateField(current, previous?.label, t.label));
     setDescription((current) => nextTemplateField(current, prevDescription, nextDescription));
     setInstructions((current) => nextTemplateField(current, previous?.instructions, t.instructions));
-    setShape(t.shape);
-    setColor(t.color);
-    setMode(t.mode);
+    if (!customChoices.current.shape) setShape(t.shape);
+    if (!customChoices.current.color) setColor(t.color);
+    if (!customChoices.current.mode) setMode(t.mode);
     setError(null);
     el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  };
+
+  const chooseMode = (mode: Bot['mode']) => {
+    customChoices.current.mode = true;
+    setMode(mode);
   };
 
   const create = async () => {
@@ -234,12 +240,12 @@ export function CreateBotModal() {
             <h3 id="create-bot-access">Working mode</h3>
             <div className="mode-pick" role="radiogroup" aria-labelledby="create-bot-access">
               <label className={`mode-pick__opt${mode === 'personal' ? ' is-active' : ''}`}>
-                <input type="radio" name="bot-mode" value="personal" checked={mode === 'personal'} onChange={() => setMode('personal')} />
+                <input type="radio" name="bot-mode" value="personal" checked={mode === 'personal'} onChange={() => chooseMode('personal')} />
                 <span className="mode-pick__title">Personal assistant</span>
                 <span className="mode-pick__sub">Works for you, with your apps</span>
               </label>
               <label className={`mode-pick__opt${mode === 'teammate' ? ' is-active' : ''}`}>
-                <input type="radio" name="bot-mode" value="teammate" checked={mode === 'teammate'} onChange={() => setMode('teammate')} />
+                <input type="radio" name="bot-mode" value="teammate" checked={mode === 'teammate'} onChange={() => chooseMode('teammate')} />
                 <span className="mode-pick__title">Teammate</span>
                 <span className="mode-pick__sub">Works with your team in rooms</span>
               </label>
@@ -283,6 +289,7 @@ export function CreateBotModal() {
                           onClick={() => {
                             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
                             blurInputOnMobile();
+                            customChoices.current.shape = true;
                             setShape(s);
                           }}
                         >
@@ -306,6 +313,7 @@ export function CreateBotModal() {
                           onClick={() => {
                             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
                             blurInputOnMobile();
+                            customChoices.current.color = true;
                             setColor(c);
                           }}
                         >
