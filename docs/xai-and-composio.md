@@ -1,8 +1,8 @@
-# xAI API (Grok 4.7) and Composio: builder's reference for Grokbot
+# xAI API (Grok 4.7) and Composio: builder's reference for TideBot
 
 Researched 2026-11-09 from the official docs only: `docs.x.ai` (its `llms.txt` index plus per-page `.md` endpoints) and `docs.composio.dev` (its `llms.txt`, `llms-index.txt` and per-page `.md` endpoints), plus `composio.dev/pricing` for plan prices. No accounts were created and no authenticated calls were made, so nothing here has been run against a live key.
 
-Labels: **[D]** = stated in the docs (a URL is given). **[I]** = inferred by us. Verify these before relying on them. **[R]** = our recommendation for Grokbot.
+Labels: **[D]** = stated in the docs (a URL is given). **[I]** = inferred by us. Verify these before relying on them. **[R]** = our recommendation for TideBot.
 
 > Naming note: docs.x.ai now calls the company "SpaceXSI" in body text (for example "SpaceXSI's frontier model"). The API host is still `api.x.ai`, and the console is `console.x.ai`. [D] https://docs.x.ai/llms.txt
 
@@ -10,7 +10,7 @@ Labels: **[D]** = stated in the docs (a URL is given). **[I]** = inferred by us.
 
 ## Part A: xAI API for Grok 4.7
 
-### A.0 TL;DR for Grokbot
+### A.0 TL;DR for TideBot
 
 | Question | Answer |
 |---|---|
@@ -80,7 +80,7 @@ Long-context pricing: once a request's prompt reaches 200k tokens, every token i
 - **Vercel AI SDK:** `npm install ai @ai-sdk/xai zod`, then `xai.responses('grok-4.7')` [D].
 - **xAI SDK:** `pip install xai-sdk` is **Python only**, over gRPC. It covers everything, including Collections, Voice and key management [D]. The docs show **no official xAI TypeScript SDK**. `npm install -g @xai-official/grok` is the Grok Build CLI, not an API client [D].
 - Set a long client timeout for reasoning models. The docs use `timeout: 360000` [D].
-- `safety_identifier`: a stable, hashed end-user ID so xAI attributes policy violations to that user rather than to your key [D] https://docs.x.ai/developers/release-notes.md. **[R]** Send the hashed Grokbot user ID.
+- `safety_identifier`: a stable, hashed end-user ID so xAI attributes policy violations to that user rather than to your key [D] https://docs.x.ai/developers/release-notes.md. **[R]** Send the hashed TideBot user ID.
 
 **Responses API example (TypeScript, Node 22)**
 
@@ -97,7 +97,7 @@ export const xai = new OpenAI({
 const res = await xai.responses.create({
   model: 'grok-4.7',
   input: [
-    { role: 'system', content: 'You are Ada, a Grokbot teammate.' },
+    { role: 'system', content: 'You are Ada, a TideBot teammate.' },
     { role: 'user', content: 'Summarize my day in 3 bullets.' },
   ],
   reasoning: { effort: 'medium' },
@@ -132,7 +132,7 @@ console.log(cc.choices[0].message.content);
 **Streaming.** This uses SSE with `stream: true`. Event names follow OpenAI Responses: `response.output_text.delta`, `response.output_item.added/done`, `response.completed`, `response.incomplete` [D] https://docs.x.ai/developers/model-capabilities/text/streaming.md, https://docs.x.ai/developers/model-capabilities/text/best-practices.md
 
 **Other parameters worth knowing** [D] https://docs.x.ai/developers/rest-api-reference/inference/responses.md
-- `instructions` **cannot be combined with `previous_response_id`**: the earlier system prompt is used instead. Grokbot should put the system prompt in `input` when it manages history.
+- `instructions` **cannot be combined with `previous_response_id`**: the earlier system prompt is used instead. TideBot should put the system prompt in `input` when it manages history.
 - `max_turns` caps server-side agentic tool turns per request. `max_tool_calls` caps tool calls.
 - `background` is unsupported. `metadata` and `truncation` are accepted but unsupported.
 - `guidelines` sets per-category moderation (nsfw, violence, profanity) [D] (October release notes).
@@ -270,7 +270,7 @@ history.push({ role: 'user', content: [
 - `store` defaults to `true`, and responses are kept for **30 days**. Continue a chain with `previous_response_id`, and use `responses.retrieve` / `responses.delete` to read or remove one.
 - Persistent agents that live longer than 30 days must keep their own history plus the encrypted reasoning, and resend it.
 - With agentic tools, a follow-up linked by `previous_response_id` "does not need to use the same tools, model parameters" [D] https://docs.x.ai/developers/tools/advanced-usage.md
-- **[R]** Grokbot bots are persistent, use screenshots, and may need ZDR. So use our own history store (`store:false`) as the source of truth. Treat `previous_response_id` only as an in-process optimization, ideally over WebSocket mode.
+- **[R]** TideBot bots are persistent, use screenshots, and may need ZDR. So use our own history store (`store:false`) as the source of truth. Treat `previous_response_id` only as an in-process optimization, ideally over WebSocket mode.
 
 **Structured outputs** [D] https://docs.x.ai/developers/model-capabilities/text/structured-outputs.md
 - On Responses, use `text: { format: { type: 'json_schema', name, schema, strict: true } }`. Also accepted: `json_object` and `text`. On Chat Completions, use `response_format`.
@@ -294,7 +294,7 @@ const plan = Plan.parse(JSON.parse(r.output_text));
 - Things that break the cache: editing, reordering or removing earlier items, dropping encrypted reasoning, and a timestamp at the top of the system prompt. Put static content first.
 
 **Context compaction** [D] https://docs.x.ai/developers/advanced-api-usage/context-compaction.md
-- `POST /v1/responses/compact` (`client.responses.compact({ model, input })`) returns one opaque compaction item. Spread it into the next request in place of the old history. **[R]** Use it as the Grokbot summarizer for long-running bots.
+- `POST /v1/responses/compact` (`client.responses.compact({ model, input })`) returns one opaque compaction item. Spread it into the next request in place of the old history. **[R]** Use it as the TideBot summarizer for long-running bots.
 
 **Rate limits** [D] https://docs.x.ai/developers/rate-limits.md
 - Limits are per model, in RPS and TPM. RPS = RPM / 48, with a minimum of 2. Tiers are set by cumulative spend since 2026-01-01: T0 $0, T1 $50, T2 $250, T3 $1k, T4 $5k. Tiers never go down.
@@ -344,9 +344,9 @@ ws.onopen = () => ws.send(JSON.stringify({ type: 'session.update', session: {
 - `POST /v1/images/generations` (`client.images.generate({ model: 'grok-imagine-image-2.0', prompt, aspect_ratio, quality: 'low'|'medium'|'auto', response_format: 'url'|'b64_json' })`). Costs $0.04 per image.
 - `deferred: true` with polling of `GET /v1/images/{request_id}` is also available. Inside a chat, use the `image_generation` tool instead.
 
-### A.8 How Grokbot uses xAI
+### A.8 How TideBot uses xAI
 
-1. **Agent loop:** each bot turn runs the A.3 loop on `grok-4.7` through the `openai` package. grokbot-clone owns history in SQLite (`store:false`, encrypted reasoning kept as-is). `prompt_cache_key = bot_id:conversation_id`, `safety_identifier = sha256(user_id)`. Run compaction when context passes a budget we set (this project uses the token count of the previous call).
+1. **Agent loop:** each bot turn runs the A.3 loop on `grok-4.7` through the `openai` package. TideBot owns history in SQLite (`store:false`, encrypted reasoning kept as-is). `prompt_cache_key = bot_id:conversation_id`, `safety_identifier = sha256(user_id)`. Run compaction when context passes a budget we set (this project uses the token count of the previous call).
 2. **Effort policy:** `low` for computer-use step loops and routine tool calls, `medium` for chat, `high` for planning or "deep work" routines. Expose `xhigh` as an advanced bot setting.
 3. **Tools per turn:** our own functions (Orgo computer actions, shell, memory, `send_to_user`, `request_approval`, `send_to_bot`) plus the Composio tools from B.5. Add server-side `web_search` and `x_search` (cheap, citations included). Avoid xAI remote `mcp` for user apps, because xAI cannot apply our approvals (see B.5).
 4. **Computer use:** follow the A.5 pattern on the user's Orgo VM, one screen per bot.
@@ -357,7 +357,7 @@ ws.onopen = () => ws.send(JSON.stringify({ type: 'session.update', session: {
 
 ## Part B: Composio
 
-### B.0 TL;DR for Grokbot
+### B.0 TL;DR for TideBot
 
 | Question | Answer |
 |---|---|
@@ -365,8 +365,8 @@ ws.onopen = () => ws.send(JSON.stringify({ type: 'session.update', session: {
 | Packages | `@composio/core` (0.28.0 as of 2026-11-03, ESM-only, Node ≥ 22.22.3) and `@composio/openai` (`OpenAIResponsesProvider`). There is no xAI-specific provider. |
 | Connect an app | `session.authorize('gmail', { callbackUrl })` or `composio.connectedAccounts.link(userId, authConfigId, { callbackUrl })` returns `redirectUrl` (hosted Connect Link). `initiate()` is retired for Composio-managed OAuth. |
 | Marketplace | `composio.toolkits.get({ search, category, sortBy, limit, cursor })` (REST `GET /api/v3.1/toolkits`) returns name, slug, `meta.logo`, `meta.description`, `meta.categories`, `auth_schemes`, `composio_managed_auth_schemes`, tool and trigger counts. |
-| App sign-in (IdP)? | **No.** Composio has no end-user login or identity product. Use a real auth layer for Grokbot sign-in and pass our user ID to Composio. See B.3. |
-| Approvals | Per toolkit, tool or hint: `requireApproval` (experimental). It raises `ComposioToolInputRequiredError`, which we render as a Grokbot approval card. |
+| App sign-in (IdP)? | **No.** Composio has no end-user login or identity product. Use a real auth layer for TideBot sign-in and pass our user ID to Composio. See B.3. |
+| Approvals | Per toolkit, tool or hint: `requireApproval` (experimental). It raises `ComposioToolInputRequiredError`, which we render as a TideBot approval card. |
 | Routines | Triggers (`composio.triggers.create(userId, slug, { triggerConfig })`) feed one project webhook. Verify with `composio.triggers.parse(req, { verifySecret })`. |
 
 ### B.1 Core concepts and renames
@@ -433,7 +433,7 @@ Some toolkit defaults still use the legacy callback `https://backend.composio.de
 ```ts
 const session = await composio.create(userId, { manageConnections: false }); // our UI owns connecting
 const req = await session.authorize('gmail', {
-  callbackUrl: `https://grokbot.example/connections/callback?attempt=${attemptId}`,
+  callbackUrl: `https://tidebot.example/connections/callback?attempt=${attemptId}`,
 });
 await db.connectAttempts.insert({ attemptId, userId, toolkit: 'gmail', connectedAccountId: req.id });
 return Response.redirect(req.redirectUrl!);
@@ -467,7 +467,7 @@ await composio.connectedAccounts.delete('ca_…');       // permanent
 - App-owned connection UI: `connectedAccounts.initiate(userId, customAuthConfigId, { callbackUrl, config: { authScheme: 'OAUTH2', val: { status: 'INITIALIZING', long_redirect_url: true } } })` returns the provider URL directly. This works for custom configs only. Composio's callback domain still appears briefly.
 - The pricing page lists "Advanced white-labeling" under Enterprise [D].
 
-### B.3 Can Composio be Grokbot's own sign-in (IdP)?
+### B.3 Can Composio be TideBot's own sign-in (IdP)?
 
 **No.** We found no end-user authentication, login or identity-provider product in the Composio docs (full `llms-full.txt` searched). What the docs say instead:
 - Consumer-agent guide: "Each person signs in to **your product**, connects their own apps…". Map every signed-in user to a stable ID from your database [D] https://docs.composio.dev/docs/consumer-agents.md
@@ -484,7 +484,7 @@ Why a connected account is a poor stand-in for identity [I]:
 **[R] Recommended pattern**
 
 1. **Sign-in layer:** use a small OAuth/OIDC session library in our Node backend, such as Better Auth or Auth.js, or Google Identity Services plus GitHub OAuth directly. Offer "Sign in with Google/GitHub". Use our own Google/GitHub OAuth clients with minimal scopes (`openid email profile`), and store an HTTP-only session cookie. This produces `users.id` (UUID).
-2. **Connectors:** use `composio.create(users.id, …)`. Gmail, Calendar, GitHub and so on are connected through Composio after sign-in, as a separate consent step with real scopes. To get "one-click" onboarding, open the Composio Gmail Connect Link right after first sign-in. To make Google's consent screen show Grokbot, register a Google OAuth client as a Composio custom auth config. This can be a different client from the sign-in one, so that sign-in scopes stay minimal.
+2. **Connectors:** use `composio.create(users.id, …)`. Gmail, Calendar, GitHub and so on are connected through Composio after sign-in, as a separate consent step with real scopes. To get "one-click" onboarding, open the Composio Gmail Connect Link right after first sign-in. To make Google's consent screen show TideBot, register a Google OAuth client as a Composio custom auth config. This can be a different client from the sign-in one, so that sign-in scopes stay minimal.
 3. Optional safety check: after connecting, call the provider profile endpoint through `proxyExecute` (or `toolkit.getCurrentUserEndpoint`) and check that the connected mailbox matches the signed-in email, or an allowed domain. Turn on callback identity verification.
 4. **Not recommended:** making a Composio Google connection the login itself (provisional user, then `authorize('gmail')`, then proxy `GET /gmail/v1/users/me/profile` and map the email to an account). It works mechanically, but it needs broad Gmail scopes just to log in, shows Composio branding on managed apps, has no ID token or session semantics, and fails whenever the connection expires.
 
@@ -551,7 +551,7 @@ async function runComposioCall(call: { name: string; call_id: string; arguments:
              output: JSON.stringify(r.resultType === 'completed' ? r.data : { error: r.error, logId: r.logId }) };
   } catch (e) {
     if (e instanceof ComposioToolInputRequiredError) {
-      // Render e.inputRequests (MCP elicitation forms: approve | always_approve | deny) as a Grokbot approval card,
+      // Render e.inputRequests (MCP elicitation forms: approve | always_approve | deny) as a TideBot approval card,
       // persist e.requestState, pause the run. On answer:
       //   await session.execute(call.name, args, { inputResponses: { [id]: { action:'accept', content:{ decision:'approve' } } }, requestState })
       throw new NeedsApproval(call, e.inputRequests, e.requestState);
@@ -586,7 +586,7 @@ Key rules from the docs [D] https://docs.composio.dev/docs/how-composio-works.md
 **MCP alternative** [D] https://docs.composio.dev/docs/sessions-via-mcp.md
 - `composio.create(userId, { mcp: true })` exposes `session.mcp.url` and `session.mcp.headers` (which carry the `x-api-key`).
 - You could pass these to xAI as `{ type: 'mcp', server_url, server_label: 'composio', headers }` [D] https://docs.x.ai/developers/tools/remote-mcp.md. **[R] Don't, for user apps:**
-  - The calls run on xAI's servers, so Grokbot never sees them before they execute.
+  - The calls run on xAI's servers, so TideBot never sees them before they execute.
   - xAI does not support `require_approval`.
   - Composio approvals over MCP need client elicitation, which xAI's client does not document. Calls are then denied, or allowed without asking under `noElicitationSupportFallback: 'allow'`.
   - We would be handing our Composio project key to a third party in headers.
@@ -596,7 +596,7 @@ Key rules from the docs [D] https://docs.composio.dev/docs/how-composio-works.md
 
 [D] https://docs.composio.dev/docs/triggers.md, https://docs.composio.dev/docs/setting-up-triggers/creating-triggers.md, https://docs.composio.dev/docs/setting-up-triggers/subscribing-to-events.md
 
-| Grokbot routine event | Trigger slug | Kind |
+| TideBot routine event | Trigger slug | Kind |
 |---|---|---|
 | New Gmail message | `GMAIL_NEW_GMAIL_MESSAGE` | poll (≥ 2 min on managed auth; set `polling_interval` on the instance) |
 | Slack message in channel | `SLACK_CHANNEL_MESSAGE_RECEIVED` (config `channel_id`, `channel_type`) | webhook |
@@ -608,7 +608,7 @@ Slugs come from https://docs.composio.dev/toolkits/gmail.md, https://docs.compos
 
 ```ts
 // 1) once per project: register the webhook and keep the secret
-const sub = await composio.triggers.setWebhookSubscription({ webhookUrl: 'https://grokbot.example/webhooks/composio' });
+const sub = await composio.triggers.setWebhookSubscription({ webhookUrl: 'https://tidebot.example/webhooks/composio' });
 // store sub.secret as COMPOSIO_WEBHOOK_SECRET   (also: composio.webhooks.subscriptions.rotateSecret())
 
 // 2) per routine: inspect + create a trigger instance for the user's connected account
@@ -665,13 +665,13 @@ export async function POST(request: Request) {
 
 Sessions are free to create. Triggers are billed per **delivered** event, and polling triggers cost more than realtime ones. Sandboxes are "not billed today" but billing is planned. Instant Tools are billed per call from credit [D].
 
-### B.8 How Grokbot uses Composio
+### B.8 How TideBot uses Composio
 
-1. **Identity:** Grokbot runs its own sign-in (Google/GitHub OIDC through Better Auth or Auth.js). `users.id` is the Composio `user_id`. One Composio project per environment.
+1. **Identity:** TideBot runs its own sign-in (Google/GitHub OIDC through Better Auth or Auth.js). `users.id` is the Composio `user_id`. One Composio project per environment.
 2. **Marketplace (Apps page):** a server-cached `toolkits.get` list (logo, name, description, categories, managed vs BYO badge) with search and category filters, overlaid with `session.toolkits()` connection state. "Connect" calls `session.authorize(slug, { callbackUrl })` and redirects. The callback verifies the attempt plus `session.toolkits({ isConnected: true })`. Toolkits with `no_auth` are always available. Toolkits like Twitter/X need our own OAuth app.
-3. **Branding:** start on managed OAuth. Before launch, register Grokbot OAuth apps for Google, Slack and GitHub as custom auth configs, and set Connect Link branding.
+3. **Branding:** start on managed OAuth. Before launch, register TideBot OAuth apps for Google, Slack and GitHub as custom auth configs, and set Connect Link branding.
 4. **Per-bot tool scope:** each bot stores `enabledToolkits` plus optional per-tool allow and deny lists, and gets one long-lived Composio session (`sessionId` on the bot). `session.update()` runs when the user changes the bot's apps. Broad bots use meta tools, and narrow role bots use the direct-tools preset.
-5. **Approvals:** set Composio `requireApproval` on `createHint`/`updateHint`/`destructiveHint`, plus explicit tool lists for sends and posts. `ComposioToolInputRequiredError` becomes a Grokbot approval card. The answer resumes the call with `inputResponses` and `requestState`. Computer and shell actions use Grokbot's own approval policy. Keep the Composio sandbox off.
+5. **Approvals:** set Composio `requireApproval` on `createHint`/`updateHint`/`destructiveHint`, plus explicit tool lists for sends and posts. `ComposioToolInputRequiredError` becomes a TideBot approval card. The answer resumes the call with `inputResponses` and `requestState`. Computer and shell actions use TideBot's own approval policy. Keep the Composio sandbox off.
 6. **Agent loop:** Composio tools are passed to `grok-4.7` as plain function tools alongside the Orgo computer tools. Every Composio call runs through `session.execute()`. xAI remote MCP is not used for user apps.
 7. **Routines:** the routine editor offers trigger types from `triggers.listTypes({ toolkits })` with a form generated from `getType().config`. Saving runs `triggers.create(user.id, slug, { connectedAccountId, triggerConfig })`. The single webhook verifies the signature, looks up the routine by `metadata.trigger_id`, and starts a bot run with the event as input. `composio.connected_account.expired` produces a "reconnect" card for the user.
 8. **Raw API gaps:** use `session.proxyExecute` / `tools.proxyExecute` for endpoints no tool covers (for example the "connected as" profile check).
