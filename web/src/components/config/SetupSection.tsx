@@ -53,11 +53,11 @@ export function SetupSection() {
 
   return <>
     <div className="app-settings__head">
-      <h1>Set up TideBot</h1>
-      <p>Connect a model for AI replies. You can come back to Settings any time.</p>
+      <h1>Connect a model</h1>
+      <p>Use your own OpenRouter key or connect a model running on your hardware.</p>
     </div>
     <section className="cfg-section">
-      <h2 className="cfg-section__label">AI model</h2>
+      <h2 className="cfg-section__label">OpenRouter</h2>
       {config?.isConfigured && <p className="cfg-row__sub">Current model: {config.defaultModel} ({config.provider}).</p>}
       {account && <form className="signin__dev" onSubmit={(event) => { event.preventDefault(); void connect(); }}>
         <label className="cfg-field" htmlFor="setup-openrouter">
@@ -72,16 +72,19 @@ export function SetupSection() {
         </label>
         <p className="cfg-field__hint">TideBot sends a short test prompt and saves a new key only after a successful reply. OpenRouter may charge for model usage.</p>
         <button className="cfg-btn cfg-btn--primary" type="submit" disabled={busy || (!key.trim() && !account.hasKey)}>
-          {busy ? 'Testing…' : key.trim() ? 'Connect and test OpenRouter' : 'Test saved key'}
+          {busy ? 'Testing…' : account.hasKey && !key.trim() ? 'Test saved key' : 'Connect and test OpenRouter'}
         </button>
       </form>}
       {result && <p className={`byom-status ${result.ok ? 'is-ok' : 'is-err'}`} role={result.ok ? 'status' : 'alert'}>{result.message}</p>}
-      <button className="cfg-btn cfg-btn--secondary" onClick={() => open('models')}>
-        {account?.canInvite ? 'Set up a local or shared model' : 'Open model settings'}
-      </button>
     </section>
     <section className="cfg-section">
-      <h2 className="cfg-section__label">Optional services</h2>
+      <h2 className="cfg-section__label">{account?.canInvite ? 'Local or shared model' : 'Studio model'}</h2>
+      <button className="cfg-btn cfg-btn--secondary" onClick={() => open('models')}>
+        Open model settings
+      </button>
+    </section>
+    <details className="cfg-section setup-optional">
+      <summary>Optional services</summary>
       <div className="cfg-card">
         <div className="cfg-row">
           <div className="cfg-row__text">
@@ -125,7 +128,7 @@ export function SetupSection() {
           {account?.canInvite && <button className="cfg-btn cfg-btn--secondary" onClick={() => open('models')}>Studio model settings</button>}
         </div>
       </div>
-    </section>
-    <button className="cfg-btn cfg-btn--primary" onClick={close}>{config?.isConfigured ? 'Go to studio' : 'Continue without a model'}</button>
+    </details>
+    <button className="cfg-btn cfg-btn--secondary" onClick={close}>{config?.isConfigured ? 'Go to studio' : 'Continue without a model'}</button>
   </>;
 }

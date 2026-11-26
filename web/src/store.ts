@@ -25,6 +25,7 @@ interface State {
   sseConnected: boolean;
 
   detailsOpen: boolean;
+  detailsTab: 'activity' | 'tasks' | 'library' | 'runs';
   sidebarCollapsed: boolean;
   mobileSidebarOpen: boolean;
   modal: ModalKind;
@@ -65,7 +66,8 @@ export const useStore = create<State>((set, get) => ({
   computer: null,
   connectionsVersion: 0,
   sseConnected: false,
-  detailsOpen: typeof window !== 'undefined' && window.innerWidth <= 900 ? false : lsGet(LS_DETAILS) !== '0',
+  detailsOpen: typeof window !== 'undefined' && window.innerWidth <= 900 ? false : lsGet(LS_DETAILS) === '1',
+  detailsTab: 'activity',
   sidebarCollapsed: lsGet(LS_SIDEBAR) === '1',
   mobileSidebarOpen: false,
   modal: null,

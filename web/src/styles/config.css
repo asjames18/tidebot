@@ -372,3 +372,6 @@
 .project-form__file, .project-form__bot { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .project-form__file details { min-width: 0; flex: 1; }
 .project-form__file pre { max-height: 200px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.setup-optional summary { cursor: pointer; color: var(--color-text-secondary); }
+.setup-optional[open] summary { margin-bottom: 12px; }

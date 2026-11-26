@@ -16,6 +16,10 @@ In TideBot Desktop, select **Change Server** from the application menu, or press
 
 For access from a phone or another computer, give the instance an HTTPS address through a reverse proxy or private network. Keep the Compose port bound to loopback and have the proxy reach it there. Set `APP_URL` and `SERVER_URL` in `.env` to that same HTTPS base address, then recreate the service. Desktop accepts HTTP on loopback for same-computer testing. A phone opens the HTTPS address in its browser.
 
+On your phone, sign in to that instance with the same TideBot account to see your bots, conversations, runs, and files. Use your browser's home-screen or install option if it is available. TideBot's server and model endpoint must stay reachable for replies and scheduled runs. For example, an Ollama address on `127.0.0.1` is local to the computer running the TideBot server.
+
+You can self-host on hardware you already own. Hosting and model providers may have separate costs or usage limits. TideBot can use a supported free model when one is available, or a local model that runs on your own hardware.
+
 ## Data and updates
 
 Compose stores the SQLite database, Library files, and studio settings in the `tidebot-data` named volume. Changes saved in TideBot's Settings take precedence over the corresponding environment values in the Compose `.env`. Keep `.env` private.

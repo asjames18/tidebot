@@ -70,6 +70,11 @@ const TEMPLATES: BotTemplate[] = [
   },
 ];
 
+const BLANK: BotTemplate = {
+  id: 'blank', title: 'Blank bot', name: '', label: '', description: 'Set your own role and instructions.',
+  instructions: '', shape: 'hex', color: 'cyan', mode: 'personal',
+};
+
 export function CreateBotModal() {
   const setModal = useStore((s) => s.setModal);
   const curatedModels = useConfigUI((s) => s.curatedModels);
@@ -83,7 +88,7 @@ export function CreateBotModal() {
   const [shape, setShape] = useState<AvatarShape>('hex');
   const [color, setColor] = useState<AvatarColor>('cyan');
   const [mode, setMode] = useState<Bot['mode']>('personal');
-  const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
+  const [activeTemplate, setActiveTemplate] = useState(BLANK.id);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -111,7 +116,7 @@ export function CreateBotModal() {
     setActiveTemplate(t.id);
     setName(t.name);
     setLabel(t.label);
-    setDescription(t.description);
+    setDescription(t.id === BLANK.id ? '' : t.description);
     setInstructions(t.instructions);
     setShape(t.shape);
     setColor(t.color);
@@ -137,7 +142,7 @@ export function CreateBotModal() {
         mode,
       });
       const st = useStore.getState();
-      st.set({ bots: st.bots.some((b) => b.id === bot.id) ? st.bots : [...st.bots, bot] });
+      st.set({ bots: st.bots.some((b) => b.id === bot.id) ? st.bots : [...st.bots, bot], detailsOpen: false, detailsTab: 'activity' });
       useConfigUI.getState().setView('chat');
       st.selectBot(bot.id);
       close();
@@ -186,21 +191,21 @@ export function CreateBotModal() {
           onTouchEnd={() => { bodyTouchStartYRef.current = null; }}
           onTouchCancel={() => { bodyTouchStartYRef.current = null; }}
         >
-          <BotAvatar shape={shape} color={color} size={96} className="create-modal__preview" />
-          <div className="create-modal__templates" aria-label="Role templates">
-            {TEMPLATES.map((t) => (
+          <div className="create-modal__templates" role="group" aria-label="Choose a role">
+            {[...TEMPLATES, BLANK].map((t) => (
               <button
                 key={t.id}
                 type="button"
                 className={`cat-pill create-modal__template-pill${activeTemplate === t.id ? ' is-active' : ''}`}
                 aria-pressed={activeTemplate === t.id}
                 onClick={(e) => applyTemplate(t, e.currentTarget)}
-                title={t.description}
               >
-                {t.title}
+                <strong>{t.title}</strong>
+                <span>{t.description}</span>
               </button>
             ))}
           </div>
+          <BotAvatar shape={shape} color={color} size={64} className="create-modal__preview" />
           <input
             className="text-input create-modal__name"
             enterKeyHint="next"
@@ -208,7 +213,7 @@ export function CreateBotModal() {
             placeholder="Give your Bot a name"
             value={name}
             maxLength={60}
-            onChange={(e) => { setActiveTemplate(null); setName(e.target.value); if (error) setError(null); }}
+            onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !label.trim()) {
                 e.preventDefault();

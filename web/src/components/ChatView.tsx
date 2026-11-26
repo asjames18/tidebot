@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { AgentRun } from '@shared/types';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
 import { copyText } from '../lib/clipboard';
@@ -11,6 +12,11 @@ import { Icon } from './Icon';
 import { Menu } from './Menu';
 import { Transcript } from './Transcript';
 import { VoiceCallBar } from './VoiceCallBar';
+
+const RUN_STATUS: Record<AgentRun['state'], string> = {
+  queued: 'Queued', running: 'Working', waiting: 'Needs your input',
+  completed: 'Finished', failed: 'Could not finish', interrupted: 'Interrupted',
+};
 
 export function ChatView() {
   const bot = useSelectedBot();
@@ -30,6 +36,20 @@ export function ChatView() {
   const [cloneBusy, setCloneBusy] = useState(false);
   const confirmTimer = useRef<number | null>(null);
   const rows = useMemo(() => sortedRows(transcript), [transcript]);
+  const runBotId = bot?.kind === 'room' ? undefined : bot?.id;
+  const runVersion = useConfigUI((s) => runBotId ? s.versions[`runs:${runBotId}`] : undefined);
+  const [recentRun, setRecentRun] = useState<{ botId: string; run: AgentRun }>();
+
+  useEffect(() => {
+    if (!runBotId) return;
+    let active = true;
+    void configApi.runs(runBotId).then(({ runs }) => {
+      if (!active) return;
+      const run = runs.find((entry) => entry.state === 'waiting') ?? runs[0];
+      setRecentRun(run ? { botId: runBotId, run } : undefined);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [runBotId, runVersion]);
 
   useEffect(() => {
     setMenu(false);
@@ -90,13 +110,18 @@ export function ChatView() {
     setConfirmFresh(false);
     setFreshBusy(true);
     api.fresh(bot.id)
-      .then(() => flash(`Started a new chat with ${displayName(bot)}`))
+      .then(() => {
+        set({ detailsOpen: false, detailsTab: 'activity' });
+        flash(`Started a new chat with ${displayName(bot)}`);
+      })
       .catch((e) => flash(e.message))
       .finally(() => setFreshBusy(false));
   };
 
   const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
   const shortModel = activeModel.includes('/') ? activeModel.split('/').pop()! : activeModel;
+  const run = recentRun?.botId === bot.id ? recentRun.run : undefined;
+  const runLabel = live?.awaiting ? 'Needs your input' : live?.isRunning ? 'Working' : run && RUN_STATUS[run.state];
 
   const pickBotModel = async (modelId: string) => {
     if (modelBusy) return;
@@ -170,10 +195,30 @@ export function ChatView() {
     }
   };
 
+  const requestBriefing = () => {
+    if (briefingBusy || live?.isRunning || !llmConfig?.isConfigured) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+    blurComposerOnMobile();
+    setBriefingBusy(true);
+    api.send(bot.id, 'Give me my daily briefing: 1) open tasks and anything waiting on me, 2) routines coming up in the next 24 hours, 3) anything important from my connected apps (email, calendar, Slack) if available, 4) one suggested focus for today. Keep it tight and spoken-friendly — short sentences, no tables, no code.')
+      .catch(() => useStore.getState().notify('Briefing request failed'))
+      .finally(() => setBriefingBusy(false));
+  };
+
   return (
     <main className="chat" style={botVars(bot.avatarColor)}>
       <Transcript bot={bot} rows={rows} live={live} loaded={!!transcript?.loaded} />
       <VoiceCallBar />
+      {runLabel && <div className="chat__run-status">
+        <div className="chat__run-copy" role="status">
+          <strong>{runLabel}</strong>
+          {run && <span>{run.state === 'completed' && run.summary ? run.summary : run.title}</span>}
+        </div>
+        {runBotId && <button type="button" className="link-btn" onClick={() => {
+          blurComposerOnMobile();
+          set({ detailsOpen: true, detailsTab: 'runs' });
+        }}>View runs</button>}
+      </div>}
       <Composer bot={bot} running={!!live?.isRunning} />
       <header className="chat__header">
         <button
@@ -213,6 +258,8 @@ export function ChatView() {
                 onClose={() => setMenu(false)}
                 items={[
                   { label: detailsOpen ? 'Hide details' : 'Show details', hint: '⇧⌘,', onSelect: () => set({ detailsOpen: !detailsOpen }) },
+                  ...(llmConfig?.isConfigured && !briefingBusy && !live?.isRunning ? [{ label: 'Get a briefing', onSelect: requestBriefing }] : []),
+                  { label: 'Search commands', onSelect: () => useStore.getState().setModal('search') },
                   { label: 'Open computer', onSelect: () => set({ viewerOpen: true }) },
                   { label: 'Copy conversation (.md)', onSelect: () => void shareTranscript() },
                   { label: 'Download full transcript (.md)', onSelect: () => { window.open(api.exportBotUrl(bot.id), '_blank'); } },
@@ -240,7 +287,10 @@ export function ChatView() {
                       }
                       setFreshBusy(true);
                       api.fresh(bot.id)
-                        .then(() => flash(`Started a new chat with ${displayName(bot)}`))
+                        .then(() => {
+                          set({ detailsOpen: false, detailsTab: 'activity' });
+                          flash(`Started a new chat with ${displayName(bot)}`);
+                        })
                         .catch((e) => flash(e.message))
                         .finally(() => setFreshBusy(false));
                     },
@@ -251,7 +301,7 @@ export function ChatView() {
             )}
           </span>
 
-          <span className="chat__pill-anchor">
+          {llmConfig?.isConfigured ? <span className="chat__pill-anchor">
             <button
               type="button"
               className={`chat__model-pill${llmConfig?.isConfigured ? ' is-live' : ''}`}
@@ -295,25 +345,20 @@ export function ChatView() {
                 <div className="menu__header">Operator Model ({llmConfig?.provider?.toUpperCase() ?? 'OPENROUTER'})</div>
               </Menu>
             )}
-          </span>
-          <button
+          </span> : rows.length > 0 && <button type="button" className="chat__model-pill" onClick={() => {
+            blurComposerOnMobile();
+            useConfigUI.getState().openAppSettings('setup');
+          }}>Connect a model</button>}
+          {llmConfig?.isConfigured && <button
             type="button"
             className="chat__model-pill chat__briefing-btn"
             disabled={briefingBusy || !!live?.isRunning}
             title="Get your briefing: tasks, routines, connected apps, one focus"
-            onClick={() => {
-              if (briefingBusy || live?.isRunning) return;
-              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-              blurComposerOnMobile();
-              setBriefingBusy(true);
-              api.send(bot.id, 'Give me my daily briefing: 1) open tasks and anything waiting on me, 2) routines coming up in the next 24 hours, 3) anything important from my connected apps (email, calendar, Slack) if available, 4) one suggested focus for today. Keep it tight and spoken-friendly — short sentences, no tables, no code.')
-                .catch(() => useStore.getState().notify('Briefing request failed'))
-                .finally(() => setBriefingBusy(false));
-            }}
+            onClick={requestBriefing}
           >
             <Icon name="clock" size={12} opacity={0.7} />
             <span>{briefingBusy ? 'Sending…' : 'Briefing'}</span>
-          </button>
+          </button>}
         </div>
         <div className="chat__header-right">
           <button
@@ -329,7 +374,7 @@ export function ChatView() {
           </button>
           <button
             type="button"
-            className="icon-btn icon-btn--bordered mobile-only-btn"
+            className="icon-btn icon-btn--bordered mobile-only-btn chat__search-btn"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
               setMenu(false);
@@ -342,23 +387,23 @@ export function ChatView() {
           >
             <Icon name="search" opacity={0.75} />
           </button>
-          {!detailsOpen && (
-            <button
-              type="button"
-              className="icon-btn icon-btn--bordered"
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                setMenu(false);
-                setModelMenu(false);
-                blurComposerOnMobile();
-                set({ detailsOpen: true });
-              }}
-              aria-label="Show details"
-              title="Show details"
-            >
-              <Icon name="sidebar" opacity={0.66} style={{ transform: 'scaleX(-1)' }} />
-            </button>
-          )}
+          <button
+            type="button"
+            className="new-chat-btn chat__details-btn"
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              setMenu(false);
+              setModelMenu(false);
+              blurComposerOnMobile();
+              set({ detailsOpen: !detailsOpen });
+            }}
+            aria-label={detailsOpen ? 'Hide details' : 'Show details'}
+            aria-expanded={detailsOpen}
+            aria-controls={detailsOpen ? 'conversation-details' : undefined}
+          >
+            <Icon name="sidebar" size={14} opacity={0.8} style={{ transform: 'scaleX(-1)' }} />
+            <span className="new-chat-btn__label">Details</span>
+          </button>
           <button
             type="button"
             className="share-btn"
