@@ -1,6 +1,6 @@
 # Contributing to TideBot
 
-Thanks for helping make TideBot better! This guide covers what you need to know to contribute confidently. For the architectural map and invariants the codebase relies on, read [AGENTS.md](AGENTS.md) first — it explains how the server, web studio, and desktop app fit together.
+Thanks for helping make TideBot better! This guide covers what you need to know to contribute confidently. For the architectural map and invariants the codebase relies on, read [AGENTS.md](AGENTS.md) first — it explains how the server, web studio, and desktop app fit together. New here? Start with the [Your first PR walkthrough](docs/first-pr.md), which carries one tiny example change from branch to merge.
 
 ## Ways to contribute
 
