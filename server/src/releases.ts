@@ -72,9 +72,9 @@ export function isNewerVersion(candidate: string, current: string): boolean {
   const a = parseVersion(candidate);
   const b = parseVersion(current);
   if (!a || !b) return false;
-  const ab = `${a.major}.${a.minor}.${a.patch}`;
-  const bb = `${b.major}.${b.minor}.${b.patch}`;
-  if (ab !== bb) return ab > bb;
+  if (a.major !== b.major) return a.major > b.major;
+  if (a.minor !== b.minor) return a.minor > b.minor;
+  if (a.patch !== b.patch) return a.patch > b.patch;
   if (a.pre && b.pre) return comparePre(a.pre, b.pre) > 0;
   if (a.pre && !b.pre) return true;
   if (!a.pre && b.pre) return true;
