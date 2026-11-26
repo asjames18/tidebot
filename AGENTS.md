@@ -80,3 +80,14 @@ Worked tutorial with a runnable example: [docs/extend-add-endpoint.md](docs/exte
 1. Add core chat/bot/routine/task endpoints to `server/src/routes.ts` or settings/library/BYOM endpoints to `server/src/routes-config.ts`.
 2. Add the typed client method to `web/src/lib/api.ts` or `web/src/lib/configApi.ts`.
 3. Run `npm run typecheck && npm run build` to verify end-to-end type safety.
+
+### Adding a New Model Provider
+See `docs/extend-add-provider.md` for the full tutorial (worked example: Groq).
+Touch points: `LlmProvider` in `server/src/types.ts`; env accessors in
+`server/src/env.ts`; a column in `llm_settings` (`server/src/db.ts`, migration
+after the CREATE TABLE); config + `getClient()` branch in
+`server/src/agent/llm.ts` (Chat Completions providers need no stream changes;
+Responses-API providers also need branches in `streamModelTurn()` and
+`requestText()`); save route in `server/src/routes-config.ts`; typed client in
+`web/src/lib/configApi.ts`; provider card in
+`web/src/components/config/AppSettings.tsx`.
