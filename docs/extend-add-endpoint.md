@@ -124,8 +124,8 @@ code.
 
 ## Step 4 — Add a test
 
-Create `tests/bot-stats.test.mjs` and add it to the `test` script in
-`package.json` (node `--test` list, next to `tests/release-notice.test.mjs`):
+Create `tests/bot-stats.test.mjs` and append it to `tests/node-tests.txt`
+(one file per line — `npm test` picks it up from there):
 
 ```js
 // Regression tests for the "Add an API endpoint" tutorial
