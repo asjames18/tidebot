@@ -19,6 +19,8 @@ interface State {
   selectedBotId: string | null;
   transcripts: Record<string, Transcript>;
   routines: Record<string, Routine[]>;
+  /** Pending tool-approval counts per bot (issue #5), from /bots/pending-approvals. */
+  pendingApprovals: Record<string, number>;
   computer: ComputerState | null;
   /** Bumped on every `connections` event so open views can refetch. */
   connectionsVersion: number;
@@ -35,6 +37,7 @@ interface State {
 
   checkAuth(): Promise<boolean>;
   loadBots(): Promise<void>;
+  refreshPendingApprovals(): Promise<void>;
   selectBot(id: string): void;
   loadRows(id: string): Promise<void>;
   loadRoutines(id: string): Promise<void>;
@@ -63,6 +66,7 @@ export const useStore = create<State>((set, get) => ({
   selectedBotId: lsGet(LS_SELECTED),
   transcripts: {},
   routines: {},
+  pendingApprovals: {},
   computer: null,
   connectionsVersion: 0,
   sseConnected: false,
@@ -100,8 +104,18 @@ export const useStore = create<State>((set, get) => ({
     const sel = get().selectedBotId;
     const selectedBotId = sel && bots.some((b) => b.id === sel) ? sel : (bots.find((b) => b.isPrimary) ?? bots[0])?.id ?? null;
     set({ bots, live: liveMap });
+    get().refreshPendingApprovals().catch(() => {});
     if (selectedBotId !== get().selectedBotId || !get().transcripts[selectedBotId ?? '']) {
       if (selectedBotId) get().selectBot(selectedBotId);
+    }
+  },
+
+  async refreshPendingApprovals() {
+    try {
+      const { counts } = await api.pendingApprovals();
+      set({ pendingApprovals: counts });
+    } catch {
+      // Badge stays at its last value; the next loadBots or card event retries.
     }
   },
 
@@ -163,6 +177,9 @@ export const useStore = create<State>((set, get) => ({
         return;
       case 'rows':
         s.upsertRows(ev.botId, ev.generation, ev.rows);
+        // A card row appearing or changing status can move an approval in or
+        // out of 'pending' — refresh the sidebar counts for every bot.
+        if (ev.rows.some((r) => r.body.type === 'card')) get().refreshPendingApprovals().catch(() => {});
         return;
       case 'cleared':
         set((st) => ({ transcripts: { ...st.transcripts, [ev.botId]: { generation: ev.generation, bySeq: {}, loaded: true } } }));
