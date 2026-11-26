@@ -63,6 +63,13 @@
 .bot-row__name, .bot-row__preview { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bot-row__name { font-size: 14px; font-weight: 500; line-height: 20px; letter-spacing: 0.14px; color: var(--color-ink); }
 .bot-row__preview { font-size: 13px; line-height: 18px; letter-spacing: 0.195px; color: var(--color-text-secondary); }
+.bot-row__approval-badge, .pinned__approval-badge {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px;
+  background: var(--color-warn-bg); color: var(--color-warn-text);
+  font-family: var(--font-mono-stack); font-size: 11px; font-weight: 700; line-height: 1;
+}
+.pinned__approval-badge { margin-top: 4px; }
 .bot-rail-item { display: flex; align-items: center; justify-content: center; height: 54px; border-radius: 12px; }
 .bot-rail-item:hover { background: var(--color-bg-hover); }
 .bot-rail-item.is-selected { background: var(--color-bg-active); }
