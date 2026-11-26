@@ -181,6 +181,15 @@ addColumn('bots', 'voice', "TEXT NOT NULL DEFAULT 'luna'");
 addColumn('bots', 'voice_speed', 'REAL NOT NULL DEFAULT 1');
 addColumn('bots', 'voice_language', "TEXT NOT NULL DEFAULT 'auto'");
 addColumn('bots', 'model', "TEXT NOT NULL DEFAULT ''");
+// Subagent/room columns used to be created lazily by initSubagents() /
+// initRooms() at server startup, so any entry point that skips index.ts
+// (tests, scripts) hit "no such column: hidden" on a fresh DB and every
+// agent turn failed in systemPrompt. Create them with the other migrations
+// instead; the lazy ALTERs remain as harmless no-ops.
+addColumn('bots', 'hidden', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('bots', 'parent_bot_id', 'TEXT');
+addColumn('bots', 'kind', "TEXT NOT NULL DEFAULT 'agent'");
+addColumn('bots', 'members', 'TEXT');
 addColumn('auth_sessions', 'verified', 'INTEGER NOT NULL DEFAULT 0');
 addColumn('users', 'verified_account', 'INTEGER NOT NULL DEFAULT 0');
 addColumn('routines', 'trigger_id', 'TEXT');
