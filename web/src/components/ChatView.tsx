@@ -122,6 +122,13 @@ export function ChatView() {
   const shortModel = activeModel.includes('/') ? activeModel.split('/').pop()! : activeModel;
   const run = recentRun?.botId === bot.id ? recentRun.run : undefined;
   const runLabel = live?.awaiting ? 'Needs your input' : live?.isRunning ? 'Working' : run && RUN_STATUS[run.state];
+  const savedFiles = new Set<string>();
+  if (run?.state === 'completed' && run.startedAt !== null && run.finishedAt !== null) {
+    for (const { createdAt, body } of rows) {
+      if (createdAt < run.startedAt || createdAt > run.finishedAt) continue;
+      if ((body.type === 'message' || body.type === 'tool-call') && body.artifactPath) savedFiles.add(body.artifactPath);
+    }
+  }
 
   const pickBotModel = async (modelId: string) => {
     if (modelBusy) return;
@@ -211,13 +218,19 @@ export function ChatView() {
       <VoiceCallBar />
       {runLabel && <div className="chat__run-status">
         <div className="chat__run-copy" role="status">
-          <strong>{runLabel}</strong>
+          <strong>{runLabel}{savedFiles.size > 0 && ` · ${savedFiles.size} ${savedFiles.size === 1 ? 'file' : 'files'} saved`}</strong>
           {run && <span>{run.state === 'completed' && run.summary ? run.summary : run.title}</span>}
         </div>
-        {runBotId && <button type="button" className="link-btn" onClick={() => {
-          blurComposerOnMobile();
-          set({ detailsOpen: true, detailsTab: 'runs' });
-        }}>View runs</button>}
+        {runBotId && <div className="chat__run-actions">
+          {savedFiles.size > 0 && <button type="button" className="link-btn" onClick={() => {
+            blurComposerOnMobile();
+            set({ detailsOpen: true, detailsTab: 'library' });
+          }}>View files</button>}
+          <button type="button" className="link-btn" onClick={() => {
+            blurComposerOnMobile();
+            set({ detailsOpen: true, detailsTab: 'runs' });
+          }}>View runs</button>
+        </div>}
       </div>}
       <Composer bot={bot} running={!!live?.isRunning} />
       <header className="chat__header">

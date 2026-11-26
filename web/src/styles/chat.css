@@ -78,7 +78,7 @@
 }
 .chat__run-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .chat__run-copy span { color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chat__run-status .link-btn { flex: none; }
+.chat__run-actions { flex: none; display: flex; gap: 8px; }
 @media (min-width: 901px) {
   .chat { container-type: inline-size; }
   @container (max-width: 720px) {
