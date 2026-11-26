@@ -45,10 +45,20 @@ async function probeBwrap(bwrap: string): Promise<boolean> {
 
 export interface ShellOutcome { code: number; output: string; sandboxed: boolean }
 
+/**
+ * Test seam for the fail-closed path: lets tests force Bubblewrap discovery /
+ * the isolation probe to fail without mocking node:child_process. Production
+ * callers pass nothing, so the real lookup and probe always run.
+ */
+export interface ShellDeps {
+  findBwrap?: () => string | null;
+  probeBwrap?: (bwrap: string) => Promise<boolean>;
+}
+
 /** Execute only through Bubblewrap with filesystem, network and PID isolation. */
-export async function runShell(command: string, workspace: string, timeoutSec: number): Promise<ShellOutcome> {
-  const bwrap = findBwrap();
-  if (!bwrap || !await probeBwrap(bwrap)) {
+export async function runShell(command: string, workspace: string, timeoutSec: number, deps: ShellDeps = {}): Promise<ShellOutcome> {
+  const bwrap = (deps.findBwrap ?? findBwrap)();
+  if (!bwrap || !await (deps.probeBwrap ?? probeBwrap)(bwrap)) {
     return { code: 1, output: 'Shell disabled: Bubblewrap isolation is unavailable. Command was not run.', sandboxed: false };
   }
   const timeout = timeoutSec * 1000;
