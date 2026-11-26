@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
 const { createHash } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
@@ -205,10 +205,33 @@ function stopServer() {
 function setupAutoUpdater() {
   if (!app.isPackaged) return;
 
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  let canAutoInstall = true;
+  if (process.platform === 'darwin') {
+    const signature = spawnSync('/usr/bin/codesign', ['-d', '--verbose=2', process.execPath], {
+      encoding: 'utf8',
+      timeout: 2000,
+    });
+    canAutoInstall = signature.status === 0 && /^Authority=Developer ID Application:/m.test(signature.stderr);
+  }
+  autoUpdater.autoDownload = canAutoInstall;
+  autoUpdater.autoInstallOnAppQuit = canAutoInstall;
   autoUpdater.allowPrerelease = settings.devUpdates;
   autoUpdater.allowDowngrade = false;
+
+  autoUpdater.on('update-available', async (info) => {
+    if (canAutoInstall || !manualCheck) return;
+    manualCheck = false;
+    const res = await dialog.showMessageBox(mainWindow || undefined, {
+      type: 'info',
+      title: 'TideBot Update Available',
+      message: `TideBot v${info.version} is available.`,
+      detail: 'This Mac build needs a manual update. Download the Mac installer from GitHub Releases.',
+      buttons: ['Open GitHub Releases', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (res.response === 0) void shell.openExternal(RELEASES_URL);
+  });
 
   autoUpdater.on('update-not-available', () => {
     if (!manualCheck) return;
@@ -224,6 +247,7 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on('update-downloaded', async (info) => {
+    if (!canAutoInstall) return;
     manualCheck = false;
     const res = await dialog.showMessageBox(mainWindow || undefined, {
       type: 'info',
@@ -235,9 +259,13 @@ function setupAutoUpdater() {
       cancelId: 1,
     });
     if (res.response === 0) {
-      quitting = true;
-      stopServer();
-      autoUpdater.quitAndInstall();
+      // Keep the local server running until Electron actually quits for the update.
+      manualCheck = true;
+      try {
+        autoUpdater.quitAndInstall();
+      } catch (error) {
+        autoUpdater.emit('error', error);
+      }
     }
   });
 
@@ -257,6 +285,7 @@ function setupAutoUpdater() {
     if (res.response === 0) void shell.openExternal(RELEASES_URL);
   });
 
+  if (!canAutoInstall) return;
   setTimeout(() => {
     autoUpdater.checkForUpdates().catch(() => {});
   }, 5_000);
