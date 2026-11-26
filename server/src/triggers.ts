@@ -1,5 +1,6 @@
 import { db, now } from './db.js';
 import { composio } from './composio.js';
+import { redactSecrets } from './lib/redact.js';
 import { appendRow } from './store.js';
 
 /**
@@ -28,7 +29,7 @@ async function ensureSubscribed() {
     await composio.triggers.subscribe(
       (data: any) => onTrigger(data),
       undefined,
-      (err) => console.warn('[triggers] subscription error', JSON.stringify(err).slice(0, 300)),
+      (err) => console.warn('[triggers] subscription error', redactSecrets(JSON.stringify(err)).slice(0, 300)),
     );
     console.log('[triggers] realtime subscription active');
   } catch (e) {
