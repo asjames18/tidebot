@@ -55,6 +55,50 @@ test('packaged desktop version suppresses a notice for the installed release', a
   assert.equal(status.updateAvailable, false);
 });
 
+test('TIDEBOT_RELEASE_NOTICES=0 disables the check entirely (no fetch, no notice)', async (t) => {
+  const { resetReleaseCacheForTest, releaseNoticesEnabled } = await import('../server/dist/releases.js');
+  const previous = process.env.TIDEBOT_RELEASE_NOTICES;
+  t.after(() => {
+    if (previous === undefined) delete process.env.TIDEBOT_RELEASE_NOTICES;
+    else process.env.TIDEBOT_RELEASE_NOTICES = previous;
+    resetReleaseCacheForTest();
+  });
+  const realFetch = globalThis.fetch;
+
+  // Every disable spelling counts, and none of them may touch the network —
+  // even with a newer release waiting.
+  const fetchSpy = t.mock.fn(async () => ({
+    ok: true,
+    json: async () => [{ tag_name: 'v9.9.9', name: 'v9.9.9', html_url: 'https://example.com/r', published_at: null, body: '' }],
+  }));
+  globalThis.fetch = fetchSpy;
+  for (const value of ['0', 'false', 'off', 'no', 'FALSE', ' Off ']) {
+    process.env.TIDEBOT_RELEASE_NOTICES = value;
+    resetReleaseCacheForTest();
+    assert.equal(releaseNoticesEnabled(), false, value);
+    const status = await releaseStatus();
+    assert.equal(status.release, null, value);
+    assert.equal(status.updateAvailable, false, value);
+  }
+  assert.equal(fetchSpy.mock.calls.length, 0);
+
+  // Re-enabling (including '1' and unset) restores the check.
+  process.env.TIDEBOT_RELEASE_NOTICES = '1';
+  resetReleaseCacheForTest();
+  assert.equal(releaseNoticesEnabled(), true);
+  let status = await releaseStatus();
+  assert.equal(status.release?.tag, 'v9.9.9');
+  assert.equal(status.updateAvailable, true);
+  assert.equal(fetchSpy.mock.calls.length, 1);
+
+  delete process.env.TIDEBOT_RELEASE_NOTICES;
+  resetReleaseCacheForTest();
+  assert.equal(releaseNoticesEnabled(), true);
+
+  globalThis.fetch = realFetch;
+  resetReleaseCacheForTest();
+});
+
 test('releaseStatus flags update only when the fetched release is newer', async (t) => {
   const { resetReleaseCacheForTest } = await import('../server/dist/releases.js');
   const realFetch = globalThis.fetch;
