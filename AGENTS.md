@@ -63,7 +63,7 @@ npm run dev -w web      # http://localhost:5173 (proxies /api to :8787)
 ### 3.5 Frontend State & Real-Time SSE (`web/src/store.ts` & `web/src/configStore.ts`)
 - Shared types between backend and frontend live in `server/src/types.ts` and are imported in the frontend via `@shared/types`.
 - Whenever you add a field to `Bot`, `RowBody`, `LlmConfigPublic`, or `ServerEvent` in `server/src/types.ts`, ensure both `server/src/store.ts` and the corresponding React components stay type-safe.
-- `ShaderCanvas.tsx` is throttled to 30 FPS, `0.6x` resolution scaling, and pauses when off-screen or when the browser tab is hidden. Keep any new shader programs lightweight.
+- `ShaderCanvas.tsx` is throttled to 30 FPS, `0.6x` resolution scaling, and pauses when off-screen or when the browser tab is hidden. Keep any new shader programs lightweight. To add a preset, follow `docs/extend-add-shader-preset.md`.
 
 ---
 
