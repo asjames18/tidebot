@@ -1,0 +1,37 @@
+name: 📚 Docs issue
+description: Report a docs gap, error, or improvement
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping keep the docs honest! Tell us what's wrong or missing and where.
+  - type: textarea
+    id: location
+    attributes:
+      label: Where is the problem?
+      description: Page, file, or section — e.g. README Quick Start, docs/self-host.md, CONTRIBUTING.md
+      placeholder: e.g. README.md, "Prerequisites" section
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's wrong or missing?
+      description: What does the doc say today, and what should it say instead?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix
+      description: Exact wording or a sketch of the fix, if you have one.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and discussions for a duplicate
+          required: true
+        - label: I redacted secrets, API keys and tokens from any pasted logs or screenshots
+          required: true
