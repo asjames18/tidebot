@@ -1301,10 +1301,7 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
             }
             setRunningNow(true);
             configApi.runRoutine(r.id)
-              .then(() => {
-                onFlash('Run queued');
-                if (!useStore.getState().sseConnected) onRefresh();
-              })
+              .then(() => onFlash('Running now'))
               .catch((e) => onFlash(e.message))
               .finally(() => setRunningNow(false));
           }}
