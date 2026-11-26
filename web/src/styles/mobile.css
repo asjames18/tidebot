@@ -564,6 +564,9 @@
     min-height: 44px;
     padding: 10px 14px;
   }
+  .create-modal__field textarea.text-input { height: auto; }
+  .create-modal__customize summary { min-height: 44px; padding-block: 12px; }
+  .create-modal__templates .create-modal__template-pill { grid-template-columns: 1fr; }
   .shape-cell,
   .swatch-cell {
     width: 44px;

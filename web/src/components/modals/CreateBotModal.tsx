@@ -75,6 +75,8 @@ const BLANK: BotTemplate = {
   instructions: '', shape: 'hex', color: 'cyan', mode: 'personal',
 };
 
+const STARTERS = [BLANK, ...TEMPLATES];
+
 export function CreateBotModal() {
   const setModal = useStore((s) => s.setModal);
   const curatedModels = useConfigUI((s) => s.curatedModels);
@@ -92,7 +94,6 @@ export function CreateBotModal() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const labelRef = useRef<HTMLInputElement>(null);
   const bodyTouchStartYRef = useRef<number | null>(null);
   const close = useCallback(() => setModal(null), [setModal]);
   const canCreate = name.trim().length > 0 && !busy;
@@ -114,7 +115,8 @@ export function CreateBotModal() {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     blurInputOnMobile();
     setActiveTemplate(t.id);
-    setName(t.name);
+    const previous = STARTERS.find((starter) => starter.id === activeTemplate);
+    setName((current) => !current.trim() || current === previous?.name ? t.name : current);
     setLabel(t.label);
     setDescription(t.id === BLANK.id ? '' : t.description);
     setInstructions(t.instructions);
@@ -153,10 +155,10 @@ export function CreateBotModal() {
   };
 
   return (
-    <Modal onClose={close} className="create-modal" label="Create New Bot">
+    <Modal onClose={close} className="create-modal create-modal--bot" label="Create a bot">
       <form onSubmit={(e) => { e.preventDefault(); create(); }}>
         <div className="modal__header">
-          <div className="modal__title">Create New Bot</div>
+          <h2 className="modal__title">Create a bot</h2>
           <button
             type="button"
             className="modal__close"
@@ -171,7 +173,7 @@ export function CreateBotModal() {
         </div>
         <div
           ref={bodyRef}
-          className="create-modal__body"
+          className="create-modal__body create-modal__body--bot"
           onTouchStart={(e) => {
             const target = e.target as HTMLElement | null;
             if (target?.closest('textarea')) { bodyTouchStartYRef.current = null; return; }
@@ -191,144 +193,127 @@ export function CreateBotModal() {
           onTouchEnd={() => { bodyTouchStartYRef.current = null; }}
           onTouchCancel={() => { bodyTouchStartYRef.current = null; }}
         >
-          <div className="create-modal__templates" role="group" aria-label="Choose a role">
-            {[...TEMPLATES, BLANK].map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className={`cat-pill create-modal__template-pill${activeTemplate === t.id ? ' is-active' : ''}`}
-                aria-pressed={activeTemplate === t.id}
-                onClick={(e) => applyTemplate(t, e.currentTarget)}
-              >
-                <strong>{t.title}</strong>
-                <span>{t.description}</span>
-              </button>
-            ))}
+          <section className="create-modal__section" aria-labelledby="create-bot-role">
+            <h3 id="create-bot-role">Choose a role</h3>
+            <div className="create-modal__templates" role="group" aria-labelledby="create-bot-role">
+              {STARTERS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`cat-pill create-modal__template-pill${activeTemplate === t.id ? ' is-active' : ''}`}
+                  aria-pressed={activeTemplate === t.id}
+                  onClick={(e) => applyTemplate(t, e.currentTarget)}
+                >
+                  <BotAvatar shape={t.shape} color={t.color} size={26} />
+                  <span className="create-modal__template-copy"><strong>{t.title}</strong><span>{t.description}</span></span>
+                </button>
+              ))}
+            </div>
+          </section>
+          <div className="create-modal__identity">
+            <BotAvatar shape={shape} color={color} size={46} />
+            <label className="create-modal__field">
+              <span>Bot name</span>
+              <input
+                className="text-input"
+                enterKeyHint="go"
+                autoCapitalize="words"
+                placeholder="Give your bot a name"
+                value={name}
+                maxLength={60}
+                required
+                onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
+              />
+            </label>
           </div>
-          <BotAvatar shape={shape} color={color} size={64} className="create-modal__preview" />
-          <input
-            className="text-input create-modal__name"
-            enterKeyHint="next"
-            autoCapitalize="words"
-            placeholder="Give your Bot a name"
-            value={name}
-            maxLength={60}
-            onChange={(e) => { setName(e.target.value); if (error) setError(null); }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !label.trim()) {
-                e.preventDefault();
-                labelRef.current?.focus();
-              }
-            }}
-            autoFocus={typeof window === 'undefined' || window.innerWidth > 900}
-            aria-label="Bot name"
-          />
-          <input
-            ref={labelRef}
-            className="text-input create-modal__name"
-            enterKeyHint="done"
-            autoCapitalize="sentences"
-            placeholder="Role or label (optional, e.g. Research)"
-            value={label}
-            maxLength={60}
-            onChange={(e) => { setLabel(e.target.value); if (error) setError(null); }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && window.innerWidth <= 900) {
-                e.preventDefault();
-                e.currentTarget.blur();
-              }
-            }}
-            aria-label="Bot label"
-            style={{ marginTop: -4 }}
-          />
-          <select
-            className="text-input create-modal__name"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            aria-label="Bot model"
-            style={{ marginTop: -4 }}
-          >
-            <option value="">Default Model ({llmConfig?.defaultModel ?? 'anthropic/claude-3.7-sonnet'})</option>
-            {curatedModels.map((m) => (
-              <option key={m.id} value={m.id}>{m.name} · {m.provider}</option>
-            ))}
-          </select>
-          <div className="shape-grid" role="radiogroup" aria-label="Character shape">
-            {ROWS.map((row, i) => (
-              <div key={i} className="shape-grid__row">
-                {row.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    role="radio"
-                    aria-checked={shape === s}
-                    aria-label={s}
-                    className="shape-cell"
-                    onClick={() => {
-                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
-                      blurInputOnMobile();
-                      setShape(s);
-                    }}
-                  >
-                    <BotAvatar shape={s} color={color} size={36} ring={shape === s} />
-                  </button>
-                ))}
+          <section className="create-modal__section" aria-labelledby="create-bot-access">
+            <h3 id="create-bot-access">Working mode</h3>
+            <div className="mode-pick" role="radiogroup" aria-labelledby="create-bot-access">
+              <label className={`mode-pick__opt${mode === 'personal' ? ' is-active' : ''}`}>
+                <input type="radio" name="bot-mode" value="personal" checked={mode === 'personal'} onChange={() => setMode('personal')} />
+                <span className="mode-pick__title">Personal assistant</span>
+                <span className="mode-pick__sub">Works for you, with your apps</span>
+              </label>
+              <label className={`mode-pick__opt${mode === 'teammate' ? ' is-active' : ''}`}>
+                <input type="radio" name="bot-mode" value="teammate" checked={mode === 'teammate'} onChange={() => setMode('teammate')} />
+                <span className="mode-pick__title">Teammate</span>
+                <span className="mode-pick__sub">Works with your team in rooms</span>
+              </label>
+            </div>
+          </section>
+          <details className="create-modal__customize">
+            <summary>Customize instructions, model, and avatar</summary>
+            <div className="create-modal__options">
+              <label className="create-modal__field">
+                <span>Role label (optional)</span>
+                <input className="text-input" value={label} maxLength={60} onChange={(e) => setLabel(e.target.value)} />
+              </label>
+              <label className="create-modal__field">
+                <span>Description</span>
+                <textarea className="text-input" rows={2} value={description} maxLength={500} onChange={(e) => setDescription(e.target.value)} />
+              </label>
+              <label className="create-modal__field">
+                <span>Instructions</span>
+                <textarea className="text-input" rows={4} value={instructions} maxLength={8000} onChange={(e) => setInstructions(e.target.value)} />
+              </label>
+              <label className="create-modal__field">
+                <span>Bot model</span>
+                <select className="text-input" value={model} onChange={(e) => setModel(e.target.value)}>
+                  <option value="">{llmConfig?.defaultModel ? `Studio default (${llmConfig.defaultModel})` : 'Studio default'}</option>
+                  {curatedModels.map((m) => <option key={m.id} value={m.id}>{m.name} · {m.provider}</option>)}
+                </select>
+              </label>
+              <div className="create-modal__section">
+                <h3>Avatar</h3>
+                <div className="shape-grid" role="radiogroup" aria-label="Character shape">
+                  {ROWS.map((row, i) => (
+                    <div key={i} className="shape-grid__row">
+                      {row.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          role="radio"
+                          aria-checked={shape === s}
+                          aria-label={s}
+                          className="shape-cell"
+                          onClick={() => {
+                            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                            blurInputOnMobile();
+                            setShape(s);
+                          }}
+                        >
+                          <BotAvatar shape={s} color={color} size={36} ring={shape === s} />
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                <div className="swatches" role="radiogroup" aria-label="Character color">
+                  {COLOR_ROWS.map((row, i) => (
+                    <div key={i} className="swatches__row">
+                      {row.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          role="radio"
+                          aria-checked={color === c}
+                          aria-label={c}
+                          className="swatch-cell"
+                          onClick={() => {
+                            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
+                            blurInputOnMobile();
+                            setColor(c);
+                          }}
+                        >
+                          <span className={`swatch${color === c ? ' is-selected' : ''}`} style={{ background: palette(c).fill }} />
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="swatches" role="radiogroup" aria-label="Character color">
-            {COLOR_ROWS.map((row, i) => (
-              <div key={i} className="swatches__row">
-                {row.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    role="radio"
-                    aria-checked={color === c}
-                    aria-label={c}
-                    className="swatch-cell"
-                    onClick={() => {
-                      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
-                      blurInputOnMobile();
-                      setColor(c);
-                    }}
-                  >
-                    <span className={`swatch${color === c ? ' is-selected' : ''}`} style={{ background: palette(c).fill }} />
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-          <div className="mode-pick" role="radiogroup" aria-label="Bot type">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={mode === 'personal'}
-              className={`mode-pick__opt${mode === 'personal' ? ' is-active' : ''}`}
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                blurInputOnMobile();
-                setMode('personal');
-              }}
-            >
-              <span className="mode-pick__title">Personal assistant</span>
-              <span className="mode-pick__sub">Works for you, with your apps</span>
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={mode === 'teammate'}
-              className={`mode-pick__opt${mode === 'teammate' ? ' is-active' : ''}`}
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                blurInputOnMobile();
-                setMode('teammate');
-              }}
-            >
-              <span className="mode-pick__title">Teammate</span>
-              <span className="mode-pick__sub">Works with your whole team</span>
-            </button>
-          </div>
+            </div>
+          </details>
           {error && <div className="card__error" role="alert">{error}</div>}
         </div>
         <div className="modal__footer">
@@ -355,7 +340,7 @@ export function CreateBotModal() {
           >
             Cancel
           </button>
-          <button type="submit" className="btn btn--primary btn--sm" disabled={!canCreate}>{busy ? 'Creating…' : 'Create'}</button>
+          <button type="submit" className="btn btn--primary btn--sm" disabled={!canCreate}>{busy ? 'Creating…' : 'Create bot'}</button>
         </div>
       </form>
     </Modal>
