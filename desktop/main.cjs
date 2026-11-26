@@ -171,16 +171,14 @@ async function startServer() {
     stderrTail = (stderrTail + String(chunk)).slice(-4000);
     process.stderr.write(`[server] ${chunk}`);
   });
-  child.on('close', (code) => {
-    if (serverProc === child) {
-      serverProc = null;
-      serverPort = null;
-    }
-    if (!quitting && ready && code !== 0) {
-      dialog.showErrorBox(
-        'TideBot Server Stopped',
-        `The local TideBot server exited unexpectedly (code ${code}).\n\n${stderrTail}`,
-      );
+  child.on('close', (code, signal) => {
+    if (serverProc !== child) return;
+    serverProc = null;
+    serverPort = null;
+    if (!quitting && ready && !settings.remoteOrigin && !switchingServer) {
+      const reason = signal || `exit code ${code}`;
+      void offerServerRestart(baseUrl, `The server exited with ${reason}.\n\n${stderrTail}`.trim())
+        .catch((err) => console.error('[desktop] could not show server restart:', err.message));
     }
   });
 
@@ -191,6 +189,30 @@ async function startServer() {
     saveSettings(settings);
   }
   return baseUrl;
+}
+
+async function offerServerRestart(previousOrigin, detail) {
+  const { response } = await dialog.showMessageBox(mainWindow || undefined, {
+    type: 'warning',
+    title: 'TideBot Server Stopped',
+    message: 'The local TideBot server stopped unexpectedly.',
+    detail,
+    buttons: ['Restart Server', 'Close'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (response !== 0 || quitting || switchingServer || serverProc || settings.remoteOrigin) return;
+
+  switchingServer = true;
+  try {
+    const origin = await startServer();
+    // The existing window reconnects on its own when its origin stays the same.
+    if (!quitting && (!mainWindow || origin !== previousOrigin)) await openWorkspace(origin, true);
+  } catch (err) {
+    if (!quitting) showConnectionWindow(err.message);
+  } finally {
+    switchingServer = false;
+  }
 }
 
 function stopServer() {
