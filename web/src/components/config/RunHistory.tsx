@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AgentRun, Row } from '@shared/types';
 import { useConfigUI, useVersion } from '../../configStore';
 import { gitReviewLauncher } from '../../lib/desktop';
+import { pickInitialSelectedRun } from '../../lib/runSelect';
 import { configApi } from '../../lib/configApi';
 import { useStore } from '../../store';
 import { Markdown } from '../Markdown';
@@ -59,6 +60,18 @@ export function RunHistory({ botId, openLibrary }: { botId: string; openLibrary:
       .catch((err: Error) => { if (active) { setDetail(undefined); setError(err.message); } });
     return () => { active = false; };
   }, [botId, selected, version, connected]);
+
+  // Open a waiting run's detail (with its approval card) the first time the
+  // list loads, so a pending approval is visible without an extra tap.
+  // Only once per mount: later refreshes must not yank the user out of
+  // whatever they are looking at.
+  const autoSelectedRef = useRef(false);
+  useEffect(() => {
+    if (!runs || autoSelectedRef.current) return;
+    autoSelectedRef.current = true;
+    const id = pickInitialSelectedRun(runs, selected);
+    if (id) setSelected(id);
+  }, [runs, selected]);
 
   const download = async (path: string) => {
     try {
