@@ -14,6 +14,11 @@ after(() => {
   fs.rmSync(fixtures, { recursive: true, force: true });
 });
 
+// Running as root bypasses read-only directory permissions, so the
+// failed-write test below cannot force its rename to fail. Skip it there;
+// the other two tests still exercise updateEnvFile as root.
+const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
+
 test('creates the file when missing and rejects invalid keys and values', () => {
   const file = path.join(fixtures, 'a.env');
   updateEnvFile(file, 'COMPOSIO_API_KEY', 'k-123');
@@ -34,7 +39,9 @@ test('updates an existing key in place and preserves other lines', () => {
   assert.equal(fs.readdirSync(fixtures).filter((f) => f.includes('.tmp-')).length, 0);
 });
 
-test('a failed write propagates, keeps the original file intact, and leaves no temp files', () => {
+test('a failed write propagates, keeps the original file intact, and leaves no temp files', {
+  skip: isRoot ? 'root bypasses read-only directory permissions' : false,
+}, () => {
   const dir = path.join(fixtures, 'ro');
   fs.mkdirSync(dir);
   const file = path.join(dir, 'c.env');
