@@ -27,6 +27,7 @@ import { voiceApi } from './voice.js';
 import type { AvatarColor, AvatarShape, RowBody, Toolkit } from './types.js';
 import { Cron } from 'croner';
 import { releaseStatus } from './releases.js';
+import { botStats } from './bot-stats.js';
 import crypto from 'node:crypto';
 
 const callbackSig = (userId: string, botId: string, slug: string, exp: number) =>
@@ -410,6 +411,12 @@ api.get('/bots/:id/export', (c) => {
 });
 
 api.get('/releases/latest', async (c) => c.json(await releaseStatus()));
+
+api.get('/bots/:id/stats', (c) => {
+  const stats = botStats(c.get('user').id, c.req.param('id'));
+  if (!stats) return c.json({ error: 'not found' }, 404);
+  return c.json(stats);
+});
 
 api.get('/system/status', async (c) => {
   const user = c.get('user');
