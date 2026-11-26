@@ -78,3 +78,11 @@ npm run dev -w web      # http://localhost:5173 (proxies /api to :8787)
 1. Add core chat/bot/routine/task endpoints to `server/src/routes.ts` or settings/library/BYOM endpoints to `server/src/routes-config.ts`.
 2. Add the typed client method to `web/src/lib/api.ts` or `web/src/lib/configApi.ts`.
 3. Run `npm run typecheck && npm run build` to verify end-to-end type safety.
+
+### Plugin boundary
+
+See `docs/plugin-boundary.md` for what is stable API surface contributors
+can rely on (HTTP API, tool names and parameters, provider ids, transcript
+export, documented CLIs, data locations, shader preset names) versus what
+is internal and may change in any release — and for the deprecation
+process a breaking change must follow.
