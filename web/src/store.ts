@@ -180,6 +180,9 @@ export const useStore = create<State>((set, get) => ({
         // A card row appearing or changing status can move an approval in or
         // out of 'pending' — refresh the sidebar counts for every bot.
         if (ev.rows.some((r) => r.body.type === 'card')) get().refreshPendingApprovals().catch(() => {});
+        if (s.routines[ev.botId] && ev.rows.some((r) => r.body.type === 'event' && r.body.event === 'routine-run')) {
+          s.loadRoutines(ev.botId).catch(console.error);
+        }
         return;
       case 'cleared':
         set((st) => ({ transcripts: { ...st.transcripts, [ev.botId]: { generation: ev.generation, bySeq: {}, loaded: true } } }));
