@@ -75,6 +75,7 @@ npm run dev -w web      # http://localhost:5173 (proxies /api to :8787)
 3. If the tool renders an interactive UI card, call `appendRow(ctx.botId, 'card', ...)` and match one of the `CardBody` variants in `server/src/types.ts` and `web/src/components/cards/Cards.tsx`.
 
 ### Adding a New API Endpoint
+Worked tutorial with a runnable example: [docs/extend-add-endpoint.md](docs/extend-add-endpoint.md).
 1. Add core chat/bot/routine/task endpoints to `server/src/routes.ts` or settings/library/BYOM endpoints to `server/src/routes-config.ts`.
 2. Add the typed client method to `web/src/lib/api.ts` or `web/src/lib/configApi.ts`.
 3. Run `npm run typecheck && npm run build` to verify end-to-end type safety.
