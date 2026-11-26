@@ -53,7 +53,6 @@ export function Sidebar() {
   const live = useStore((s) => s.live);
   const storeSelectedBotId = useStore((s) => s.selectedBotId);
   const inTasks = useConfigUI((s) => s.view === 'tasks');
-  const llmConfig = useConfigUI((s) => s.llmConfig);
   const selectedBotId = inTasks ? null : storeSelectedBotId; // nothing highlighted while the Tasks view is open
   const user = useStore((s) => s.user);
   const collapsed = useStore((s) => s.sidebarCollapsed);
@@ -258,31 +257,6 @@ export function Sidebar() {
 
       <div className="sidebar__footer">
         <div className="sidebar__fade" />
-        {!collapsed && (
-          <div className="sidebar__byom-bar">
-            <button
-              type="button"
-              className="sidebar__byom-btn"
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                set({ mobileSidebarOpen: false });
-                useConfigUI.getState().openAppSettings('models');
-              }}
-              title="Configure OpenRouter / Bring Your Own Model"
-            >
-              <span className={`sidebar__byom-dot ${llmConfig?.isConfigured ? 'is-ok' : 'is-warn'}`} />
-              <span className="sidebar__byom-meta">
-                <span className="sidebar__byom-prov">
-                  {llmConfig?.provider === 'custom' ? 'CUSTOM BYOM' : llmConfig?.provider === 'xai' ? 'XAI ENGINE' : 'OPENROUTER'}
-                </span>
-                <span className="sidebar__byom-model">
-                  {(llmConfig?.defaultModel ?? 'anthropic/claude-3.7-sonnet').split('/').pop()}
-                </span>
-              </span>
-              <span className="sidebar__byom-tag">{llmConfig?.isConfigured ? 'LIVE' : 'SET KEY'}</span>
-            </button>
-          </div>
-        )}
         <div className="sidebar__footer-row">
           {!collapsed && (
             <div className="account">

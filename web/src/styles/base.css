@@ -189,6 +189,15 @@ a { color: inherit; }
 }
 .release-notice-text { min-width: 0; overflow-wrap: anywhere; }
 .release-notice a { color: inherit; text-decoration: underline; }
+.release-notice-update {
+  margin-inline-start: 10px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 6px;
+  color: inherit;
+  font-weight: 600;
+}
+.release-notice-update:hover:not(:disabled) { background: var(--color-bg-hover); }
 .release-notice-close {
   flex-shrink: 0;
   background: none;

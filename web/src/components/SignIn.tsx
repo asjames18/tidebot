@@ -1,18 +1,9 @@
 import { useRef, useState } from 'react';
-import type { ShaderStyle } from '@shared/types';
 import { BotAvatar } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
 import { useStore } from '../store';
 import { ShaderCanvas } from './ShaderCanvas';
 import { TrafficLights } from './Sidebar';
-
-const SHADER_PRESETS: { id: ShaderStyle; label: string }[] = [
-  { id: 'aurora', label: 'Aurora Flow' },
-  { id: 'plasma', label: 'Plasma Tide' },
-  { id: 'obsidian', label: 'Obsidian Mesh' },
-  { id: 'vortex', label: 'Singularity' },
-  { id: 'grid', label: '3D Horizon' },
-];
 
 export function SignIn() {
   const checkAuth = useStore((s) => s.checkAuth);
@@ -26,7 +17,6 @@ export function SignIn() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [shader, setShader] = useState<ShaderStyle>('aurora');
   const [busy, setBusy] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -67,36 +57,12 @@ export function SignIn() {
 
   return (
     <div className="signin">
-      <ShaderCanvas style={shader} className="signin__shader" opacity={0.92} />
+      <ShaderCanvas style="aurora" className="signin__shader" opacity={0.92} />
       <div className="signin__chrome">
         <TrafficLights />
-        <div className="signin__shader-bar" role="group" aria-label="Shader style">
-          <span className="signin__shader-label">GLSL SHADER</span>
-          {SHADER_PRESETS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              aria-pressed={shader === p.id}
-              className={`signin__shader-pill${shader === p.id ? ' is-active' : ''}`}
-              onClick={(e) => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(6); } catch {} }
-                if (typeof window !== 'undefined' && window.innerWidth <= 900 && document.activeElement instanceof HTMLInputElement) {
-                  document.activeElement.blur();
-                }
-                setShader(p.id);
-                e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="signin__card">
-        <div className="signin__badge-row">
-          <span className="tidebot-pill tideos-pill tideos-pill--glow">TIDEBOT · BYOM EDITION</span>
-        </div>
         <div className="signin__hero">
           <BotAvatar shape="hex" color="cyan" size={76} ring />
         </div>
@@ -114,7 +80,7 @@ export function SignIn() {
           <GoogleG /> Continue with Google
         </a>}
         <form className="signin__dev" onSubmit={submit}>
-          <div className="signin__divider"><span>{mode === 'local' ? 'Create a local account' : inviteMode ? 'Create your account' : 'Local Studio Access'}</span></div>
+          <div className="signin__divider"><span>{mode === 'local' ? 'Create a local account' : inviteMode ? 'Create your account' : 'Sign in to your studio'}</span></div>
           {inviteMode ? <input className="text-input" aria-label="Invite code" placeholder="Invite code" required
             value={invite} onChange={(e) => setInvite(e.target.value)} autoComplete="off" /> : <input
             className="text-input"
@@ -208,13 +174,6 @@ export function SignIn() {
           </>}
         </form>
         {error && <div className="card__error signin__error" role="alert">{error}</div>}
-        <div className="signin__foot-grid">
-          <span>OPENROUTER · 250+ MODELS</span>
-          <span>•</span>
-          <span>COMPUTER USE SANDBOX</span>
-          <span>•</span>
-          <span>MULTI-AGENT ROOMS</span>
-        </div>
       </div>
     </div>
   );

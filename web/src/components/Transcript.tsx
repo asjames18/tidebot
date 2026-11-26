@@ -436,7 +436,6 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
 function EmptyChat({ bot }: { bot: Bot }) {
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const [sendingIdx, setSendingIdx] = useState<number | null>(null);
-  const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
   const shaderStyle = llmConfig?.shaderStyle || 'aurora';
 
   useEffect(() => { setSendingIdx(null); }, [bot.id]);
@@ -452,25 +451,6 @@ function EmptyChat({ bot }: { bot: Bot }) {
       <div className="empty-chat__stage">
         <ShaderCanvas style={shaderStyle} className="empty-chat__shader" opacity={0.78} />
         <div className="empty-chat__stage-inner">
-          <div className="empty-chat__badges">
-            <span className="tidebot-pill tideos-pill tideos-pill--glow">
-              {llmConfig?.provider === 'custom' ? 'CUSTOM BYOM' : llmConfig?.provider === 'xai' ? 'XAI ENGINE' : 'OPENROUTER'}
-            </span>
-            <button
-              type="button"
-              className="tidebot-pill tideos-pill tideos-pill--interactive"
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                if (window.innerWidth <= 900 && document.activeElement instanceof HTMLElement && document.activeElement.classList.contains('composer__input')) {
-                  document.activeElement.blur();
-                }
-                useConfigUI.getState().openAppSettings('models');
-              }}
-              title="Click to configure OpenRouter key or switch default model"
-            >
-              {activeModel} · {llmConfig?.isConfigured ? 'Connected' : 'Configure Key →'}
-            </button>
-          </div>
           <BotAvatarFor bot={bot} size={76} />
           <div className="empty-chat__title">{bot.name}</div>
           {bot.label && <div className="empty-chat__role">{bot.label}</div>}
@@ -480,7 +460,14 @@ function EmptyChat({ bot }: { bot: Bot }) {
                 ? 'Shared autonomous operator with its own Linux sandbox, web search, and persistent memory.'
                 : 'Personal autonomous operator with its own Linux sandbox, web search, and persistent memory.')}
           </div>
-          <div className="empty-chat__prompts">
+          {llmConfig && !llmConfig.isConfigured ? (
+            <>
+              <p className="empty-chat__setup-copy">Connect a model to start chatting.</p>
+              <button type="button" className="btn btn--cta" onClick={() => useConfigUI.getState().openAppSettings('setup')}>
+                Connect a model
+              </button>
+            </>
+          ) : <div className="empty-chat__prompts">
             {quickPrompts.map((p, i) => (
               <button
                 key={i}
@@ -503,7 +490,7 @@ function EmptyChat({ bot }: { bot: Bot }) {
                 <span className="empty-chat__prompt-arrow">↗</span>
               </button>
             ))}
-          </div>
+          </div>}
         </div>
       </div>
     </div>

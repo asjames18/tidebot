@@ -152,7 +152,6 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   const dictation = useDictation(insertText, setError, bot.voiceLanguage);
   const inCall = useVoice((s) => isCallActive(s) && s.botId === bot.id);
   const llmConfig = useConfigUI((s) => s.llmConfig);
-  const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
 
   const hasText = text.trim().length > 0;
   const multiline = text.includes('\n') || (ref.current?.scrollHeight ?? 0) > 30;
@@ -448,23 +447,8 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
           )}
         </div>
       </div>
-      <footer className="composer-telemetry" aria-label="Workspace telemetry">
+      <footer className="composer-telemetry" aria-label="Chat tools and shortcuts">
         <div className="composer-telemetry__left">
-          <button
-            type="button"
-            className="composer-telemetry__chip"
-            onClick={() => {
-              if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-              if (window.innerWidth <= 900) ref.current?.blur();
-              useConfigUI.getState().openAppSettings('models');
-            }}
-            title="Configure OpenRouter / Bring Your Own Model"
-          >
-            <span className={`composer-telemetry__dot${llmConfig?.isConfigured ? ' is-ok' : ''}`} />
-            <span>{llmConfig?.provider?.toUpperCase() ?? 'OPENROUTER'}</span>
-            <span className="composer-telemetry__sep">·</span>
-            <span className="composer-telemetry__mono">{activeModel}</span>
-          </button>
           <button
             type="button"
             className="composer-telemetry__chip"

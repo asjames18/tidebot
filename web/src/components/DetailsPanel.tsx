@@ -163,9 +163,11 @@ export function DetailsPanel() {
   const routines = useStore((s) => (bot ? s.routines[bot.id] : undefined));
   const set = useStore((s) => s.set);
   const llmConfig = useConfigUI((s) => s.llmConfig);
-  const [tab, setTab] = useState<'activity' | 'tasks' | 'library' | 'runs'>('activity');
+  const tab = useStore((s) => bot?.kind === 'room' && s.detailsTab === 'runs' ? 'activity' : s.detailsTab);
+  const setTab = (detailsTab: typeof tab) => set({ detailsTab });
   const [slackBusy, setSlackBusy] = useState(false);
   const [hideSuggested, setHideSuggested] = useState(() => { try { return localStorage.getItem('grokbot.hideSuggested') === '1'; } catch { return false; } });
+  const closeRef = useRef<HTMLButtonElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -176,6 +178,10 @@ export function DetailsPanel() {
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [tab, bot?.id]);
+
+  useEffect(() => {
+    if (window.innerWidth <= 900) closeRef.current?.focus();
+  }, []);
 
   if (!bot) return null;
 
@@ -265,6 +271,7 @@ export function DetailsPanel() {
         ...botVars(bot.avatarColor),
         ...(dragX > 0 ? { transform: `translateX(${dragX}px)`, transition: dragging ? 'none' : 'transform 180ms ease-out' } : undefined),
       }}
+      id="conversation-details"
       aria-label="Conversation details"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -286,11 +293,13 @@ export function DetailsPanel() {
           <Glyph name="gear" size={16} opacity={0.7} />
         </button>
         <button
+          ref={closeRef}
           type="button"
           className="icon-btn icon-btn--bordered"
           onClick={() => {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
             set({ detailsOpen: false });
+            document.querySelector<HTMLButtonElement>('[aria-controls="conversation-details"]')?.focus();
           }}
           aria-label="Close details"
         >

@@ -17,6 +17,8 @@ jobs:
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -91,6 +93,7 @@ jobs:
         run: npm run stage
 
       - name: Package and publish to GitHub Releases
+        if: matrix.platform != 'mac'
         working-directory: desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,3 +101,47 @@ jobs:
           node scripts/eb-cli.mjs ${{ matrix.args }}
           --publish always
           --release-type ${{ steps.ver.outputs.release_type }}
+
+      - name: Package macOS installer
+        if: matrix.platform == 'mac'
+        working-directory: desktop
+        run: node scripts/eb-cli.mjs ${{ matrix.args }} --publish never
+
+      - name: Save macOS release assets
+        if: matrix.platform == 'mac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ matrix.target_arch }}
+          path: |
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
+            desktop/dist/*.blockmap
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-mac:
+    name: Publish both macOS installers and updater manifest
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.3
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mac-*
+          path: mac-release
+      - name: Publish macOS assets as a single update
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          tag="v$VERSION"
+          published_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$tag" --jq .sha)
+          test "$published_sha" = "$GITHUB_SHA"
+          intel=mac-release/mac-x64
+          apple=mac-release/mac-arm64
+          node desktop/scripts/mac-update-manifest.mjs "$VERSION" "$intel" "$apple" mac-release/latest-mac.yml
+          gh release upload "$tag" "$intel"/* "$apple"/* --clobber
+          gh release upload "$tag" mac-release/latest-mac.yml --clobber
