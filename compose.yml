@@ -12,10 +12,9 @@ services:
       HOST: 0.0.0.0
       PORT: "8787"
       DEV_LOGIN: "0"
-      # The host port above is loopback-only, so the only peers that reach the app are local
-      # containers or a host reverse proxy, which appears as the Docker bridge gateway. Trust
-      # private bridge ranges for X-Forwarded-For; override via TRUST_PROXY in .env.
-      TRUST_PROXY: "${TRUST_PROXY:-172.16.0.0/12}"
+      # A host reverse proxy reaches the app through the Docker bridge gateway. `gateway` trusts only this
+      # container's default-route gateway for X-Forwarded-For (not the whole private range). Override via TRUST_PROXY in .env.
+      TRUST_PROXY: "${TRUST_PROXY:-gateway}"
       DB_PATH: /data/grokbot.db
       ENV_PATH: /data/studio.env
       WEB_DIST_DIR: /app/web/dist
