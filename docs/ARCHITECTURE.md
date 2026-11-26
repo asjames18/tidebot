@@ -61,7 +61,8 @@ SQLite (`data/grokbot.db`, WAL) holds:
 - computers and screen leases
 - Composio session ids, compactions, check-in settings
 
-Secrets live only in `.env` on the server.
+Secrets live in `.env` on the server and, for LLM keys saved through the UI,
+encrypted in SQLite — see [Secrets handling](secrets-handling.md).
 
 ## External services
 
