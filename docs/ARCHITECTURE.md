@@ -1,5 +1,7 @@
 # Architecture
 
+> **Last verified:** 2026-11-26 · **Owner:** asjames18 (maintainer)
+
 TideBot has a React app (`web/`) and a Node server (`server/`) that runs each bot’s agent loop. Text chat can use OpenRouter, xAI, or a custom OpenAI-compatible endpoint, including a [local model](local-model.md). Orgo cloud desktops and Composio apps are optional.
 
 ## Components
@@ -8,7 +10,7 @@ TideBot has a React app (`web/`) and a Node server (`server/`) that runs each bo
 |---|---|---|
 | API + realtime | `server/src/routes*.ts`, `lib/hub.ts` | JSON over HTTP, plus one Server-Sent Events stream per user (`GET /api/events`) carrying row updates, live state, roster changes and computer state |
 | Agent loop | `server/src/agent/loop.ts` | Per-Bot serial queue. Each turn builds the system prompt and history, streams the configured model via `server/src/agent/llm.ts`, runs tool calls, and repeats until the model answers |
-| Tools | `server/src/agent/tools.ts` | Computer use (`computer_*`, `open_browser`, `shell`, `save_file`), memory (`remember`/`recall`), routines (cron and app events), tasks, `send_to_bot`, subagents, group chats, `ask_user`, `request_app_connection`, `stay_silent`, plus Composio's meta tools for 1,000+ apps |
+| Tools | `server/src/agent/tools.ts` | Computer use (`computer_*`, `open_browser`, `shell`, `save_file`), memory (`remember`/`recall`), routines (cron and app events), tasks, `send_to_bot`, subagents, group chats, `ask_user`, `request_app_connection`, `stay_silent`, plus Composio's meta tools for 1,500+ apps |
 | Memory | `server/src/agent/memory.ts`, `agent/prompt.ts` | Compacts long histories with xAI `POST /v1/responses/compact` (falls back to a summary). Consolidates durable facts after a chat goes idle. Keeps a bounded memory section in the prompt |
 | Computers | `server/src/computer.ts`, `orgo.ts`, `idle.ts` | One Orgo Linux VM per user, with one Orgo *screen* (a separate X display with its own desktop) per Bot, up to 4, leased least-recently-used among idle Bots. Auto-suspends after 20 idle minutes and wakes on the next computer action |
 | Viewer | `server/src/vnc.ts` | WebSocket relay between the browser (noVNC) and Orgo's websockify. The server completes VNC auth upstream, so the VM password, which is root-equivalent, never reaches the browser. It then offers the browser an unauthenticated RFB session. In *watch* mode, keyboard, pointer and clipboard messages are dropped on the server |
@@ -70,3 +72,10 @@ Secrets live only in `.env` on the server.
 | xAI | `grok-4.7` (Responses API), realtime voice, TTS, STT | `prompt_cache_key` per Bot and generation, `safety_identifier` from a hashed user id |
 | Orgo | VMs, screens, actions (screenshot, click, type, key, scroll, drag, bash), VNC, files | Rate limit is about 600 control calls/min per computer. An in-VM executor is the planned next step |
 | Composio | Sign-in, connectors, marketplace, triggers | Uses Composio-managed OAuth apps by default. Register your own OAuth clients for production branding |
+
+## See also
+
+- [Self-host TideBot](self-host.md) — run the server on your own machine or server, connect devices, and back up your data.
+- [First chat with a local model](local-model.md) — smoke-test TideBot with llama.cpp or Ollama and no cloud key.
+- [Orgo builder's guide](orgo-builder-guide.md) — how the Orgo cloud desktops behind the computer tools work.
+- [xAI API and Composio](xai-and-composio.md) — builder's reference for the xAI and Composio integrations.
