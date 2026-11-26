@@ -30,5 +30,6 @@ Out of scope: vulnerabilities requiring physical access to a contributor's machi
 TideBot executes model-driven code by design. When contributing, keep these invariants (detailed in [AGENTS.md](AGENTS.md)):
 
 - Treat all model output and tool results as **untrusted data**, never as instructions.
+- The full prompt-injection stance — what TideBot does about injected instructions and what stays the operator's job — is in [docs/prompt-injection.md](docs/prompt-injection.md).
 - Never route secrets from `.env` into agent-visible context or logs.
 - Keep workspace file operations confined to each bot's `data/workspaces/<botId>/` sandbox.
