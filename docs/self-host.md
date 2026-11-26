@@ -20,8 +20,38 @@ On your phone, sign in to that instance with the same TideBot account to see you
 
 You can self-host on hardware you already own. Hosting and model providers may have separate costs or usage limits. TideBot can use a supported free model when one is available, or a local model that runs on your own hardware.
 
-## Data and updates
+## Where your data lives
 
-Compose stores the SQLite database, Library files, and studio settings in the `tidebot-data` named volume. Changes saved in TideBot's Settings take precedence over the corresponding environment values in the Compose `.env`. Keep `.env` private.
+TideBot keeps everything on your own machine — there is no cloud copy. The database holds your accounts, Operators, conversations, routines, and model settings; each Operator's files live in its own workspace folder next to it. Provider keys live in the `.env` file, never in the database.
 
-For a consistent backup, stop the service and back up the entire data volume along with `.env`. The source-checkout setup keeps its database and Library under `data/` by default. Back up data before rebuilding with a newer checkout. Run only one server process against the same SQLite database.
+| Install | Database | Operator workspaces | Settings / keys |
+| --- | --- | --- | --- |
+| Desktop app | `<data folder>/data/grokbot.db` | `<data folder>/data/workspaces/<botId>/` | `<data folder>/.env`, `<data folder>/desktop-settings.json` |
+| Source checkout | `<checkout>/data/grokbot.db` | `<checkout>/data/workspaces/<botId>/` | `<checkout>/.env` |
+| Docker Compose | `tidebot-data` volume, `/data/grokbot.db` | `tidebot-data` volume, `/data/workspaces/<botId>/` | `tidebot-data` volume, `/data/studio.env` |
+
+The desktop data folder is `~/Library/Application Support/TideBot` on macOS, `%APPDATA%\TideBot` on Windows, and `~/.config/TideBot` on Linux. In the desktop app, open it from the **TideBot menu → Open Data Folder**. Changes saved in TideBot's Settings take precedence over the corresponding values in `.env`. Keep `.env` (or `studio.env`) private — it holds your provider keys.
+
+### Back up and restore
+
+Stop the server first, then copy the whole data folder (desktop / source) or volume (Docker) together with the `.env` file. The database runs in WAL mode, so a copy taken while the server is running can be inconsistent — copy `grokbot.db` together with its `grokbot.db-wal` and `grokbot.db-shm` files, or stop the server and copy `grokbot.db` alone. Run only one server process against the same database.
+
+Docker backup, from the checkout directory:
+
+```sh
+docker compose down
+docker run --rm -v tidebot-data:/data -v "$PWD":/backup alpine tar czf /backup/tidebot-data-backup.tar.gz -C /data .
+```
+
+To restore, put the files back in the same locations and start the server again. Back up before rebuilding with a newer checkout or updating the desktop app.
+
+### Move to a new machine
+
+1. Install TideBot on the new machine the same way (desktop app, source checkout, or Docker).
+2. Stop the server on both machines.
+3. Copy the data folder (desktop / source) or restore the volume backup (Docker), plus the `.env` file, into the same location on the new machine.
+4. Start the server and sign in with your existing account — your Operators, conversations, and files come with it.
+
+### Uninstall / clean slate
+
+Uninstalling the desktop app removes the app but leaves your data behind. To start over completely, delete the data folder for your install: the desktop data folder above, `<checkout>/data/` plus `<checkout>/.env` for a source install, or `docker compose down -v` for Docker — the `-v` flag deletes the `tidebot-data` volume and everything in it, so back up first if you want to keep anything.

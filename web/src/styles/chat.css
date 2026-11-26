@@ -70,6 +70,21 @@
 }
 .chat__header-right { display: flex; flex-shrink: 0; gap: 8px; }
 .chat__details-btn[aria-expanded="true"] { background: var(--color-bg-hover); }
+.chat__details-btn { position: relative; }
+/* Issue #5: pending approvals / active runs stay visible from chat even
+   with Details closed. Count uses the warn tokens; a working run is a
+   breathing dot, mirroring .status-dot.is-working. */
+.chat__details-badge {
+  position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9px; border: 1px solid var(--color-warn);
+  background: var(--color-warn-bg); color: var(--color-warn-text);
+  font-size: 11px; font-weight: 700; line-height: 1; pointer-events: none;
+}
+.chat__details-badge.is-dot {
+  min-width: 10px; width: 10px; height: 10px; padding: 0; border: none;
+  background: var(--color-success); animation: breathe 2.4s ease-in-out infinite;
+}
 .chat__run-status {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: min(100% - 24px, 920px); margin: 0 auto 6px; padding: 8px 12px;
