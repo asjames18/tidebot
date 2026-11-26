@@ -11,7 +11,8 @@ import { systemPrompt } from './prompt.js';
 import { repairHistory } from './history.js';
 import { maybeCompact, noteUsage } from './memory.js';
 import { noteCheckinOutcome } from '../proactive.js';
-import { resolveBotModel, streamModelTurn } from './llm.js';
+import { resolveBotModel, getLlmConfig, streamModelTurn } from './llm.js';
+import { redactSecrets } from '../lib/redact.js';
 import { activityFor, functionSchemas, humanizeSlug, policyFor, runComposioTool, toolMap, type ToolCtx, type ToolResult } from './tools.js';
 
 export type Trigger =
@@ -40,6 +41,18 @@ const KEEP_IMAGES = 3;
 const queues = new Map<string, Promise<void>>();
 const aborts = new Map<string, AbortController>();
 
+/** DB-stored LLM keys, so a turn error can never leak a key the operator set
+ *  in the studio UI (it may differ from the env value). Error path only; a
+ *  missing/unreadable DB just means no extra values to redact. */
+function llmKeyValues(): string[] {
+  try {
+    const cfg = getLlmConfig();
+    return [cfg.openrouterKey, cfg.xaiKey, cfg.customApiKey];
+  } catch {
+    return [];
+  }
+}
+
 export function enqueue(botId: string, trigger: Trigger) {
   let queuedId: string | undefined;
   if (trigger.type === 'user') {
@@ -61,7 +74,7 @@ export function enqueue(botId: string, trigger: Trigger) {
     if (!runId) return runContext.exit(() => runTurn(botId, trigger));
     if (!startRun(runId, botId)) return;
     return runContext.run({ id: runId, botId }, () => runTurn(botId, trigger, runId));
-  }).catch((e) => console.error('[agent] turn failed', botId, e));
+  }).catch((e) => console.error('[agent] turn failed', botId, redactSecrets(e, llmKeyValues())));
   queues.set(botId, next);
   next.finally(() => { if (queues.get(botId) === next) queues.delete(botId); });
   return queuedId;
