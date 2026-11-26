@@ -3,6 +3,7 @@ import type { Bot, ComputerState, Routine } from '@shared/types';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { api, openPopup } from '../lib/api';
 import { botVars } from '../lib/colors';
+import { closeDetailsAndReturnFocus } from '../lib/detailsFocus';
 import { displayName, useSelectedBot, useStore } from '../store';
 import { Icon } from './Icon';
 import { ToolkitLogo } from './ToolkitLogo';
@@ -298,8 +299,10 @@ export function DetailsPanel() {
           className="icon-btn icon-btn--bordered"
           onClick={() => {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-            set({ detailsOpen: false });
-            document.querySelector<HTMLButtonElement>('[aria-controls="conversation-details"]')?.focus();
+            closeDetailsAndReturnFocus(
+              () => set({ detailsOpen: false }),
+              () => document.querySelector<HTMLButtonElement>('[aria-controls="conversation-details"]'),
+            );
           }}
           aria-label="Close details"
         >
