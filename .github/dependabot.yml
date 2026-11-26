@@ -1,0 +1,28 @@
+# Dependabot: weekly dependency updates (plan §1.3).
+# - npm at "/" covers the root package-lock.json, which includes the
+#   server and web workspaces.
+# - npm at "/desktop" covers desktop/package.json (it has no lockfile of
+#   its own, so updates are driven by the manifest).
+# - github-actions keeps the CI actions in .github/workflows patched.
+# Cap: 5 open PRs per ecosystem so updates do not pile up unreviewed.
+# Follow-up (not decided here): a maintainer rota for reviewing them.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "npm"
+    directory: "/desktop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
