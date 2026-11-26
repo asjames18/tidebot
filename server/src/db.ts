@@ -232,10 +232,14 @@ CREATE TABLE IF NOT EXISTS llm_settings (
   xai_key TEXT NOT NULL DEFAULT '',
   custom_base_url TEXT NOT NULL DEFAULT '',
   custom_api_key TEXT NOT NULL DEFAULT '',
+  composio_key TEXT NOT NULL DEFAULT '',
+  orgo_key TEXT NOT NULL DEFAULT '',
   default_model TEXT NOT NULL DEFAULT '',
   shader_style TEXT NOT NULL DEFAULT 'aurora',
   updated_at INTEGER NOT NULL DEFAULT 0
 );
 `);
+addColumn('llm_settings', 'composio_key', "TEXT NOT NULL DEFAULT ''");
+addColumn('llm_settings', 'orgo_key', "TEXT NOT NULL DEFAULT ''");
 
 export const now = () => Date.now();

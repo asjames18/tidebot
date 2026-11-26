@@ -21,6 +21,7 @@ import { roomsApi } from './routes-rooms.js';
 import { enqueue } from './agent/loop.js';
 import { desSelfTest } from './lib/des.js';
 import { buildHealthDetail } from './lib/health.js';
+import { getConfiguredProviders } from './agent/llm.js';
 import { configApi } from './routes-config.js';
 import { startIdleWatcher } from './idle.js';
 import { startMemoryConsolidation } from './agent/memory.js';
@@ -61,7 +62,7 @@ app.get('/api/health', (c) => {
   // Plain /api/health keeps returning exactly { ok: true } (desktop updater
   // and smoke tests depend on it); ?detail=1 adds the diagnostic payload.
   if (c.req.query('detail') === '1') {
-    return c.json(buildHealthDetail({ nodeVersion: process.version, dbPath: env.dbPath, providers: env.providers }));
+    return c.json(buildHealthDetail({ nodeVersion: process.version, dbPath: env.dbPath, providers: getConfiguredProviders() }));
   }
   return c.json({ ok: true });
 });
