@@ -31,7 +31,7 @@ function previewFor(bot: Bot, running: boolean, awaiting: string | null) {
   return bot.lastPreview ?? 'No messages yet';
 }
 
-const BotRow = memo(function BotRow({ bot, selected, running, awaiting, onSelect }: { bot: Bot; selected: boolean; running: boolean; awaiting: string | null; onSelect: (id: string) => void }) {
+const BotRow = memo(function BotRow({ bot, selected, running, awaiting, pending, onSelect }: { bot: Bot; selected: boolean; running: boolean; awaiting: string | null; pending: number; onSelect: (id: string) => void }) {
   return (
     <button type="button" className={`bot-row${selected ? ' is-selected' : ''}`} onClick={() => onSelect(bot.id)} aria-current={selected || undefined}>
       <span className="bot-row__avatar">
@@ -44,6 +44,9 @@ const BotRow = memo(function BotRow({ bot, selected, running, awaiting, onSelect
         <span className="bot-row__name">{displayName(bot)}</span>
         <span className="bot-row__preview">{previewFor(bot, running, awaiting)}</span>
       </span>
+      {pending > 0 && (
+        <span className="bot-row__approval-badge" aria-label={`${pending} approval${pending === 1 ? '' : 's'} waiting`}>{pending}</span>
+      )}
     </button>
   );
 });
@@ -51,6 +54,7 @@ const BotRow = memo(function BotRow({ bot, selected, running, awaiting, onSelect
 export function Sidebar() {
   const bots = useStore((s) => s.bots);
   const live = useStore((s) => s.live);
+  const pendingApprovals = useStore((s) => s.pendingApprovals);
   const storeSelectedBotId = useStore((s) => s.selectedBotId);
   const inTasks = useConfigUI((s) => s.view === 'tasks');
   const selectedBotId = inTasks ? null : storeSelectedBotId; // nothing highlighted while the Tasks view is open
@@ -222,6 +226,9 @@ export function Sidebar() {
                 )}
               </span>
               {!collapsed && <span className="pinned__label">{displayName(primary)}</span>}
+              {!collapsed && (pendingApprovals[primary.id] ?? 0) > 0 && (
+                <span className="pinned__approval-badge" aria-label={`${pendingApprovals[primary.id]} approval${pendingApprovals[primary.id] === 1 ? '' : 's'} waiting`}>{pendingApprovals[primary.id]}</span>
+              )}
             </button>
           </div>
         )}
@@ -232,7 +239,7 @@ export function Sidebar() {
                 <BotAvatarFor bot={b} size={36} />
               </button>
             ) : (
-              <BotRow key={b.id} bot={b} selected={selectedBotId === b.id} running={!!live[b.id]?.isRunning} awaiting={live[b.id]?.awaiting?.reason ?? null} onSelect={selectBot} />
+              <BotRow key={b.id} bot={b} selected={selectedBotId === b.id} running={!!live[b.id]?.isRunning} awaiting={live[b.id]?.awaiting?.reason ?? null} pending={pendingApprovals[b.id] ?? 0} onSelect={selectBot} />
             ),
           )}
           {!collapsed && others.length === 0 && (
