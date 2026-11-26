@@ -24,8 +24,17 @@ export function reloadEnvFromDisk(): Record<string, string> {
         parsed[key] = value;
         process.env[key] = value;
       }
-      if (Object.hasOwn(diskEnv, 'STUDIO_ADMIN_EMAIL') && !Object.hasOwn(parsed, 'STUDIO_ADMIN_EMAIL')) {
-        delete process.env.STUDIO_ADMIN_EMAIL;
+      // A key deleted from .env must stop working: reloadEnvFromDisk used to
+      // only clear STUDIO_ADMIN_EMAIL, so any other removed key (e.g. an
+      // API key) stayed live in process.env and opt() kept returning it via
+      // the fallback until the next restart. Clear every key the file used
+      // to provide but no longer does — but only when process.env still
+      // holds the file's old value, so a value the operator set some other
+      // way (Docker env, shell) is not clobbered by the cleanup.
+      for (const key of Object.keys(diskEnv)) {
+        if (!Object.hasOwn(parsed, key) && process.env[key] === diskEnv[key]) {
+          delete process.env[key];
+        }
       }
       diskEnv = parsed;
       lastMtimeMs = st.mtimeMs;
