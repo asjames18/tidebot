@@ -6,8 +6,20 @@
 // running install is behind. No secrets, no third-party service: the endpoint
 // is anonymous public API data, cached in memory with stale-on-error fallback
 // so a failed or rate-limited check never breaks the app.
+//
+// Opt-out: set TIDEBOT_RELEASE_NOTICES=0 (or false/off/no) in .env and the
+// server makes no release request at all — /api/releases/latest answers
+// { release: null, updateAvailable: false }. Default is on.
 
 export const APP_VERSION = process.env.TIDEBOT_DESKTOP_VERSION || '1.0.0';
+
+// On unless explicitly disabled: TIDEBOT_RELEASE_NOTICES=0 (or false/off/no)
+// turns the whole check off. Read at call time so a .env change + restart
+// (or a test flipping process.env) takes effect without a re-import.
+export function releaseNoticesEnabled(): boolean {
+  const v = (process.env.TIDEBOT_RELEASE_NOTICES ?? '').trim().toLowerCase();
+  return v !== '0' && v !== 'false' && v !== 'off' && v !== 'no';
+}
 
 const REPO = 'asjames18/tidebot';
 const RELEASES_URL = `https://api.github.com/repos/${REPO}/releases?per_page=1`;
@@ -112,6 +124,7 @@ async function fetchLatest(): Promise<ReleaseInfo | null> {
 }
 
 export async function latestRelease(): Promise<ReleaseInfo | null> {
+  if (!releaseNoticesEnabled()) return null; // opt-out: never fetch, never serve stale
   if (cache && Date.now() - cache.at < TTL_MS) return cache.release;
   if (!inFlight) {
     inFlight = fetchLatest().finally(() => { inFlight = null; });
