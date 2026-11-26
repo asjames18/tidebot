@@ -113,7 +113,23 @@ Prebuilt desktop apps with automatic updates — no Node.js required:
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
-- **Node.js 22.22.3+** and `npm`
+
+**Desktop app** — no Node.js required. One download per platform:
+
+| Platform | Download size* |
+| :--- | :--- |
+| Windows 10/11 | ~107 MB (`.exe`) |
+| macOS (Apple Silicon) | ~124 MB (`.dmg`) |
+| macOS (Intel) | ~128 MB (`.dmg`) |
+| Linux (64-bit) | ~131 MB (`.AppImage`) or ~100 MB (`.deb`) |
+
+\* Installer sizes from the v1.0.0-dev.78 prerelease. Allow a few hundred MB free for the installed app, its database, and Operator workspaces, which grow with use.
+
+**From source** — Node.js 22.22.3+ and `npm`, plus `git`. A built checkout is about 300 MB on disk (dependencies included; measured at 261 MB for `node_modules` plus ~2 MB of built output). The server idles at roughly 115 MB of RAM in a local smoke test; 2 GB of free RAM is comfortable headroom for the server plus the desktop app.
+
+**Docker path** — Docker with the Compose plugin. The image runs the same server, so the same RAM and disk guidance applies; see [Self-host TideBot](docs/self-host.md).
+
+**Linux only** — the Operator shell tool runs commands inside [Bubblewrap](https://github.com/containers/bubblewrap) (`bwrap`). Without a working `bwrap`, the shell tool refuses to run commands (`server/src/lib/sandbox.ts`). Install it from your distro before relying on shell access: `sudo apt install bubblewrap` (Debian/Ubuntu), `sudo dnf install bubblewrap` (Fedora), or `sudo pacman -S bubblewrap` (Arch). The desktop app needs it too — it bundles the same server.
 
 ### 2. Clone & Install
 
