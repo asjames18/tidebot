@@ -17,6 +17,13 @@
 .card__error { padding: 0 16px 12px; font-size: 13px; line-height: 18px; color: var(--color-danger-text); }
 .card.is-resolved .card__head { padding-bottom: 0; }
 
+.approval-card .card__actions .btn:focus-visible,
+.approval-card .card__arguments summary:focus-visible,
+.approval-card .card__outcome:focus-visible { outline: 2px solid var(--color-ink); }
+.approval-card .card__actions .btn--primary { background: var(--color-primary); color: var(--color-on-primary); }
+.approval-card .card__outcome { color: var(--color-text-secondary); }
+.approval-card .card__outcome:focus-visible { outline-offset: -3px; }
+
 /* question card (screen 01) */
 .question-card { width: 560px; box-shadow: var(--color-border-tertiary) 0 0 0 1px inset; }
 .question-card__head { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px 4px; }

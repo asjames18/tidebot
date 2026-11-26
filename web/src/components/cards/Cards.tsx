@@ -48,9 +48,26 @@ function approvalArguments(args: unknown) {
 export function ApprovalCard({ body }: { body: Card<'approval'> }) {
   const { busy, error, run } = useBusy();
   const pending = body.status === 'pending';
-  const decide = (d: 'allow' | 'always' | 'deny') => run(d, () => api.approve(body.approvalId, d));
-  const name = body.toolkit ? humanizeToolkit(body.toolkit) : prettyTool(body.tool);
+  const outcomeRef = useRef<HTMLDivElement>(null);
+  const keepFocus = useRef(false);
+  const toolName = prettyTool(body.tool);
+  const name = body.toolkit ? humanizeToolkit(body.toolkit) : toolName;
+  const outcome = APPROVAL_OUTCOME[body.status] ?? body.status;
   const argumentsText = approvalArguments(body.args);
+
+  const decide = (event: React.MouseEvent<HTMLButtonElement>, decision: 'allow' | 'always' | 'deny') => {
+    if (busy) return;
+    keepFocus.current = event.currentTarget === document.activeElement;
+    return run(decision, () => api.approve(body.approvalId, decision));
+  };
+
+  useEffect(() => {
+    // Keep keyboard users at the result when their button is removed.
+    if (!pending && keepFocus.current && document.activeElement === document.body) {
+      outcomeRef.current?.focus();
+    }
+  }, [pending]);
+
   return (
     <div className={`card approval-card${pending ? '' : ' is-resolved'}`}>
       <div className="card__head">
@@ -67,17 +84,17 @@ export function ApprovalCard({ body }: { body: Card<'approval'> }) {
       </details>}
       {pending ? (
         <>
-          <div className="card__actions">
-            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('deny')}>{busy === 'deny' ? 'Denying…' : "Don't allow"}</button>
-            <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide('always')} title={`Always allow this tool: ${prettyTool(body.tool)}`}>{busy === 'always' ? 'Saving…' : 'Always allow'}</button>
-            <button type="button" className="btn btn--primary" disabled={!!busy} onClick={() => decide('allow')}>{busy === 'allow' ? 'Allowing…' : 'Allow once'}</button>
+          <div className="card__actions" role="group" aria-label={`Approval for ${toolName}`}>
+            <button type="button" className="btn btn--secondary" aria-disabled={!!busy} aria-label={`Don't allow ${toolName}`} onClick={(e) => decide(e, 'deny')}>{busy === 'deny' ? 'Denying…' : "Don't allow"}</button>
+            <button type="button" className="btn btn--secondary" aria-disabled={!!busy} aria-label={`Always allow ${toolName}`} onClick={(e) => decide(e, 'always')}>{busy === 'always' ? 'Saving…' : 'Always allow'}</button>
+            <button type="button" className="btn btn--primary" aria-disabled={!!busy} aria-label={`Allow once for ${toolName}`} onClick={(e) => decide(e, 'allow')}>{busy === 'allow' ? 'Allowing…' : 'Allow once'}</button>
           </div>
           {error && <div className="card__error" role="alert">{error}</div>}
         </>
       ) : (
-        <div className={`card__outcome is-${body.status}`}>
+        <div className={`card__outcome is-${body.status}`} ref={outcomeRef} tabIndex={-1} role="status" aria-label={`${outcome} for ${toolName}`}>
           <Icon name={body.status === 'denied' || body.status === 'expired' ? 'close' : 'check'} size={12} opacity={0.7} />
-          {APPROVAL_OUTCOME[body.status] ?? body.status}
+          {outcome}
         </div>
       )}
     </div>
