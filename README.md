@@ -301,6 +301,8 @@ Contributions are welcome — bug reports, docs, new Operator tools, provider in
 - 🏗 Architecture and agent-runtime invariants: [`AGENTS.md`](AGENTS.md)
 - 🐛 Found a security issue? Please report privately per [SECURITY.md](SECURITY.md) — do not open a public issue.
 - 💬 Questions & ideas: [open a Discussion](https://github.com/asjames18/tidebot/discussions).
+- 📜 Community standards: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- 📦 Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — licenses for bundled work.
 
 ---
 
