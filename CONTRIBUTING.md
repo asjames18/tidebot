@@ -6,6 +6,7 @@ Thanks for helping make TideBot better! This guide covers what you need to know 
 
 - **Code**: bug fixes, new Operator tools, provider integrations, desktop packaging improvements.
 - **Docs**: clearer setup steps, model cookbook entries (OpenRouter / Ollama / vLLM configs that work), architecture diagrams.
+- **Extensions**: step-by-step tutorials in `docs/` — start with [Add a built-in tool](docs/extend-add-tool.md).
 - **UI/UX**: shader presets, keyboard flow improvements, accessibility.
 - **Triage**: reproducing issues, confirming fixes, labeling.
 
