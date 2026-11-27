@@ -155,6 +155,7 @@ export function ChatView() {
     }
   };
 
+  const canShareTranscript = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   const exportTranscript = async (action: 'copy' | 'share') => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     setMenu(false);
@@ -175,7 +176,7 @@ export function ChatView() {
       }),
     ].join('\n');
 
-    if (action === 'share' && typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    if (action === 'share' && canShareTranscript) {
       try {
         await navigator.share({
           title: `Conversation with ${displayName(bot)}`,
@@ -288,6 +289,7 @@ export function ChatView() {
                   { label: 'Search commands', onSelect: () => useStore.getState().setModal('search') },
                   { label: 'Open computer', onSelect: () => set({ viewerOpen: true }) },
                   { label: 'Copy conversation as Markdown', onSelect: () => void exportTranscript('copy') },
+                  ...(canShareTranscript ? [{ label: 'Share conversation', onSelect: () => void exportTranscript('share') }] : []),
                   { label: 'Download full transcript (.md)', onSelect: () => { window.open(api.exportBotUrl(bot.id), '_blank'); } },
                   ...(bot.kind !== 'room' ? [{
                     label: cloneBusy ? `Cloning ${bot.name}…` : `Clone ${bot.name}`,
