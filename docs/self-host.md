@@ -36,12 +36,17 @@ The desktop data folder is `~/Library/Application Support/TideBot` on macOS, `%A
 
 Stop the server first, then copy the whole data folder (desktop / source) or volume (Docker) together with the `.env` file. The database runs in WAL mode, so a copy taken while the server is running can be inconsistent — copy `grokbot.db` together with its `grokbot.db-wal` and `grokbot.db-shm` files, or stop the server and copy `grokbot.db` alone. Run only one server process against the same database.
 
-Docker backup, from the checkout directory:
+Run these commands from the checkout directory with the same Compose project name you used to start TideBot. Compose mounts that project's data volume in the backup container.
 
 ```sh
-docker compose down
-docker run --rm -v tidebot-data:/data -v "$PWD":/backup alpine tar czf /backup/tidebot-data-backup.tar.gz -C /data .
+backup_dir=$(mktemp -d "$HOME/tidebot-backup.XXXXXX") &&
+  docker compose stop tidebot &&
+  docker compose run --rm -T --no-deps --entrypoint tar tidebot -czf - -C /data . > "$backup_dir/tidebot-data.tar.gz" &&
+  cp .env "$backup_dir/.env" &&
+  printf 'Backup saved to %s\n' "$backup_dir"
 ```
+
+Check that `tar -tzf "$backup_dir/tidebot-data.tar.gz"` lists `./grokbot.db` before using the backup. Keep the backup directory private because it contains settings and keys.
 
 To restore, put the files back in the same locations and start the server again. Back up before rebuilding with a newer checkout or updating the desktop app.
 
