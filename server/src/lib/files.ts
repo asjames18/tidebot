@@ -55,25 +55,115 @@ export function writeWorkspaceFile(root: string, rel: string, content: string): 
   }
 }
 
+function isWithinRoot(realRoot: string, candidate: string): boolean {
+  return candidate === realRoot || candidate.startsWith(realRoot + path.sep);
+}
+
 /**
- * Resolve `rel` inside `root`, rejecting symlink escapes. Returns the absolute
- * target path, or null when the target (or its nearest existing parent for
- * not-yet-created files) resolves outside the workspace root.
+ * Resolve `rel` inside `root`, rejecting absolute paths, traversal, and
+ * symlink escapes (including dangling symlinks and intermediate symlink
+ * directories). Returns the resolved absolute path inside `root`, or null.
  */
 export function resolveWithinWorkspace(root: string, rel: string): string | null {
+  if (rel.includes('\0') || path.isAbsolute(rel)) return null;
   let realRoot: string;
   try { realRoot = fs.realpathSync(root); } catch { return null; }
-  const target = path.join(realRoot, rel);
-  let probe = target;
-  while (!fs.existsSync(probe) && probe !== realRoot) probe = path.dirname(probe);
-  let realProbe: string;
-  try { realProbe = fs.realpathSync(probe); } catch { return null; }
-  if (realProbe !== realRoot && !realProbe.startsWith(realRoot + path.sep)) return null;
-  if (fs.existsSync(target)) {
-    let realTarget: string;
-    try { realTarget = fs.realpathSync(target); } catch { return null; }
-    if (realTarget !== realRoot && !realTarget.startsWith(realRoot + path.sep)) return null;
-    return realTarget;
+  const target = path.resolve(realRoot, rel);
+  if (!isWithinRoot(realRoot, target)) return null;
+  const relative = path.relative(realRoot, target);
+  if (!relative) return realRoot;
+  const parts = relative.split(path.sep);
+  let cur = realRoot;
+  for (let i = 0; i < parts.length; i++) {
+    cur = path.join(cur, parts[i]);
+    let st: fs.Stats | undefined;
+    try { st = lstatIfPresent(cur); } catch { return null; }
+    if (!st) {
+      return path.join(cur, ...parts.slice(i + 1));
+    }
+    if (st.isSymbolicLink()) {
+      let resolved: string;
+      try { resolved = fs.realpathSync(cur); } catch { return null; }
+      if (!isWithinRoot(realRoot, resolved)) return null;
+      cur = resolved;
+      if (i < parts.length - 1) {
+        try { if (!fs.statSync(cur).isDirectory()) return null; } catch { return null; }
+      }
+    } else if (i < parts.length - 1 && !st.isDirectory()) {
+      return null;
+    }
   }
-  return target;
+  return cur;
+}
+
+/**
+ * Resolve an existing workspace entry for deletion without following a final
+ * symlink (so dangling or escaping symlinks sitting inside the workspace can
+ * still be unlinked), while rejecting any parent directory that escapes `root`
+ * and refusing to target `root` itself.
+ */
+export function resolveWorkspaceEntryForDelete(root: string, rel: string): string | null {
+  if (!rel || rel.includes('\0') || path.isAbsolute(rel)) return null;
+  let realRoot: string;
+  try { realRoot = fs.realpathSync(root); } catch { return null; }
+  const target = path.resolve(realRoot, rel);
+  if (target === realRoot || !isWithinRoot(realRoot, target)) return null;
+  const relative = path.relative(realRoot, target);
+  const parts = relative.split(path.sep);
+  const leaf = parts.pop()!;
+  let parent = realRoot;
+  for (const part of parts) {
+    parent = path.join(parent, part);
+    let st: fs.Stats | undefined;
+    try { st = lstatIfPresent(parent); } catch { return null; }
+    if (!st) return null;
+    if (st.isSymbolicLink()) {
+      let resolved: string;
+      try { resolved = fs.realpathSync(parent); } catch { return null; }
+      if (!isWithinRoot(realRoot, resolved)) return null;
+      parent = resolved;
+      try { if (!fs.statSync(parent).isDirectory()) return null; } catch { return null; }
+    } else if (!st.isDirectory()) {
+      return null;
+    }
+  }
+  const entry = path.join(parent, leaf);
+  let entryStat: fs.Stats | undefined;
+  try { entryStat = lstatIfPresent(entry); } catch { return null; }
+  if (!entryStat) return null;
+  return entry;
+}
+
+export interface WorkspaceEntry {
+  name: string;
+  size: number;
+  modifiedAt: number;
+  isDir: boolean;
+}
+
+/**
+ * List visible entries in a workspace directory, skipping dotfiles, escaping
+ * symlinks, and broken/dangling symlinks so one bad link never truncates the
+ * listing. Returns null if `rel` escapes the workspace.
+ */
+export function listWorkspaceDirectory(root: string, rel = '.'): WorkspaceEntry[] | null {
+  const targetDir = resolveWithinWorkspace(root, rel || '.');
+  if (!targetDir) return null;
+  let entries: fs.Dirent[];
+  try { entries = fs.readdirSync(targetDir, { withFileTypes: true }); }
+  catch { return []; }
+  const out: WorkspaceEntry[] = [];
+  for (const e of entries) {
+    if (e.name.startsWith('.')) continue;
+    let entryPath = path.join(targetDir, e.name);
+    if (e.isSymbolicLink()) {
+      const resolved = resolveWithinWorkspace(root, rel && rel !== '.' ? path.join(rel, e.name) : e.name);
+      if (!resolved) continue;
+      entryPath = resolved;
+    }
+    let st: fs.Stats;
+    try { st = fs.statSync(entryPath); } catch { continue; }
+    out.push({ name: e.name, size: st.size, modifiedAt: st.mtimeMs, isDir: st.isDirectory() });
+  }
+  return out;
 }

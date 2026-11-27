@@ -9,7 +9,7 @@
   <a href="https://openrouter.ai"><img src="https://img.shields.io/badge/BYOM-OpenRouter%20%7C%20OpenAI%20%7C%20Ollama-818cf8.svg?style=flat-square" alt="Bring Your Own Model"></a>
   <a href="https://composio.dev"><img src="https://img.shields.io/badge/Integrations-1%2C500%2B%20Composio%20Tools-34d399.svg?style=flat-square" alt="Composio Tools"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-%E2%89%A522.22.3-f59e0b.svg?style=flat-square" alt="Node.js >= 22.22.3"></a>
-  <a href="#quick-start"><img src="https://img.shields.io/badge/UI-Obsidian%20Glass%20%2B%20WebGL-c084fc.svg?style=flat-square" alt="WebGL Shaders"></a>
+  <a href="#-quick-start"><img src="https://img.shields.io/badge/UI-Obsidian%20Glass%20%2B%20WebGL-c084fc.svg?style=flat-square" alt="WebGL Shaders"></a>
 </p>
 
 <p align="center">
@@ -140,11 +140,16 @@ npm install
 cp .env.example .env
 ```
 
-### 3. Configure `.env` (or Configure Directly in the UI)
+> **Note (npm 12+):** `npm install` may print a warning that install scripts for `better-sqlite3` and `esbuild` were skipped by `allowScripts`. Both ship prebuilt binaries, so `dev`, `build`, and `test` work without extra approvals.
 
-Open `.env` and add your API keys (or start the server first and paste your keys into **Settings → Models & OpenRouter** in the web UI):
+### 3. Configure `.env` (Sign-In First, Keys Optional)
 
-For Docker or a source install, changing shared settings in the UI requires signing in as the studio administrator. Set `STUDIO_EMAIL` and `STUDIO_PASSWORD` for local sign-in, or set `STUDIO_ADMIN_EMAIL` to the email of your Google sign-in. If you were signed in before upgrading, sign in again.
+Before opening the studio from source, enable at least one sign-in method in `.env` — `.env.example` leaves all sign-in methods disabled by default:
+- **Recommended (local password sign-in):** set `STUDIO_EMAIL` and a non-empty `STUDIO_PASSWORD` (signs you in as the verified studio administrator so you can save shared settings in the UI).
+- **Local-only dev shortcut:** uncomment `DEV_LOGIN=1` for instant passwordless email sign-in (read-only for shared studio settings; never enable in production).
+- **Google sign-in:** set `COMPOSIO_API_KEY` and `STUDIO_ADMIN_EMAIL` to your Google account email.
+
+You can add model API keys in `.env` now, or start the server first and paste them into **Settings → Models & OpenRouter** in the web UI. If you were signed in before upgrading, sign in again.
 
 In the desktop app, select **Create local account** to choose your own email and password. The first local account manages provider settings for that installation unless a studio administrator is configured. Use **Settings → Connected apps** for your Composio key, **Models & OpenRouter** for model providers, and **Setup** for Orgo. Other local accounts can use their own personal OpenRouter keys.
 
@@ -154,6 +159,9 @@ To add another user to a shared, self-hosted studio, open **Settings → Account
 
 | Variable | Required | Description |
 | :--- | :---: | :--- |
+| `STUDIO_EMAIL` | Local Sign-In | Email address for local password sign-in (defaults as studio admin) |
+| `STUDIO_PASSWORD` | Local Sign-In | Password for local sign-in (password sign-in stays disabled while empty) |
+| `STUDIO_ADMIN_EMAIL` | Optional | Verified studio administrator email (defaults to `STUDIO_EMAIL`; set for Google sign-in) |
 | `LLM_PROVIDER` | No | `openrouter` (default), `custom`, or `xai` |
 | `OPENROUTER_API_KEY` | Recommended | OpenRouter key (`sk-or-v1-...`) for 250+ frontier & free models |
 | `OPENROUTER_MODEL` | No | Default model ID (e.g., `openrouter/free` or `openrouter/auto`) |
