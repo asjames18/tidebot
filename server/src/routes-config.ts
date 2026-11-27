@@ -17,7 +17,7 @@ import { consolidateBot, historySize, maybeCompact, memoryConfig } from './agent
 import { completeText, fetchModelsCatalog, getPublicLlmConfig, publicPersonalModel, saveLlmConfig, savePersonalModel, testLlmConnection, testOpenRouterKey } from './agent/llm.js';
 import { idleConfig, viewerCount } from './idle.js';
 import { assertPublicUrl } from './lib/ssrf.js';
-import { listWorkspaceDirectory, resolveWithinWorkspace, resolveWorkspaceEntryForDelete, writeWorkspaceFile } from './lib/files.js';
+import { resolveWithinWorkspace, writeWorkspaceFile } from './lib/files.js';
 import { loadHistory } from './store.js';
 import type { LibraryFile, Memory, Skill } from './types.js';
 
@@ -313,7 +313,18 @@ configApi.get('/bots/:id/files', async (c) => {
   const rel = safeRel(c.req.query('path'));
   if (rel === null) return c.json({ error: 'bad path' }, 400);
 
-  const localFiles: LibraryFile[] = listWorkspaceDirectory(localWorkspaceDir(b.id), rel || '.') ?? [];
+  const localFiles: LibraryFile[] = [];
+  try {
+    const rootDir = localWorkspaceDir(b.id);
+    const targetDir = resolveWithinWorkspace(rootDir, rel || '.');
+    if (!targetDir) throw new Error('bad path');
+    fs.mkdirSync(targetDir, { recursive: true });
+    for (const e of fs.readdirSync(targetDir, { withFileTypes: true })) {
+      if (e.name.startsWith('.')) continue;
+      const st = fs.statSync(nodePath.join(targetDir, e.name));
+      localFiles.push({ name: e.name, size: st.size, modifiedAt: st.mtimeMs, isDir: e.isDirectory() });
+    }
+  } catch { /* ignore */ }
 
   if (!env.orgoKey || c.req.query('local') === '1') {
     localFiles.sort((x, y) => Number(y.isDir) - Number(x.isDir) || y.modifiedAt - x.modifiedAt);
@@ -404,8 +415,9 @@ configApi.delete('/bots/:id/files', async (c) => {
   if (!b) return c.json({ error: 'not found' }, 404);
   const rel = safeRel(c.req.query('path'));
   if (!rel) return c.json({ error: 'bad path' }, 400);
-  const localPath = resolveWorkspaceEntryForDelete(localWorkspaceDir(b.id), rel);
-  if (localPath) {
+  const joined = nodePath.join(localWorkspaceDir(b.id), rel);
+  const localPath = fs.existsSync(joined) && fs.lstatSync(joined).isSymbolicLink() ? joined : resolveWithinWorkspace(localWorkspaceDir(b.id), rel);
+  if (localPath && fs.existsSync(localPath)) {
     fs.rmSync(localPath, { recursive: true, force: true });
   }
   if (env.orgoKey) {

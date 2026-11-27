@@ -9,12 +9,9 @@ checkinsApi.use('*', requireUser);
 checkinsApi.get('/', (c) => c.json(getCheckins(c.get('user').id)));
 
 checkinsApi.put('/', async (c) => {
-  const body = await c.req.json<unknown>().catch(() => null);
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return c.json({ error: 'Invalid JSON body' }, 400);
-  }
+  const body = await c.req.json<{ enabled?: boolean; times?: string[]; timezone?: string }>();
   try {
-    return c.json(setCheckins(c.get('user').id, body as { enabled?: unknown; times?: unknown; timezone?: unknown }));
+    return c.json(setCheckins(c.get('user').id, body));
   } catch (e: any) {
     return c.json({ error: e?.message ?? String(e) }, 400);
   }
@@ -22,8 +19,6 @@ checkinsApi.put('/', async (c) => {
 
 /** Trigger a check-in now (for testing / "check in with me" button). */
 checkinsApi.post('/now', (c) => {
-  const result = fireCheckin(c.get('user').id, 0, true);
-  if (result === 'disabled') return c.json({ error: 'Check-in scheduler is disabled.' }, 503);
-  if (result === 'no_primary') return c.json({ error: 'No primary Operator found.' }, 404);
+  fireCheckin(c.get('user').id, 0, true);
   return c.json({ ok: true });
 });

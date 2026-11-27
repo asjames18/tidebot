@@ -61,23 +61,10 @@ async function listVoices(): Promise<VoiceOption[]> {
     if (!voices.length) throw new Error('empty list');
     voiceCache = { at: Date.now(), voices };
   } catch (e: any) {
-    console.warn('[voice] voice list unavailable, using static list:', redactSecrets(e?.message ?? e, [voiceKey()]));
+    console.warn('[voice] voice list unavailable, using static list:', e?.message);
     voiceCache = { at: Date.now() - 3000_000, voices: FALLBACK_VOICES }; // retry in ~10 min
   }
   return voiceCache.voices;
-}
-
-/** Escape LIKE wildcards and the backslash escape character itself for `ESCAPE '\\'`. */
-export function escapeLikeQuery(q: string): string {
-  return q.replace(/[\\%_]/g, (m) => `\\${m}`);
-}
-
-/** Normalize a TideBot language code (e.g. `es-MX`, `pt-BR`, `en`) to the 2-letter ISO-639-1 code xAI STT expects. */
-export function normalizeSttLanguage(raw: unknown): string | null {
-  const s = String(raw ?? '').trim();
-  if (!s || s.toLowerCase() === 'auto') return null;
-  const m = /^([a-z]{2})(?:-[a-z0-9]{2,4})?$/i.exec(s);
-  return m ? m[1].toLowerCase() : null;
 }
 
 const clampSpeed = (s: unknown) => {
@@ -318,20 +305,17 @@ voiceApi.post('/session', async (c) => {
 
 voiceApi.post('/tool', async (c) => {
   const user = c.get('user');
-  const body = await c.req.json<{ botId?: string; callId?: string; name?: string; args?: any }>().catch(() => null);
-  if (!body || typeof body !== 'object') return c.json({ error: 'Invalid JSON body' }, 400);
-  const { botId, callId, name, args } = body;
+  const { botId, callId, name, args } = await c.req.json<{ botId: string; callId?: string; name: string; args?: any }>();
   const bot = ownBot(user.id, botId);
   if (!bot) return c.json({ error: 'not found' }, 404);
   const a = args && typeof args === 'object' ? args : {};
-  const rawCall = callId ? calls.get(callId) : undefined;
-  const call = rawCall && rawCall.botId === bot.id && rawCall.userId === user.id ? rawCall : undefined;
+  const call = callId ? calls.get(callId) : undefined;
 
   switch (name) {
     case 'send_task': {
       const request = String(a.request ?? '').trim();
       if (!request) return c.json({ output: 'Error: request is empty. Ask the user what they want done.' });
-      const from: MessageBody['from'] = { kind: 'voice', id: call?.id ?? 'call', name: 'Voice call' };
+      const from: MessageBody['from'] = { kind: 'voice', id: callId ?? 'call', name: 'Voice call' };
       const row = appendRow(bot.id, 'message', { type: 'message', role: 'user', text: request, from });
       enqueue(bot.id, {
         type: 'user',
@@ -349,23 +333,22 @@ voiceApi.post('/tool', async (c) => {
       const q = String(a.query ?? '').trim();
       if (!q) return c.json({ output: 'Error: query is empty.' });
       const scope = ['this_chat', 'earlier', 'everything'].includes(a.scope) ? a.scope : 'this_chat';
-      const like = `%${escapeLikeQuery(q)}%`;
+      const like = `%${q.replace(/[%_]/g, (m) => `\\${m}`)}%`;
       const rows = (scope === 'everything'
-        ? db.prepare("SELECT r.*, b.name bot_name FROM rows r JOIN bots b ON b.id=r.bot_id WHERE b.user_id=? AND r.kind IN ('message','event') AND (json_extract(r.body, '$.text') LIKE ? ESCAPE '\\' OR r.body LIKE ? ESCAPE '\\') ORDER BY r.created_at DESC LIMIT 40").all(user.id, like, like)
+        ? db.prepare("SELECT r.*, b.name bot_name FROM rows r JOIN bots b ON b.id=r.bot_id WHERE b.user_id=? AND r.kind IN ('message','event') AND r.body LIKE ? ESCAPE '\\' ORDER BY r.created_at DESC LIMIT 40").all(user.id, like)
         : scope === 'earlier'
-          ? db.prepare("SELECT r.*, ? bot_name FROM rows r WHERE r.bot_id=? AND r.generation<? AND r.kind IN ('message','event') AND (json_extract(r.body, '$.text') LIKE ? ESCAPE '\\' OR r.body LIKE ? ESCAPE '\\') ORDER BY r.created_at DESC LIMIT 40").all(bot.name, bot.id, bot.generation, like, like)
-          : db.prepare("SELECT r.*, ? bot_name FROM rows r WHERE r.bot_id=? AND r.generation=? AND r.kind IN ('message','event') AND (json_extract(r.body, '$.text') LIKE ? ESCAPE '\\' OR r.body LIKE ? ESCAPE '\\') ORDER BY r.created_at DESC LIMIT 40").all(bot.name, bot.id, bot.generation, like, like)) as any[];
+          ? db.prepare("SELECT r.*, ? bot_name FROM rows r WHERE r.bot_id=? AND r.generation<? AND r.kind IN ('message','event') AND r.body LIKE ? ESCAPE '\\' ORDER BY r.created_at DESC LIMIT 40").all(bot.name, bot.id, bot.generation, like)
+          : db.prepare("SELECT r.*, ? bot_name FROM rows r WHERE r.bot_id=? AND r.generation=? AND r.kind IN ('message','event') AND r.body LIKE ? ESCAPE '\\' ORDER BY r.created_at DESC LIMIT 40").all(bot.name, bot.id, bot.generation, like)) as any[];
       const hits: string[] = [];
       const ql = q.toLowerCase();
       for (const r of rows) {
-        let rowBody: RowBody;
-        try { rowBody = JSON.parse(r.body) as RowBody; } catch { continue; }
+        const body = JSON.parse(r.body) as RowBody;
         let text = '';
         let who = '';
-        if (rowBody.type === 'message' && !rowBody.streaming) { text = rowBody.text; who = rowBody.role === 'user' ? 'User' : r.bot_name; }
-        else if (rowBody.type === 'event') {
-          text = [rowBody.text, ...(rowBody.call?.transcript ?? []).map((t) => `${t.role === 'user' ? 'User' : r.bot_name}: ${t.text}`)].join(' / ');
-          who = rowBody.event === 'voice-call' ? 'Call record' : 'Event';
+        if (body.type === 'message' && !body.streaming) { text = body.text; who = body.role === 'user' ? 'User' : r.bot_name; }
+        else if (body.type === 'event') {
+          text = [body.text, ...(body.call?.transcript ?? []).map((t) => `${t.role === 'user' ? 'User' : r.bot_name}: ${t.text}`)].join(' / ');
+          who = body.event === 'voice-call' ? 'Call record' : 'Event';
         }
         const i = text.toLowerCase().indexOf(ql);
         if (i < 0) continue;
@@ -404,14 +387,12 @@ async function summarizeCall(botName: string, transcript: { role: string; text: 
 
 voiceApi.post('/end', async (c) => {
   const user = c.get('user');
-  const body = await c.req.json<{ botId?: string; callId?: string; transcript?: { role: string; text: string }[]; error?: string }>().catch(() => null);
-  if (!body || typeof body !== 'object') return c.json({ error: 'Invalid JSON body' }, 400);
-  const { botId, callId, transcript, error } = body;
+  const { botId, callId, transcript, error } = await c.req.json<{ botId: string; callId: string; transcript?: { role: string; text: string }[]; error?: string }>();
   const bot = ownBot(user.id, botId);
   if (!bot) return c.json({ error: 'not found' }, 404);
-  const call = callId ? calls.get(callId) : undefined;
-  if (!call || call.botId !== bot.id || call.userId !== user.id) return c.json({ ok: true, duplicate: true });
-  calls.delete(call.id);
+  const call = calls.get(callId);
+  if (!call || call.botId !== bot.id) return c.json({ ok: true, duplicate: true });
+  calls.delete(callId);
 
   const durationMs = now() - call.startedAt;
   const lines = (Array.isArray(transcript) ? transcript : [])
@@ -419,7 +400,7 @@ voiceApi.post('/end', async (c) => {
     .slice(-200)
     .map((t) => ({ role: t.role as 'user' | 'assistant', text: clip(t.text.trim(), 2000) }));
   const base = error ? `Voice call ended · ${fmtDuration(durationMs)} · ${clip(error, 120)}` : `Voice call ended · ${fmtDuration(durationMs)}`;
-  const record: VoiceCallRecord = { id: call.id, phase: 'ended', durationMs, transcript: lines, tasks: call.tasks };
+  const record: VoiceCallRecord = { id: callId, phase: 'ended', durationMs, transcript: lines, tasks: call.tasks };
   const maxSeq = (db.prepare('SELECT MAX(seq) m FROM rows WHERE bot_id=?').get(bot.id) as any)?.m ?? call.startSeq;
   const targetSeq = maxSeq === call.startSeq ? call.startSeq : appendRow(bot.id, 'event', callEvent(base, record)).seq;
   if (targetSeq === call.startSeq) updateRow(bot.id, call.startSeq, callEvent(base, record));
@@ -428,7 +409,7 @@ voiceApi.post('/end', async (c) => {
   // Summarise in the background and rewrite the row.
   summarizeCall(bot.name, lines, call.tasks)
     .then((summary) => { if (summary) updateRow(bot.id, targetSeq, callEvent(`${base}. ${summary}`, { ...record, summary })); })
-    .catch((e) => console.warn('[voice] call summary failed:', redactSecrets(e?.message ?? e, [voiceKey()])));
+    .catch((e) => console.warn('[voice] call summary failed:', e?.message));
   return c.json({ ok: true, seq: targetSeq });
 });
 
@@ -459,8 +440,7 @@ voiceApi.post('/preview', async (c) => {
     signal: AbortSignal.timeout(30_000),
   }).catch(() => null);
   if (!r?.ok) {
-    const detail = (await r?.text().catch(() => '')) ?? '';
-    console.warn('[voice] tts failed', r?.status, redactSecrets(detail, [voiceKey()]).slice(0, 200));
+    console.warn('[voice] tts failed', r?.status, (await r?.text().catch(() => ''))?.slice(0, 200));
     return c.json({ error: 'Preview unavailable' }, 502);
   }
   return c.body(Buffer.from(await r.arrayBuffer()), 200, {
@@ -477,13 +457,12 @@ voiceApi.post('/stt', async (c) => {
   if (file.size < 200) return c.json({ text: '' });
   const out = new FormData();
   out.append('model', STT_MODEL);
-  const lang = normalizeSttLanguage(form?.get('language'));
-  if (lang) out.append('language', lang);
+  const lang = String(form?.get('language') ?? '');
+  if (lang && lang !== 'auto' && /^[a-z]{2}$/.test(lang)) out.append('language', lang);
   out.append('file', file, file.name || 'dictation.webm'); // must be last
   const r = await fetch(`${XAI}/stt`, { method: 'POST', headers: xaiHeaders(), body: out, signal: AbortSignal.timeout(60_000) }).catch(() => null);
   if (!r?.ok) {
-    const detail = (await r?.text().catch(() => '')) ?? '';
-    console.warn('[voice] stt failed', r?.status, redactSecrets(detail, [voiceKey()]).slice(0, 200));
+    console.warn('[voice] stt failed', r?.status, (await r?.text().catch(() => ''))?.slice(0, 200));
     return c.json({ error: 'Transcription failed' }, 502);
   }
   const j = (await r.json()) as { text?: string };

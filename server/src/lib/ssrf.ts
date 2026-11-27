@@ -83,21 +83,10 @@ export async function assertPublicUrl(raw: string, opts: { allowLoopback?: boole
 
 const MAX_REDIRECTS = 5;
 
-const SENSITIVE_REDIRECT_HEADERS = new Set(['authorization', 'cookie', 'proxy-authorization']);
-
-function stripSensitiveHeaders(headers: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(headers)) {
-    if (!SENSITIVE_REDIRECT_HEADERS.has(k.toLowerCase())) out[k] = v;
-  }
-  return out;
-}
-
 /** fetch() that re-validates every redirect hop and caps the response body. */
 export async function safeFetch(raw: string, init: { headers?: Record<string, string>; timeoutMs?: number; maxBytes?: number; signal?: AbortSignal } = {}): Promise<{ status: number; contentType: string; text: string }> {
   const maxBytes = init.maxBytes ?? 1_000_000;
   let current = raw;
-  let headers: Record<string, string> = { ...init.headers };
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     init.signal?.throwIfAborted();
     const { u, addrs } = await resolveAllowedUrl(current);
@@ -106,7 +95,7 @@ export async function safeFetch(raw: string, init: { headers?: Record<string, st
     const res = await new Promise<http.IncomingMessage>((resolve, reject) => {
       const req = request(u, {
         agent: false,
-        headers: { ...headers, 'Accept-Encoding': 'identity' },
+        headers: { ...init.headers, 'Accept-Encoding': 'identity' },
         signal: init.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
         lookup: (_host, opts, callback) => {
           if (opts.all) callback(null, addrs);
@@ -123,19 +112,14 @@ export async function safeFetch(raw: string, init: { headers?: Record<string, st
       res.destroy();
       if (!loc) return { status, contentType, text: '' };
       if (hop === MAX_REDIRECTS) throw new Error('Too many redirects');
-      const nextUrl = new URL(loc, u);
-      if (nextUrl.origin !== u.origin) headers = stripSensitiveHeaders(headers);
-      current = nextUrl.toString();
+      current = new URL(loc, u).toString();
       continue;
     }
     const chunks: Uint8Array[] = [];
     let total = 0;
     for await (const chunk of res) {
       total += chunk.byteLength;
-      if (total > maxBytes) {
-        res.destroy();
-        throw new Error('Response too large');
-      }
+      if (total > maxBytes) throw new Error('Response too large');
       chunks.push(chunk);
     }
     return { status, contentType, text: Buffer.concat(chunks).toString('utf8') };

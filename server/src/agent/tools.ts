@@ -18,7 +18,7 @@ import { createRoom, postToRoom } from './rooms.js';
 import type { ActivityKind } from '../types.js';
 import { Cron } from 'croner';
 import { readWebSource } from '../lib/web-source.js';
-import { listWorkspaceDirectory, resolveWithinWorkspace, writeWorkspaceFile } from '../lib/files.js';
+import { resolveWithinWorkspace, writeWorkspaceFile } from '../lib/files.js';
 import { runShell } from '../lib/sandbox.js';
 
 const execAsync = promisify(exec);
@@ -146,7 +146,12 @@ export const TOOLS: ToolDef[] = [
     activity: 'working',
     label: 'Checking Library files',
     impl: async (_a, ctx) => {
-      const list = listWorkspaceDirectory(localWorkspaceDir(ctx.botId)) ?? [];
+      const dir = localWorkspaceDir(ctx.botId);
+      const entries = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => !e.name.startsWith('.'));
+      const list = entries.map((e) => {
+        const st = fs.statSync(path.join(dir, e.name));
+        return { name: e.name, size: st.size, isDir: e.isDirectory(), modifiedAt: st.mtimeMs };
+      });
       return { output: JSON.stringify(list), summary: `${list.length} file(s) in Library` };
     },
   },
@@ -577,7 +582,8 @@ export const TOOLS: ToolDef[] = [
     label: 'Wrapping up a helper',
     impl: async (a, ctx) => {
       const { interrupt } = await import('./loop.js');
-      const removed = await deleteSubagent(ctx.botId, String(a.subagent_id), interrupt);
+      interrupt(String(a.subagent_id));
+      const removed = await deleteSubagent(ctx.botId, String(a.subagent_id));
       return { output: removed ? 'Stopped and removed.' : 'No such subagent.' };
     },
   },

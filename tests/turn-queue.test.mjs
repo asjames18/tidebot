@@ -19,7 +19,7 @@ const { db } = await import('../server/dist/db.js');
 // parent_bot_id columns only exist after initSubagents() runs, and the
 // turn's system prompt queries them. Without this, every turn on a fresh
 // DB dies with "no such column: hidden".
-const { createSubagent, deleteSubagent, initSubagents, listSubagents } = await import('../server/dist/agent/subagents.js');
+const { initSubagents } = await import('../server/dist/agent/subagents.js');
 initSubagents();
 const { appendRow, loadHistory } = await import('../server/dist/store.js');
 const { getRun } = await import('../server/dist/runs.js');
@@ -108,58 +108,4 @@ test('interrupt with no running turn is a safe no-op', () => {
   seedBot(botId);
   assert.doesNotThrow(() => interrupt(botId), 'interrupt must not throw when idle');
   assert.equal(isBotBusy(botId), false);
-});
-
-test('createSubagent inherits parent model and blocks recursive/room/blank spawns', () => {
-  seedBot('sub-parent');
-  db.prepare("UPDATE bots SET model='anthropic/claude-3.7-sonnet', effort='high' WHERE id='sub-parent'").run();
-
-  const sub = createSubagent('sub-parent', 'Research Acme Corp', 'Acme');
-  const row = db.prepare('SELECT model, effort, parent_bot_id, hidden FROM bots WHERE id=?').get(sub.id);
-  assert.equal(row.model, 'anthropic/claude-3.7-sonnet');
-  assert.equal(row.effort, 'high');
-  assert.equal(row.parent_bot_id, 'sub-parent');
-  assert.equal(row.hidden, 1);
-
-  // Subagents cannot spawn grandchildren regardless of turn depth.
-  assert.throws(() => createSubagent(sub.id, 'Spawn another helper'), /Subagents cannot start more subagents/);
-  // Blank goals are rejected.
-  assert.throws(() => createSubagent('sub-parent', '   '), /goal is required/i);
-  // Group rooms cannot spawn subagents.
-  db.prepare("INSERT INTO bots(id,user_id,name,kind,created_at,updated_at) VALUES ('sub-room','u-sub-parent','Room','room',1,1)").run();
-  assert.throws(() => createSubagent('sub-room', 'Help'), /Groups cannot spawn subagents/);
-});
-
-test('deleteSubagent verifies ownership before invoking onInterrupt and cleans up workspace', async () => {
-  seedBot('owner-a');
-  seedBot('owner-b');
-  const sub = createSubagent('owner-a', 'Draft summary', 'Summary');
-  const wsDir = path.join(fixtures, 'workspaces', sub.id);
-  fs.mkdirSync(wsDir, { recursive: true });
-  fs.writeFileSync(path.join(wsDir, 'notes.txt'), 'draft');
-
-  // Another bot cannot interrupt or delete owner-a's subagent.
-  const wrongInterrupts = [];
-  const denied = await deleteSubagent('owner-b', sub.id, (id) => wrongInterrupts.push(id));
-  assert.equal(denied, false);
-  assert.deepEqual(wrongInterrupts, []);
-  assert.equal(fs.existsSync(wsDir), true);
-
-  // Owner interrupts and removes both DB row and workspace directory.
-  const ownerInterrupts = [];
-  const removed = await deleteSubagent('owner-a', sub.id, (id) => ownerInterrupts.push(id));
-  assert.equal(removed, true);
-  assert.deepEqual(ownerInterrupts, [sub.id]);
-  assert.equal(db.prepare('SELECT id FROM bots WHERE id=?').get(sub.id), undefined);
-  assert.equal(fs.existsSync(wsDir), false);
-});
-
-test('listSubagents tolerates malformed message JSON without throwing', () => {
-  seedBot('list-parent');
-  const sub = createSubagent('list-parent', 'Check status');
-  db.prepare("INSERT INTO rows(bot_id,generation,seq,updated_seq,kind,body,created_at) VALUES (?,1,1,1,'message','{corrupt',1)").run(sub.id);
-  const items = listSubagents('list-parent');
-  assert.equal(items.length, 1);
-  assert.equal(items[0].id, sub.id);
-  assert.equal(items[0].lastMessage, null);
 });

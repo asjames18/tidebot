@@ -40,52 +40,19 @@ function PreBlock({ node: _n, children, ...props }: any) {
   );
 }
 
-export type MarkdownLinkKind = 'blocked' | 'loopback' | 'native' | 'link';
-
-function isLoopbackOrUnspecifiedHost(hostname: string): boolean {
-  const h = hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.+$/, '');
-  if (h === 'localhost' || h.endsWith('.localhost')) return true;
-  if (h === '0.0.0.0' || h === '::' || h === '::1' || h === '::ffff:0:0') return true;
-  if (/^127\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:25[0-5]|2[0-4]\d|1?\d?\d)$/.test(h)) return true;
-  if (/^::ffff:127\./.test(h) || /^::ffff:7f[\da-f]{2}:[\da-f]{1,4}$/.test(h)) return true;
-  return false;
-}
-
-/**
- * Classify a Markdown link target so host-only loopback/unspecified links
- * (including `*.localhost`, `127.0.0.0/8`, `0.0.0.0`, `[::]`, IPv4-mapped IPv6,
- * and protocol-relative `//localhost`) are neutralized, and empty/non-HTTP
- * schemes never render broken `<a href="">` tags.
- */
-export function classifyMarkdownHref(href: string | undefined): MarkdownLinkKind {
-  const raw = (href ?? '').trim();
-  if (!raw) return 'blocked';
-  // Markdown percent-encodes IPv6 authority brackets before rendering.
-  const normalized = raw.replace(/^((?:https?:)?\/\/)%5B([0-9a-f:.]+)%5D(?=[:/?#]|$)/i, '$1[$2]');
-  if ((normalized.startsWith('/') && !normalized.startsWith('//')) || normalized.startsWith('#') || normalized.startsWith('./') || normalized.startsWith('../')) {
-    return 'link';
-  }
-  try {
-    const u = normalized.startsWith('//') ? new URL(`https:${normalized}`) : new URL(normalized);
-    if (u.protocol === 'mailto:' || u.protocol === 'tel:') return 'native';
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'blocked';
-    if (isLoopbackOrUnspecifiedHost(u.hostname)) return 'loopback';
-    return 'link';
-  } catch {
-    return 'blocked';
-  }
-}
-
 const components: Components = {
   a: ({ node: _n, href, children }) => {
-    const kind = classifyMarkdownHref(href);
-    if (kind === 'loopback') {
-      return <span className="md-localhost" title="Localhost link from the agent — only reachable on the host machine">{children}</span>;
-    }
-    if (kind === 'blocked') {
-      return <span>{children}</span>;
-    }
-    const isNativeScheme = kind === 'native';
+    let loopback = false;
+    let isNativeScheme = false;
+    try {
+      // Markdown percent-encodes IPv6 authority brackets before rendering.
+      const parsedHref = (href ?? '').replace(/^(https?:\/\/)%5B([0-9a-f:.]+)%5D(?=[:/?#]|$)/i, '$1[$2]');
+      const u = new URL(parsedHref);
+      const h = u.hostname;
+      loopback = h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+      isNativeScheme = u.protocol === 'mailto:' || u.protocol === 'tel:';
+    } catch { /* relative links stay links */ }
+    if (loopback) return <span className="md-localhost" title="Localhost link from the agent — only reachable on the host machine">{children}</span>;
     return (
       <a
         href={href}

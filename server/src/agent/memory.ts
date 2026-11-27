@@ -4,7 +4,6 @@ import '../db-config.js';
 import { env } from '../env.js';
 import { newId } from '../lib/ids.js';
 import { hub } from '../lib/hub.js';
-import { redactSecrets } from '../lib/redact.js';
 import { getBotRow, getLive } from '../store.js';
 import { completeText, getLlmConfig, getPublicLlmConfig } from './llm.js';
 
@@ -152,20 +151,11 @@ export function renderTranscript(items: any[], maxChars = 200_000): string {
   return out;
 }
 
-function llmSecretsFor(userId?: string): string[] {
-  try {
-    const cfg = getLlmConfig(userId);
-    return [cfg.openrouterKey, cfg.xaiKey, cfg.customApiKey].filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
 async function compactWithXai(userId: string, old: any[]): Promise<any[]> {
   const cfg = getLlmConfig(userId);
   if (cfg.provider !== 'xai' || !cfg.xaiKey) throw new Error('xAI compact only used when provider is xAI');
   const client = new OpenAI({ apiKey: cfg.xaiKey, baseURL: 'https://api.x.ai/v1', timeout: 300_000 });
-  const res: any = await client.post('/responses/compact', { body: { model: cfg.defaultModel || env.xaiModel, input: old } });
+  const res: any = await client.post('/responses/compact', { body: { model: env.xaiModel, input: old } });
   const out = (res?.output ?? []) as any[];
   if (!out.length || !out.some((o) => o?.type === 'compaction' || o?.encrypted_content || o?.role)) throw new Error('compact returned no items');
   return out;
@@ -212,29 +202,18 @@ export async function maybeCompact(botId: string, items: any[], opts: { force?: 
   const bot = getBotRow(botId);
   if (!bot) return items;
   const t0 = Date.now();
-  const cfg = getLlmConfig(bot.user_id);
-  const canUseXaiCompact = memoryConfig.compactMethod !== 'summary' && cfg.provider === 'xai' && Boolean(cfg.xaiKey);
-  let method = canUseXaiCompact ? 'xai-compact' : 'summary';
+  let method = 'xai-compact';
   let replaced: any[];
-  if (canUseXaiCompact) {
-    try {
-      replaced = await compactWithXai(bot.user_id, old);
-    } catch (e: any) {
-      console.warn(`[memory] compact via /responses/compact failed for ${botId}: ${redactSecrets(e?.message ?? e, llmSecretsFor(bot.user_id))}; falling back to a summary`);
-      method = 'summary';
-      try {
-        replaced = await compactWithSummary(bot.user_id, old);
-      } catch (e2: any) {
-        console.error(`[memory] summary fallback failed for ${botId}: ${redactSecrets(e2?.message ?? e2, llmSecretsFor(bot.user_id))}`);
-        compactCooldown.set(botId, now() + 10 * 60_000);
-        return items;
-      }
-    }
-  } else {
+  try {
+    if (memoryConfig.compactMethod === 'summary') throw new Error('xAI compaction disabled by GROKBOT_COMPACT_METHOD=summary');
+    replaced = await compactWithXai(bot.user_id, old);
+  } catch (e: any) {
+    console.warn(`[memory] compact via /responses/compact failed for ${botId}: ${e?.message ?? e}; falling back to a summary`);
+    method = 'summary';
     try {
       replaced = await compactWithSummary(bot.user_id, old);
     } catch (e2: any) {
-      console.error(`[memory] summary compaction failed for ${botId}: ${redactSecrets(e2?.message ?? e2, llmSecretsFor(bot.user_id))}`);
+      console.error(`[memory] summary fallback failed for ${botId}: ${e2?.message ?? e2}`);
       compactCooldown.set(botId, now() + 10 * 60_000);
       return items;
     }
@@ -292,52 +271,12 @@ const SCHEMA = {
   additionalProperties: false,
 };
 
-function safeParseRowBody(raw: unknown): any {
-  if (typeof raw !== 'string') return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
-
-/**
- * Parse the LLM's JSON consolidation output robustly: handles markdown code
- * fences (with or without `json` tag), surrounding prose, `{ text }` objects,
- * or plain string items, and degrades cleanly to `[]` on malformed output.
- */
-export function parseProposedMemories(rawOut: string): string[] {
-  const trimmed = String(rawOut ?? '').trim();
-  if (!trimmed) return [];
-  const unfenced = trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-  let parsed: any = null;
-  try {
-    parsed = JSON.parse(unfenced);
-  } catch {
-    const start = unfenced.indexOf('{');
-    const end = unfenced.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      try { parsed = JSON.parse(unfenced.slice(start, end + 1)); } catch { return []; }
-    } else {
-      return [];
-    }
-  }
-  const list = parsed?.memories;
-  if (!Array.isArray(list)) return [];
-  const out: string[] = [];
-  for (const item of list) {
-    const text = typeof item === 'string' ? item : item && typeof item === 'object' ? item.text : '';
-    if (typeof text !== 'string') continue;
-    const clean = text.trim();
-    if (clean) out.push(clean);
-  }
-  return out;
-}
-
 export interface ConsolidateResult { added: string[]; skipped: number; considered: number }
 
 /** Extract durable facts from messages newer than the bot's last consolidation. */
 export async function consolidateBot(botId: string, opts: { upTo?: number } = {}): Promise<ConsolidateResult> {
   const bot = getBotRow(botId);
-  if (!bot || bot.kind === 'room' || bot.hidden || !getPublicLlmConfig(bot.user_id).isConfigured) {
-    return { added: [], skipped: 0, considered: 0 };
-  }
+  if (!bot || !getPublicLlmConfig(bot.user_id).isConfigured) return { added: [], skipped: 0, considered: 0 };
   const job = db.prepare('SELECT last_consolidated_at FROM memory_jobs WHERE bot_id=?').get(botId) as any;
   const since = job?.last_consolidated_at ?? 0;
   const upTo = opts.upTo ?? now();
@@ -347,7 +286,7 @@ export async function consolidateBot(botId: string, opts: { upTo?: number } = {}
       .run(botId, at, JSON.stringify(result));
   const lastAt = rows.length ? rows[rows.length - 1].created_at : upTo;
 
-  const msgs = rows.map((r) => safeParseRowBody(r.body)).filter((b) => b?.type === 'message' && b.text && !b.streaming);
+  const msgs = rows.map((r) => JSON.parse(r.body)).filter((b) => b?.type === 'message' && b.text && !b.streaming);
   if (!msgs.some((m) => m.role === 'user' && !m.from)) {
     mark({ added: 0, at: now(), note: 'no user messages' }, lastAt);
     return { added: [], skipped: 0, considered: msgs.length };
@@ -364,7 +303,11 @@ export async function consolidateBot(botId: string, opts: { upTo?: number } = {}
     user: `EXISTING MEMORIES:\n${existing.length ? existing.map((t) => `- ${t}`).join('\n') : '(none)'}\n\nRECENT CONVERSATION:\n${transcript}`,
     jsonMode: true,
   });
-  const proposed = parseProposedMemories(rawOut);
+  let proposed: string[] = [];
+  try {
+    const cleaned = rawOut.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    proposed = (JSON.parse(cleaned || '{}').memories ?? []).map((m: any) => String(m.text ?? '').trim()).filter(Boolean);
+  } catch { /* bad json → nothing */ }
 
   const added: string[] = [];
   let skipped = 0;
@@ -385,14 +328,12 @@ export async function consolidateBot(botId: string, opts: { upTo?: number } = {}
 
 const consolidating = new Set<string>();
 
-/** Visible non-room bots whose newest message is older than the idle window and newer than their last consolidation. */
+/** Bots whose newest message is older than the idle window and newer than their last consolidation. */
 export function botsDueForConsolidation(idleMs: number, at = now()): { botId: string; lastAt: number }[] {
   const rows = db.prepare(`
     SELECT r.bot_id, MAX(r.created_at) AS last_at, COALESCE(j.last_consolidated_at, 0) AS done_at
-    FROM rows r
-    JOIN bots b ON b.id = r.bot_id
-    LEFT JOIN memory_jobs j ON j.bot_id = r.bot_id
-    WHERE r.kind = 'message' AND COALESCE(b.kind, 'agent') <> 'room' AND COALESCE(b.hidden, 0) = 0
+    FROM rows r LEFT JOIN memory_jobs j ON j.bot_id = r.bot_id
+    WHERE r.kind = 'message'
     GROUP BY r.bot_id
   `).all() as any[];
   return rows.filter((r) => r.last_at > r.done_at && at - r.last_at >= idleMs).map((r) => ({ botId: r.bot_id, lastAt: r.last_at }));
@@ -405,9 +346,8 @@ export function startMemoryConsolidation() {
       if (consolidating.has(botId) || getLive(botId).isRunning) continue;
       if (db.prepare('SELECT 1 FROM pending_turns WHERE bot_id=?').get(botId)) continue;
       consolidating.add(botId);
-      const bot = getBotRow(botId);
       try { await consolidateBot(botId, { upTo: lastAt }); }
-      catch (e: any) { console.warn(`[memory] consolidation failed for ${botId}: ${redactSecrets(e?.message ?? e, llmSecretsFor(bot?.user_id))}`); }
+      catch (e: any) { console.warn(`[memory] consolidation failed for ${botId}: ${e?.message ?? e}`); }
       finally { consolidating.delete(botId); }
     }
   };
@@ -426,10 +366,9 @@ export function memoriesForPrompt(botId: string, budget = memoryConfig.promptMem
   const all = db.prepare('SELECT text, created_at FROM memories WHERE bot_id=? ORDER BY created_at DESC LIMIT 500').all(botId) as any[];
   if (!all.length) return { lines: [], omitted: 0 };
   const bot = getBotRow(botId);
-  if (!bot) return { lines: [], omitted: all.length };
   const recent = (db.prepare("SELECT body FROM rows WHERE bot_id=? AND generation=? AND kind='message' ORDER BY seq DESC LIMIT 12").all(botId, bot.generation) as any[])
-    .map((r) => safeParseRowBody(r.body))
-    .filter((b) => b?.role === 'user')
+    .map((r) => JSON.parse(r.body))
+    .filter((b) => b.role === 'user')
     .slice(0, 3)
     .map((b) => String(b.text ?? ''))
     .join(' ');

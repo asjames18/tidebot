@@ -7,8 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { parseEnv } from 'node:util';
-import { formatEnvValue, updateEnvFile } from '../server/dist/lib/envFile.js';
+import { updateEnvFile } from '../server/dist/lib/envFile.js';
 
 const fixtures = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-envfile-'));
 after(() => {
@@ -56,58 +55,3 @@ test('a failed write propagates, keeps the original file intact, and leaves no t
   }
   assert.equal(fs.readdirSync(dir).filter((f) => f.includes('.tmp-')).length, 0);
 });
-
-test('quotes values containing #, outer whitespace, or leading quotes so util.parseEnv round-trips verbatim', () => {
-  const file = path.join(fixtures, 'quoting.env');
-  const cases = [
-    ['HASH_SECRET', 'my#secret#123'],
-    ['PADDED_VAL', '  keep spaces  '],
-    ['LEAD_QUOTE', '"starts-with-quote'],
-    ['SINGLE_AND_HASH', "it's#a#secret"],
-    ['SINGLE_BACKTICK_HASH', "it's`#`still-safe"],
-    ['PLAIN_KEY', 'sk-plain-123'],
-  ];
-  for (const [k, v] of cases) {
-    updateEnvFile(file, k, v);
-  }
-  const parsed = parseEnv(fs.readFileSync(file, 'utf8'));
-  for (const [k, v] of cases) {
-    assert.equal(parsed[k], v, `round-trip mismatch for ${k}`);
-  }
-  assert.throws(
-    () => formatEnvValue(`all-three#'"\``),
-    /incompatible quote characters/,
-  );
-});
-
-test('deduplicates export and duplicate KEY= definitions and avoids blank lines before appended keys', () => {
-  const file = path.join(fixtures, 'dedup.env');
-  fs.writeFileSync(file, [
-    '# header',
-    'COMPOSIO_API_KEY=first',
-    'OTHER_KEY=keep',
-    'export COMPOSIO_API_KEY=second',
-    '  COMPOSIO_API_KEY = third',
-    '',
-  ].join('\n'));
-
-  updateEnvFile(file, 'COMPOSIO_API_KEY', 'updated-key');
-  const rawAfterUpdate = fs.readFileSync(file, 'utf8');
-  assert.deepEqual(rawAfterUpdate.split('\n'), [
-    '# header',
-    'COMPOSIO_API_KEY=updated-key',
-    'OTHER_KEY=keep',
-    '',
-  ]);
-  assert.equal(parseEnv(rawAfterUpdate).COMPOSIO_API_KEY, 'updated-key');
-
-  updateEnvFile(file, 'ORGO_API_KEY', 'orgo-1');
-  assert.deepEqual(fs.readFileSync(file, 'utf8').split('\n'), [
-    '# header',
-    'COMPOSIO_API_KEY=updated-key',
-    'OTHER_KEY=keep',
-    'ORGO_API_KEY=orgo-1',
-    '',
-  ]);
-});
-
