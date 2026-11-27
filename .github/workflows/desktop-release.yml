@@ -220,7 +220,8 @@ jobs:
               exit 1
             fi
           fi
-          args=(--draft --title "$tag")
+          # Pin new tags to the commit the build jobs packaged.
+          args=(--draft --title "$tag" --target "$GITHUB_SHA")
           if [ "$RELEASE_TYPE" = "prerelease" ]; then args+=(--prerelease); fi
           gh release create "$tag" "${args[@]}"
           # Upload by explicit glob, not by directory: electron-builder may
