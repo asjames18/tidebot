@@ -157,6 +157,7 @@
 .signin__divider { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; font-family: var(--font-mono-stack); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px; color: #64748B; }
 .signin__divider::before, .signin__divider::after { content: ''; flex: 1; height: 1px; background: rgba(148, 163, 184, 0.18); }
 .signin__error { padding: 12px 0 0; text-align: center; }
+.signin__note { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; text-align: center; font-size: 13px; line-height: 18px; color: #CBD5E1; background: rgba(148, 163, 184, 0.12); }
 /* new group chat */
 .group-pick { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow: auto; margin-top: 6px; }
 .group-pick__opt { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; text-align: left; width: 100%; }
