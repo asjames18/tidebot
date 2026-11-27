@@ -9,7 +9,7 @@ import { runInNewContext } from 'node:vm';
 const main = new URL('../desktop/main.cjs', import.meta.url);
 const source = readFileSync(main, 'utf8');
 
-function updaterFixture(signature, { platform = 'darwin', checkResult } = {}) {
+function updaterFixture(signature, { platform = 'darwin', arch = 'x64', checkResult } = {}) {
   const app = Object.assign(new EventEmitter(), {
     isPackaged: true,
     getVersion: () => '1.2.2',
@@ -40,7 +40,7 @@ function updaterFixture(signature, { platform = 'darwin', checkResult } = {}) {
       if (name === './git-review.cjs') return {};
       return require(name);
     },
-    process: { platform, execPath: '/Applications/TideBot.app/Contents/MacOS/TideBot' },
+    process: { platform, arch, execPath: '/Applications/TideBot.app/Contents/MacOS/TideBot' },
     console: { error() {} },
     __dirname: fileURLToPath(new URL('.', main)),
     setTimeout() {},
@@ -76,6 +76,25 @@ test('unsigned Mac builds offer the release download without stopping the server
   assert.equal(fixture.installs(), 0);
   assert.equal(fixture.stops(), 0);
 });
+
+for (const [arch, suffix] of [['x64', ''], ['arm64', '-arm64']]) {
+  test(`unsigned Mac builds link directly to the ${arch} installer in the update manifest`, async () => {
+    const fixture = updaterFixture({ status: 1 }, { arch });
+    const version = '1.0.0-dev.170';
+    fixture.autoUpdater.emit('update-available', {
+      version,
+      files: [
+        { url: `TideBot-${version}-mac.zip` },
+        { url: `TideBot-${version}.dmg` },
+        { url: `TideBot-${version}-arm64.dmg` },
+      ],
+    });
+    await new Promise(setImmediate);
+    assert.equal(fixture.dialogs[0].buttons[0], 'Download Mac Installer');
+    assert.deepEqual(fixture.opened, [`https://github.com/asjames18/tidebot/releases/download/v${version}/TideBot-${version}${suffix}.dmg`]);
+    assert.equal(fixture.stops(), 0);
+  });
+}
 
 test('a signed Mac update keeps the server running until Electron quits', async () => {
   const fixture = updaterFixture({ status: 0, stderr: 'Authority=Developer ID Application: TideBot (TEST)\n' });
