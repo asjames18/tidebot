@@ -55,3 +55,33 @@ To restore, put the files back in the same locations and start the server again.
 ### Uninstall / clean slate
 
 Uninstalling the desktop app removes the app but leaves your data behind. To start over completely, delete the data folder for your install: the desktop data folder above, `<checkout>/data/` plus `<checkout>/.env` for a source install, or `docker compose down -v` for Docker — the `-v` flag deletes the `tidebot-data` volume and everything in it, so back up first if you want to keep anything.
+
+## Updating
+
+Back up first — see [Back up and restore](#back-up-and-restore). Then update the way you installed it:
+
+**Source checkout**
+
+```sh
+git pull
+npm ci
+npm run build
+npm start
+```
+
+If you run the server under your system's service manager, restart that service instead of running `npm start` yourself.
+
+**Docker**
+
+```sh
+git pull
+docker compose up --build -d
+```
+
+This rebuilds the image from the new checkout and recreates the container against the same `tidebot-data` volume, so your data stays put.
+
+**Desktop app**
+
+Install the update when the app prompts you. Your data folder is untouched by updates.
+
+There is no separate migration step: the server applies database schema changes itself (new tables and columns) the first time the updated server starts, so an old database keeps working. If the server fails to start after an update, stop it, restore the backup you took, and report the startup error.
