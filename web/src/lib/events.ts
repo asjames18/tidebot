@@ -18,7 +18,13 @@ export function startEvents(): () => void {
     const st = useStore.getState();
     st.loadBots().catch(() => {});
     st.loadComputer().catch(() => {});
-    if (st.selectedBotId) { st.loadRows(st.selectedBotId).catch(() => {}); st.loadRoutines(st.selectedBotId).catch(() => {}); }
+    const botId = st.selectedBotId;
+    if (botId) {
+      st.loadRows(botId).catch(() => {});
+      st.loadRoutines(botId).catch(() => {});
+      // A run may have changed while the events stream was disconnected.
+      st.handleEvent({ type: 'runs', botId });
+    }
   };
 
   const open = () => {
