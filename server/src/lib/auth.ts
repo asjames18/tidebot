@@ -20,6 +20,16 @@ export function createSession(c: Context, userId: string, verified: boolean) {
   setCookie(c, COOKIE, t, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: TTL_MS / 1000, secure: process.env.NODE_ENV === 'production' });
 }
 
+const LOGIN_ATTEMPT_TTL_MS = 3600 * 1000;
+
+/** Delete expired sign-in sessions and abandoned Google sign-in attempts. Nothing else removes them. */
+export function purgeExpiredAuth() {
+  const t = now();
+  const sessions = db.prepare('DELETE FROM auth_sessions WHERE expires_at<=?').run(t).changes;
+  const attempts = db.prepare('DELETE FROM login_attempts WHERE created_at<?').run(t - LOGIN_ATTEMPT_TTL_MS).changes;
+  return { sessions, attempts };
+}
+
 export function destroySession(c: Context) {
   const t = getCookie(c, COOKIE);
   if (t) db.prepare('DELETE FROM auth_sessions WHERE token=?').run(sha256(t));
