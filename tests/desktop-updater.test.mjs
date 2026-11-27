@@ -9,13 +9,15 @@ import { runInNewContext } from 'node:vm';
 const main = new URL('../desktop/main.cjs', import.meta.url);
 const source = readFileSync(main, 'utf8');
 
-function updaterFixture(signature) {
+function updaterFixture(signature, { platform = 'darwin', arch = 'x64', checkResult } = {}) {
   const app = Object.assign(new EventEmitter(), {
     isPackaged: true,
+    getVersion: () => '1.2.2',
     requestSingleInstanceLock: () => true,
     whenReady: () => new Promise(() => {}),
   });
   const autoUpdater = new EventEmitter();
+  autoUpdater.checkForUpdates = async () => checkResult;
   let installs = 0;
   let stops = 0;
   autoUpdater.quitAndInstall = () => { installs++; };
@@ -38,20 +40,30 @@ function updaterFixture(signature) {
       if (name === './git-review.cjs') return {};
       return require(name);
     },
-    process: { platform: 'darwin', execPath: '/Applications/TideBot.app/Contents/MacOS/TideBot' },
+    process: { platform, arch, execPath: '/Applications/TideBot.app/Contents/MacOS/TideBot' },
     console: { error() {} },
     __dirname: fileURLToPath(new URL('.', main)),
     setTimeout() {},
     setInterval() {},
     stopChild: () => { stops++; },
   };
-  runInNewContext(source + `
+  const check = runInNewContext(source + `
     serverProc = { exitCode: null, kill: stopChild };
     setupAutoUpdater();
     manualCheck = true;
+    triggerUpdateCheck;
   `, context);
-  return { app, autoUpdater, dialogs, opened, installs: () => installs, stops: () => stops };
+  return { app, autoUpdater, dialogs, opened, check, installs: () => installs, stops: () => stops };
 }
+
+test('a manual check offers GitHub Releases when the desktop updater is inactive', async () => {
+  const { check, autoUpdater, dialogs, opened } = updaterFixture(null, { platform: 'linux', checkResult: null });
+  await check();
+  assert.equal(dialogs[0]?.title, 'Manual Update Required');
+  assert.deepEqual(opened, ['https://github.com/asjames18/tidebot/releases']);
+  autoUpdater.emit('update-not-available');
+  assert.equal(dialogs.length, 1);
+});
 
 test('unsigned Mac builds offer the release download without stopping the server', async () => {
   const fixture = updaterFixture({ status: 1, stderr: 'code object is not signed at all' });
@@ -64,6 +76,25 @@ test('unsigned Mac builds offer the release download without stopping the server
   assert.equal(fixture.installs(), 0);
   assert.equal(fixture.stops(), 0);
 });
+
+for (const [arch, suffix] of [['x64', ''], ['arm64', '-arm64']]) {
+  test(`unsigned Mac builds link directly to the ${arch} installer in the update manifest`, async () => {
+    const fixture = updaterFixture({ status: 1 }, { arch });
+    const version = '1.0.0-dev.170';
+    fixture.autoUpdater.emit('update-available', {
+      version,
+      files: [
+        { url: `TideBot-${version}-mac.zip` },
+        { url: `TideBot-${version}.dmg` },
+        { url: `TideBot-${version}-arm64.dmg` },
+      ],
+    });
+    await new Promise(setImmediate);
+    assert.equal(fixture.dialogs[0].buttons[0], 'Download Mac Installer');
+    assert.deepEqual(fixture.opened, [`https://github.com/asjames18/tidebot/releases/download/v${version}/TideBot-${version}${suffix}.dmg`]);
+    assert.equal(fixture.stops(), 0);
+  });
+}
 
 test('a signed Mac update keeps the server running until Electron quits', async () => {
   const fixture = updaterFixture({ status: 0, stderr: 'Authority=Developer ID Application: TideBot (TEST)\n' });

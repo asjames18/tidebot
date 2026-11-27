@@ -202,6 +202,15 @@ function stopServer() {
   }
 }
 
+function macInstallerUrl({ version, files }) {
+  if (typeof version !== 'string' || !/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(version) || !Array.isArray(files)) return null;
+  const prefix = `TideBot-${version}`;
+  const names = process.arch === 'arm64' ? [`${prefix}-arm64.dmg`]
+    : process.arch === 'x64' ? [`${prefix}.dmg`, `${prefix}-x64.dmg`] : [];
+  const installer = names.find((name) => files.some((file) => file?.url === name));
+  return installer ? `${RELEASES_URL}/download/v${version}/${installer}` : null;
+}
+
 function setupAutoUpdater() {
   if (!app.isPackaged) return;
 
@@ -221,16 +230,19 @@ function setupAutoUpdater() {
   autoUpdater.on('update-available', async (info) => {
     if (canAutoInstall || !manualCheck) return;
     manualCheck = false;
+    const installerUrl = macInstallerUrl(info);
     const res = await dialog.showMessageBox(mainWindow || undefined, {
       type: 'info',
       title: 'TideBot Update Available',
       message: `TideBot v${info.version} is available.`,
-      detail: 'This Mac build needs a manual update. Download the Mac installer from GitHub Releases.',
-      buttons: ['Open GitHub Releases', 'Later'],
+      detail: installerUrl
+        ? 'Open the downloaded installer to finish updating TideBot.'
+        : 'Download the Mac installer from GitHub Releases to finish updating TideBot.',
+      buttons: [installerUrl ? 'Download Mac Installer' : 'Open GitHub Releases', 'Later'],
       defaultId: 0,
       cancelId: 1,
     });
-    if (res.response === 0) void shell.openExternal(RELEASES_URL);
+    if (res.response === 0) void shell.openExternal(installerUrl ?? RELEASES_URL);
   });
 
   autoUpdater.on('update-not-available', () => {
@@ -310,7 +322,21 @@ async function triggerUpdateCheck() {
   }
   manualCheck = true;
   autoUpdater.allowPrerelease = settings.devUpdates;
-  await autoUpdater.checkForUpdates().catch(() => { /* The updater reports failures through its error event. */ });
+  const result = await autoUpdater.checkForUpdates().catch(() => undefined); // Failures are reported through the error event.
+  if (result !== null || !manualCheck) return;
+
+  // An inactive updater returns null without emitting an event.
+  manualCheck = false;
+  const res = await dialog.showMessageBox(mainWindow || undefined, {
+    type: 'info',
+    title: 'Manual Update Required',
+    message: 'This TideBot installation needs manual updates.',
+    detail: 'Download the installer for your system from GitHub Releases.',
+    buttons: ['Open GitHub Releases', 'Close'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (res.response === 0) await shell.openExternal(RELEASES_URL);
 }
 
 function buildMenu() {
