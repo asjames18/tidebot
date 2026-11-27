@@ -10,7 +10,10 @@ const DISMISS_KEY = 'tidebot-release-dismissed-tag';
 // remembered per release tag so the next release resurfaces it.
 export function ReleaseNotice() {
   const [info, setInfo] = useState<LatestReleaseResponse | null>(null);
-  const [dismissedTag, setDismissedTag] = useState<string | null>(null);
+  const [dismissedTag, setDismissedTag] = useState<string | null>(() => {
+    try { return localStorage.getItem(DISMISS_KEY); }
+    catch { return null; }
+  });
 
   useEffect(() => {
     let alive = true;
@@ -21,10 +24,6 @@ export function ReleaseNotice() {
   }, []);
 
   if (!info?.release || dismissedTag === info.release.tag) return null;
-  if (typeof localStorage !== 'undefined' && localStorage.getItem(DISMISS_KEY) === info.release.tag && dismissedTag === null) {
-    // Already dismissed in a previous session; hide without re-render churn.
-    return null;
-  }
   const release = info.release;
   return (
     <div className="release-notice" role="status">
@@ -38,8 +37,9 @@ export function ReleaseNotice() {
         className="release-notice-close"
         aria-label="Dismiss update notice"
         onClick={() => {
-          if (typeof localStorage !== 'undefined') localStorage.setItem(DISMISS_KEY, release.tag);
           setDismissedTag(release.tag);
+          try { localStorage.setItem(DISMISS_KEY, release.tag); }
+          catch { /* Keep the dismissal in memory when storage is unavailable. */ }
         }}
       >
         ✕
