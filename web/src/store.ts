@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Bot, ComputerState, LiveState, Routine, Row, ServerEvent, User } from '@shared/types';
-import { api } from './lib/api';
+import { api, markAuthenticated, setUnauthorizedHandler } from './lib/api';
 
 export type ModalKind = 'create' | 'search' | 'apps' | 'group' | null;
 
@@ -13,6 +13,8 @@ interface State {
   localSignup: boolean;
   voiceRealtime: boolean;
   authChecked: boolean;
+  /** True after a signed-in session ended; the sign-in screen explains it. */
+  sessionExpired: boolean;
 
   bots: Bot[];
   live: Record<string, LiveState>;
@@ -54,6 +56,8 @@ const LS_SIDEBAR = 'grokbot.sidebarCollapsed';
 const lsGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
 
+let expiredUserId: string | null = null;
+
 export const useStore = create<State>((set, get) => ({
   user: null,
   devLogin: false,
@@ -61,6 +65,7 @@ export const useStore = create<State>((set, get) => ({
   localSignup: false,
   voiceRealtime: false,
   authChecked: false,
+  sessionExpired: false,
   bots: [],
   live: {},
   selectedBotId: lsGet(LS_SELECTED),
@@ -89,7 +94,10 @@ export const useStore = create<State>((set, get) => ({
   async checkAuth() {
     try {
       const { user, devLogin, localSignup, providers, hasXaiKey } = await api.me();
-      set({ user, devLogin, localSignup: Boolean(localSignup), googleLogin: Boolean(providers?.composio), voiceRealtime: Boolean(hasXaiKey), authChecked: true });
+      // A different account signing in after an expired session starts from a clean page.
+      if (user && expiredUserId && user.id !== expiredUserId) { location.reload(); return true; }
+      if (user) { markAuthenticated(); expiredUserId = null; }
+      set({ user, devLogin, localSignup: Boolean(localSignup), googleLogin: Boolean(providers?.composio), voiceRealtime: Boolean(hasXaiKey), authChecked: true, ...(user ? { sessionExpired: false } : {}) });
       return Boolean(user);
     } catch {
       set({ user: null, authChecked: true });
@@ -242,3 +250,12 @@ export const displayName = (b: Pick<Bot, 'name' | 'label'>) => (b.label ? `${b.n
 export function useSelectedBot(): Bot | undefined {
   return useStore((s) => s.bots.find((b) => b.id === s.selectedBotId));
 }
+
+// A signed-in session that the server no longer accepts: return to sign-in (unsent drafts live in
+// module state and survive) instead of leaving the app showing a raw "unauthenticated" error.
+setUnauthorizedHandler(() => {
+  const user = useStore.getState().user;
+  if (!user) return;
+  expiredUserId = user.id;
+  useStore.setState({ user: null, sessionExpired: true });
+});
