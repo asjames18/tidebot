@@ -1,6 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { CardBody, Row } from '@shared/types';
 import { api, openPopup } from '../../lib/api';
+import {
+  approvalActionLabel,
+  approvalOutcomeAnnouncement,
+  formatApprovalToolName,
+  shouldFocusApprovalOutcome,
+  type ApprovalDecision,
+} from '../../lib/approvalA11y';
 import { copyText } from '../../lib/clipboard';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
@@ -36,8 +43,6 @@ export const humanizeToolkit = (slug: string) => KNOWN[slug.toLowerCase()] ?? sl
 
 // ---------------- approval ----------------
 
-const APPROVAL_OUTCOME: Record<string, string> = { allowed: 'Allowed once', always: 'Always allowed', denied: 'Not allowed', expired: 'Expired' };
-
 function approvalArguments(args: unknown) {
   if (!args || typeof args !== 'object' || Object.keys(args).length === 0) return '';
   return JSON.stringify(args, (key, value) =>
@@ -47,57 +52,103 @@ function approvalArguments(args: unknown) {
 
 export function ApprovalCard({ body }: { body: Card<'approval'> }) {
   const { busy, error, run } = useBusy();
-  const pending = body.status === 'pending';
+  const titleId = useId();
+  const cardRef = useRef<HTMLElement>(null);
   const outcomeRef = useRef<HTMLDivElement>(null);
-  const keepFocus = useRef(false);
-  const toolName = prettyTool(body.tool);
-  const name = body.toolkit ? humanizeToolkit(body.toolkit) : toolName;
-  const outcome = APPROVAL_OUTCOME[body.status] ?? body.status;
-  const argumentsText = approvalArguments(body.args);
-
-  const decide = (event: React.MouseEvent<HTMLButtonElement>, decision: 'allow' | 'always' | 'deny') => {
-    if (busy) return;
-    keepFocus.current = event.currentTarget === document.activeElement;
-    return run(decision, () => api.approve(body.approvalId, decision));
-  };
+  const pending = body.status === 'pending';
+  const wasPendingRef = useRef(pending);
+  const hadFocusRef = useRef(false);
 
   useEffect(() => {
-    // Keep keyboard users at the result when their button is removed.
-    if (!pending && keepFocus.current && document.activeElement === document.body) {
+    const focused = document.activeElement;
+    const activeInside = Boolean(cardRef.current?.contains(focused));
+    const focusedElsewhere = Boolean(focused && !activeInside && focused !== document.body && focused !== document.documentElement);
+    if (shouldFocusApprovalOutcome(wasPendingRef.current, pending, hadFocusRef.current || activeInside, focusedElsewhere)) {
       outcomeRef.current?.focus();
     }
+    if (!pending) hadFocusRef.current = false;
+    wasPendingRef.current = pending;
   }, [pending]);
 
+  const decide = (d: ApprovalDecision) => {
+    if (busy) return;
+    hadFocusRef.current = typeof document !== 'undefined' && Boolean(cardRef.current?.contains(document.activeElement));
+    void run(d, () => api.approve(body.approvalId, d));
+  };
+
+  const name = body.toolkit ? humanizeToolkit(body.toolkit) : prettyTool(body.tool);
+  const toolLabel = formatApprovalToolName(body.tool, body.toolkit);
+  const argumentsText = approvalArguments(body.args);
+  const outcome = approvalOutcomeAnnouncement(body.status, toolLabel);
+
   return (
-    <div className={`card approval-card${pending ? '' : ' is-resolved'}`}>
+    <section
+      ref={cardRef}
+      className={`card approval-card${pending ? '' : ' is-resolved'}`}
+      aria-labelledby={titleId}
+      aria-busy={!!busy || undefined}
+    >
       <div className="card__head">
         <ToolkitLogo name={name} logo={body.toolkit ? `https://logos.composio.dev/api/${body.toolkit.toLowerCase()}` : undefined} size={44} />
         <div className="card__titles">
-          <div className="card__title">{body.title}</div>
+          <div id={titleId} className="card__title">{body.title}</div>
           <div className="card__sub">{name}</div>
         </div>
       </div>
       {!argumentsText && body.detail && <div className="card__body">{body.detail}</div>}
       {argumentsText && <details className="card__arguments" open={pending}>
-        <summary aria-label={`View action details for ${toolName}`}>View action details</summary>
-        <pre tabIndex={0} role="region" aria-label={`Action details for ${toolName}`}>{argumentsText}</pre>
+        <summary aria-label={`View action details for ${toolLabel}`}>View action details</summary>
+        <pre tabIndex={0} role="region" aria-label={`Action details for ${toolLabel}`}>{argumentsText}</pre>
       </details>}
       {pending ? (
         <>
-          <div className="card__actions" role="group" aria-label={`Approval for ${toolName}`}>
-            <button type="button" className="btn btn--secondary" aria-disabled={!!busy} aria-label={`Don't allow ${toolName}`} onClick={(e) => decide(e, 'deny')}>{busy === 'deny' ? 'Denying…' : "Don't allow"}</button>
-            <button type="button" className="btn btn--secondary" aria-disabled={!!busy} aria-label={`Always allow ${toolName}`} onClick={(e) => decide(e, 'always')}>{busy === 'always' ? 'Saving…' : 'Always allow'}</button>
-            <button type="button" className="btn btn--primary" aria-disabled={!!busy} aria-label={`Allow once for ${toolName}`} onClick={(e) => decide(e, 'allow')}>{busy === 'allow' ? 'Allowing…' : 'Allow once'}</button>
+          <div className="card__actions" role="group" aria-label={`Approval actions for ${toolLabel}`}>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              aria-disabled={!!busy || undefined}
+              aria-label={approvalActionLabel('deny', toolLabel, busy)}
+              onClick={() => decide('deny')}
+            >
+              {busy === 'deny' ? 'Denying…' : "Don't allow"}
+            </button>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              aria-disabled={!!busy || undefined}
+              aria-label={approvalActionLabel('always', toolLabel, busy)}
+              title={`Always allow this tool: ${toolLabel}`}
+              onClick={() => decide('always')}
+            >
+              {busy === 'always' ? 'Saving…' : 'Always allow'}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              aria-disabled={!!busy || undefined}
+              aria-label={approvalActionLabel('allow', toolLabel, busy)}
+              onClick={() => decide('allow')}
+            >
+              {busy === 'allow' ? 'Allowing…' : 'Allow once'}
+            </button>
           </div>
           {error && <div className="card__error" role="alert">{error}</div>}
         </>
       ) : (
-        <div className={`card__outcome is-${body.status}`} ref={outcomeRef} tabIndex={-1} role="status" aria-label={`${outcome} for ${toolName}`}>
-          <Icon name={body.status === 'denied' || body.status === 'expired' ? 'close' : 'check'} size={12} opacity={0.7} />
-          {outcome}
+        <div
+          ref={outcomeRef}
+          tabIndex={-1}
+          className={`card__outcome is-${body.status}`}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <Icon name={body.status === 'denied' || body.status === 'expired' ? 'close' : 'check'} size={12} opacity={0.85} />
+          <span>{outcome.text}</span>
+          <span className="sr-only">{outcome.srSuffix}</span>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
