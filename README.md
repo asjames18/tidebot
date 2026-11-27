@@ -144,9 +144,9 @@ cp .env.example .env
 
 Open `.env` and add your API keys (or start the server first and paste your keys into **Settings → Models & OpenRouter** in the web UI):
 
-Changing shared settings in the UI requires signing in as the studio administrator. Set `STUDIO_EMAIL` and `STUDIO_PASSWORD` for local sign-in, or set `STUDIO_ADMIN_EMAIL` to the email of your Google sign-in. If you were signed in before upgrading, sign in again.
+For Docker or a source install, changing shared settings in the UI requires signing in as the studio administrator. Set `STUDIO_EMAIL` and `STUDIO_PASSWORD` for local sign-in, or set `STUDIO_ADMIN_EMAIL` to the email of your Google sign-in. If you were signed in before upgrading, sign in again.
 
-In the desktop app, select **Create local account** to choose your own email and password. Desktop accounts are stored in TideBot on that computer and use a personal OpenRouter key configured under **Settings → Models & OpenRouter**.
+In the desktop app, select **Create local account** to choose your own email and password. The first local account manages provider settings for that installation unless a studio administrator is configured. Use **Settings → Connected apps** for your Composio key, **Models & OpenRouter** for model providers, and **Setup** for Orgo. Other local accounts can use their own personal OpenRouter keys.
 
 On the first sign-in without a model, TideBot opens **Settings → Setup**. Use **Connect and test OpenRouter** to verify a key before saving it, or continue without a model to explore the studio. Studio administrators can choose a shared OpenAI-compatible model in **Models & OpenRouter** and configure optional app, cloud desktop, and voice services. A local model must already be running at the address you enter.
 

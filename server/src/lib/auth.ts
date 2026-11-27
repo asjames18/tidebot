@@ -8,7 +8,7 @@ import { env } from '../env.js';
 const COOKIE = 'grokbot_session';
 const TTL_MS = 30 * 24 * 3600 * 1000;
 
-export type AuthVars = { Variables: { user: User; verifiedSession: boolean; studioAdmin: boolean } };
+export type AuthVars = { Variables: { user: User; verifiedSession: boolean; studioAdmin: boolean; canManageStudio: boolean } };
 
 export function createSession(c: Context, userId: string, verified: boolean) {
   const t = token();
@@ -26,14 +26,17 @@ export function destroySession(c: Context) {
   deleteCookie(c, COOKIE, { path: '/' });
 }
 
-function sessionFromToken(t: string | undefined): { user: User; verified: boolean; desktopOnly: boolean } | null {
+function sessionFromToken(t: string | undefined): { user: User; verified: boolean; desktopOnly: boolean; desktopOwner: boolean } | null {
   if (!t) return null;
   const r = db
-    .prepare('SELECT u.*, s.verified, p.desktop_only FROM auth_sessions s JOIN users u ON u.id=s.user_id LEFT JOIN local_passwords p ON p.user_id=u.id WHERE s.token=? AND s.expires_at>?')
+    .prepare(`SELECT u.*, s.verified, p.desktop_only, o.user_id IS NOT NULL AS desktop_owner
+      FROM auth_sessions s JOIN users u ON u.id=s.user_id
+      LEFT JOIN local_passwords p ON p.user_id=u.id LEFT JOIN desktop_owner o ON o.user_id=u.id
+      WHERE s.token=? AND s.expires_at>?`)
     .get(sha256(t), now()) as any;
   if (!r || (r.desktop_only === 1 && !env.desktopSignupOrigin)
     || (r.verified !== 1 && (!env.devLogin || r.verified_account === 1))) return null;
-  return { user: { id: r.id, email: r.email, name: r.name, avatarUrl: r.avatar_url }, verified: r.verified === 1, desktopOnly: r.desktop_only === 1 };
+  return { user: { id: r.id, email: r.email, name: r.name, avatarUrl: r.avatar_url }, verified: r.verified === 1, desktopOnly: r.desktop_only === 1, desktopOwner: r.desktop_owner === 1 };
 }
 
 export function userFromCookieHeader(cookieHeader: string | undefined): User | null {
@@ -50,6 +53,11 @@ export const requireUser: MiddlewareHandler<AuthVars> = async (c, next) => {
   if (!session) return c.json({ error: 'unauthenticated' }, 401);
   c.set('user', session.user);
   c.set('verifiedSession', session.verified);
-  c.set('studioAdmin', session.verified && !session.desktopOnly && session.user.email.toLowerCase() === env.studioAdminEmail);
+  const adminEmail = env.studioAdminEmail;
+  const studioAdmin = session.verified && !session.desktopOnly && session.user.email.toLowerCase() === adminEmail;
+  const localOwner = session.verified && session.desktopOnly && session.desktopOwner && !adminEmail
+    && new URL(c.req.url).origin === env.desktopSignupOrigin;
+  c.set('studioAdmin', studioAdmin);
+  c.set('canManageStudio', studioAdmin || localOwner);
   await next();
 };

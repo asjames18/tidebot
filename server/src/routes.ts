@@ -158,7 +158,9 @@ api.post('/auth/create-local-account', async (c) => {
   const hash = await hashPassword(password);
   const userId = db.transaction(() => {
     if (!accountAvailable(identity) || db.prepare('SELECT 1 FROM account_invites WHERE email=? AND expires_at>?').get(identity, now())) return;
-    return savePasswordAccount(identity, hash, name, true);
+    const id = savePasswordAccount(identity, hash, name, true);
+    db.prepare('INSERT OR IGNORE INTO desktop_owner (id, user_id) VALUES (1, ?)').run(id);
+    return id;
   })();
   if (!userId) return c.json({ error: 'This email is already registered or reserved. Sign in or use another email.' }, 409);
   createSession(c, userId, true);
@@ -429,7 +431,7 @@ api.get('/system/status', async (c) => {
     tasksOpen,
     tasksDone,
     memoriesCount,
-    canManageStudio: c.get('studioAdmin'),
+    canManageStudio: c.get('canManageStudio'),
     routinesCount,
     connectedAppsCount: connected.size,
     connectedApps: [...connected],

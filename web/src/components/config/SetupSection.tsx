@@ -78,7 +78,7 @@ export function SetupSection() {
       {result && <p className={`byom-status ${result.ok ? 'is-ok' : 'is-err'}`} role={result.ok ? 'status' : 'alert'}>{result.message}</p>}
     </section>
     <section className="cfg-section">
-      <h2 className="cfg-section__label">{account?.canInvite ? 'Local or shared model' : 'Studio model'}</h2>
+      <h2 className="cfg-section__label">{account?.canManageStudio ? 'Local or shared model' : 'Studio model'}</h2>
       <button className="cfg-btn cfg-btn--secondary" onClick={() => open('models')}>
         Open model settings
       </button>
@@ -89,7 +89,7 @@ export function SetupSection() {
         <div className="cfg-row">
           <div className="cfg-row__text">
             <div className="cfg-row__title">Connected apps and Google sign-in</div>
-            <div className="cfg-row__sub">{config?.hasComposioKey ? 'Composio key configured. Connect individual apps when you need them.' : 'A studio administrator can add a Composio key to enable connections and Google sign-in.'}</div>
+            <div className="cfg-row__sub">{config?.hasComposioKey ? 'Composio key configured. Connect individual apps when you need them.' : account?.canManageStudio ? 'Add your Composio key to connect apps and enable Google sign-in.' : 'The studio owner or administrator manages the Composio key.'}</div>
           </div>
           <button className="cfg-btn cfg-btn--secondary" onClick={() => open('apps')}>Connected apps</button>
         </div>
@@ -100,7 +100,7 @@ export function SetupSection() {
           </div>
           <button className="cfg-btn cfg-btn--secondary" onClick={() => open('computer')}>Computer settings</button>
         </div>
-        {account?.canInvite && <div className="cfg-row">
+        {account?.canManageStudio && <div className="cfg-row">
           <form className="cfg-field" onSubmit={async (event) => {
             event.preventDefault();
             if (orgoBusy) return;
@@ -125,7 +125,7 @@ export function SetupSection() {
             <div className="cfg-row__title">xAI voice</div>
             <div className="cfg-row__sub">Available with an xAI key for accounts that use studio model settings.</div>
           </div>
-          {account?.canInvite && <button className="cfg-btn cfg-btn--secondary" onClick={() => open('models')}>Studio model settings</button>}
+          {account?.canManageStudio && <button className="cfg-btn cfg-btn--secondary" onClick={() => open('models')}>Studio model settings</button>}
         </div>
       </div>
     </details>

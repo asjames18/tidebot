@@ -441,7 +441,7 @@ function AccountModelsSection() {
       </form>}
       {status && <p role="status" className="cfg-row__sub">{status}</p>}
     </section>
-    {personal?.canInvite && <ModelsSection />}
+    {personal?.canManageStudio && <ModelsSection />}
   </>;
 }
 
@@ -1257,7 +1257,7 @@ function AppsSection() {
                 Get your key at <a href="https://app.composio.dev" target="_blank" rel="noreferrer">app.composio.dev</a>. Hot-reloads immediately without restarting the server.
               </div>
             </> : <p className="cfg-field__hint" role="status">
-              {canManageStudio === false ? 'A studio administrator manages the shared Composio key. You can connect your own apps once it is configured.'
+              {canManageStudio === false ? 'The studio owner or administrator manages the shared Composio key. You can connect your own apps once it is configured.'
                 : canManageStudio === 'unavailable' ? 'Could not check studio permissions. Reopen Settings to try again.'
                 : 'Checking studio permissions…'}
             </p>}
