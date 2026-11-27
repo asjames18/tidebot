@@ -1,7 +1,8 @@
 import type { AgentRun, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
-import { ApiError } from './api';
+import { ApiError, currentAuthEpoch, noteApiFailure } from './api';
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const epoch = currentAuthEpoch();
   const res = await fetch(`/api${path}`, {
     method,
     credentials: 'include',
@@ -11,6 +12,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   if (!res.ok) {
     let msg = res.statusText;
     try { msg = ((await res.json()) as { error?: string }).error ?? msg; } catch { /* not json */ }
+    noteApiFailure(path, res.status, msg, epoch);
     throw new ApiError(res.status, msg);
   }
   return res.json() as Promise<T>;
