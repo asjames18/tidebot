@@ -18,7 +18,7 @@ import { createRoom, postToRoom } from './rooms.js';
 import type { ActivityKind } from '../types.js';
 import { Cron } from 'croner';
 import { readWebSource } from '../lib/web-source.js';
-import { resolveWithinWorkspace, writeWorkspaceFile } from '../lib/files.js';
+import { listWorkspaceDirectory, resolveWithinWorkspace, writeWorkspaceFile } from '../lib/files.js';
 import { runShell } from '../lib/sandbox.js';
 
 const execAsync = promisify(exec);
@@ -146,12 +146,7 @@ export const TOOLS: ToolDef[] = [
     activity: 'working',
     label: 'Checking Library files',
     impl: async (_a, ctx) => {
-      const dir = localWorkspaceDir(ctx.botId);
-      const entries = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => !e.name.startsWith('.'));
-      const list = entries.map((e) => {
-        const st = fs.statSync(path.join(dir, e.name));
-        return { name: e.name, size: st.size, isDir: e.isDirectory(), modifiedAt: st.mtimeMs };
-      });
+      const list = listWorkspaceDirectory(localWorkspaceDir(ctx.botId)) ?? [];
       return { output: JSON.stringify(list), summary: `${list.length} file(s) in Library` };
     },
   },
