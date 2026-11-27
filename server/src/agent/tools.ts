@@ -377,7 +377,7 @@ export const TOOLS: ToolDef[] = [
       const words = String(a.query).toLowerCase().split(/\W+/).filter((w) => w.length > 2);
       const all = db.prepare('SELECT text, created_at FROM memories WHERE bot_id=? ORDER BY created_at DESC').all(ctx.botId) as any[];
       const hits = all.filter((m) => !words.length || words.some((w) => m.text.toLowerCase().includes(w))).slice(0, 20);
-      return { output: JSON.stringify(hits.map((h) => h.text)) };
+      return { output: JSON.stringify(hits.map((h) => h.text)), summary: `${hits.length} memor${hits.length === 1 ? 'y' : 'ies'} found` };
     },
   },
   {
@@ -406,7 +406,7 @@ export const TOOLS: ToolDef[] = [
     parameters: obj({ toolkit: { type: 'string', description: 'Composio toolkit slug, e.g. gmail, slack, github, googlecalendar' } }, ['toolkit']),
     activity: 'connecting_service',
     label: 'Using a connected app',
-    impl: async (a) => ({ output: JSON.stringify(await listTriggerTypes(String(a.toolkit).toLowerCase())) }),
+    impl: async (a) => ({ output: JSON.stringify(await listTriggerTypes(String(a.toolkit).toLowerCase())), summary: `Listed triggers for ${a.toolkit}` }),
   },
   {
     name: 'create_event_routine',
@@ -456,7 +456,10 @@ export const TOOLS: ToolDef[] = [
     parameters: obj({}),
     activity: 'working',
     label: 'Checking routines',
-    impl: async (_a, ctx) => ({ output: JSON.stringify(listRoutines(ctx.botId)) }),
+    impl: async (_a, ctx) => {
+      const list = listRoutines(ctx.botId);
+      return { output: JSON.stringify(list), summary: `${list.length} routine${list.length === 1 ? '' : 's'}` };
+    },
   },
   {
     name: 'update_routine',
@@ -475,7 +478,7 @@ export const TOOLS: ToolDef[] = [
       r.enabled ? scheduleRoutine(r) : unscheduleRoutine(r.id);
       appendRow(ctx.botId, 'event', { type: 'event', event: 'routine-updated', text: `Routine updated: ${r.name} · ${r.enabled ? r.description : 'Paused'}`, ref: r.id });
       hub.emit(ctx.userId, { type: 'routines', botId: ctx.botId });
-      return { output: JSON.stringify({ ok: true, routine: r }) };
+      return { output: JSON.stringify({ ok: true, routine: r }), summary: `Updated routine ${r.name}` };
     },
   },
   {
@@ -505,7 +508,7 @@ export const TOOLS: ToolDef[] = [
       const id = newId('task');
       db.prepare("INSERT INTO tasks(id,bot_id,title,state,created_at,updated_at) VALUES (?,?,?,'working',?,?)").run(id, ctx.botId, a.title, now(), now());
       hub.emit(ctx.userId, { type: 'tasks', botId: ctx.botId });
-      return { output: JSON.stringify({ task_id: id }) };
+      return { output: JSON.stringify({ task_id: id }), summary: `Tracking ${String(a.title).slice(0, 60)}` };
     },
   },
   {
@@ -517,7 +520,7 @@ export const TOOLS: ToolDef[] = [
     impl: async (a, ctx) => {
       db.prepare('UPDATE tasks SET state=?, note=COALESCE(?, note), updated_at=? WHERE id=? AND bot_id=?').run(a.state, a.note ?? null, now(), a.task_id, ctx.botId);
       hub.emit(ctx.userId, { type: 'tasks', botId: ctx.botId });
-      return { output: 'Updated.' };
+      return { output: 'Updated.', summary: 'Updated task' };
     },
   },
   {
@@ -559,7 +562,10 @@ export const TOOLS: ToolDef[] = [
     parameters: obj({}),
     activity: 'working',
     label: 'Checking on helpers',
-    impl: async (_a, ctx) => ({ output: JSON.stringify(listSubagents(ctx.botId)) }),
+    impl: async (_a, ctx) => {
+      const list = listSubagents(ctx.botId);
+      return { output: JSON.stringify(list), summary: `${list.length} subagent${list.length === 1 ? '' : 's'}` };
+    },
   },
   {
     name: 'message_subagent',
@@ -571,7 +577,7 @@ export const TOOLS: ToolDef[] = [
       const sub = db.prepare('SELECT id FROM bots WHERE id=? AND parent_bot_id=?').get(a.subagent_id, ctx.botId) as any;
       if (!sub) return { output: 'No such subagent.' };
       ctx.enqueueBotMessage(ctx.botId, sub.id, String(a.message), ctx.depth + 1);
-      return { output: 'Sent.' };
+      return { output: 'Sent.', summary: 'Sent to subagent' };
     },
   },
   {
@@ -625,7 +631,7 @@ export const TOOLS: ToolDef[] = [
     label: 'Waiting on you',
     impl: async (a, ctx) => {
       appendRow(ctx.botId, 'card', { type: 'card', card: 'question', question: a.question, options: (a.options ?? []).slice(0, 6), status: 'pending' });
-      return { output: 'Question shown to the user. Stop here and wait for their answer.', endTurn: true };
+      return { output: 'Question shown to the user. Stop here and wait for their answer.', endTurn: true, summary: 'Asked the user' };
     },
   },
   {
@@ -638,7 +644,7 @@ export const TOOLS: ToolDef[] = [
       const info = await toolkitInfo(String(a.toolkit).toLowerCase());
       if (!info) return { output: `Unknown toolkit "${a.toolkit}". Use COMPOSIO_SEARCH_TOOLS to find the right toolkit slug.` };
       appendRow(ctx.botId, 'card', { type: 'card', card: 'connect', toolkit: info.slug, toolkitName: info.name, logo: info.logo, reason: a.reason, status: 'pending' });
-      return { output: `Asked the user to connect ${info.name}. Stop here; you'll be told when it's connected.`, endTurn: true };
+      return { output: `Asked the user to connect ${info.name}. Stop here; you'll be told when it's connected.`, endTurn: true, summary: `Asked to connect ${info.name}` };
     },
   },
 ];
