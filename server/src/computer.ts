@@ -130,8 +130,22 @@ async function prepareBox(id: string) {
   } catch { /* non-fatal */ }
 }
 
-/** Get (or lease) this bot's screen on the box. */
-export async function screenFor(userId: string, botId: string): Promise<{ computerId: string; screenId: string }> {
+const leaseQueues = new Map<string, Promise<unknown>>();
+
+/**
+ * Get (or lease) this bot's screen on the box. Leasing reads the current leases, awaits Orgo,
+ * then writes, so concurrent calls for one user are queued to stop two bots from choosing the same screen.
+ */
+export function screenFor(userId: string, botId: string): Promise<{ computerId: string; screenId: string }> {
+  const prev = leaseQueues.get(userId) ?? Promise.resolve();
+  const next = prev.catch(() => {}).then(() => leaseScreen(userId, botId));
+  leaseQueues.set(userId, next);
+  const clear = () => { if (leaseQueues.get(userId) === next) leaseQueues.delete(userId); };
+  next.then(clear, clear);
+  return next;
+}
+
+async function leaseScreen(userId: string, botId: string): Promise<{ computerId: string; screenId: string }> {
   const computerId = await ensureComputer(userId);
   const mine = db.prepare('SELECT screen_id FROM screens WHERE bot_id=?').get(botId) as any;
   if (mine) {
