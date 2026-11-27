@@ -223,24 +223,25 @@ function PageHead({ title, sub }: { title: string; sub?: string }) {
 
 function ThemeTile({ value, label, current, onPick }: { value: Theme; label: string; current: Theme; onPick: (t: Theme) => void }) {
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={current === value}
-      className={`theme-tile${current === value ? ' is-active' : ''}`}
-      onClick={() => {
-        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-          try { navigator.vibrate(8); } catch {}
-        }
-        onPick(value);
-      }}
-    >
+    <label className={`theme-tile${current === value ? ' is-active' : ''}`}>
+      <input
+        type="radio"
+        name="interface-theme"
+        value={value}
+        checked={current === value}
+        onChange={() => {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            try { navigator.vibrate(8); } catch {}
+          }
+          onPick(value);
+        }}
+      />
       <span className={`theme-tile__art is-${value}`} aria-hidden>
         <span className="theme-tile__side" />
         <span className="theme-tile__pane"><i /><i /><b /></span>
       </span>
       <span className="theme-tile__label">{label}</span>
-    </button>
+    </label>
   );
 }
 

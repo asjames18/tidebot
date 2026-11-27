@@ -198,7 +198,9 @@
 .computer-status-dot.is-busy { background: var(--color-warn); animation: breathe 1.6s ease-in-out infinite; }
 
 .theme-tiles { display: flex; gap: 12px; flex-wrap: wrap; }
-.theme-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px; border-radius: 14px; }
+.theme-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px; border-radius: 14px; cursor: pointer; }
+.theme-tile input { position: absolute; opacity: 0; }
+.theme-tile:has(input:focus-visible) { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
 .theme-tile__art { position: relative; display: flex; width: 148px; height: 92px; border-radius: 10px; overflow: hidden; box-shadow: var(--color-border-secondary) 0 0 0 1px; transition: box-shadow 120ms; }
 .theme-tile:hover .theme-tile__art { box-shadow: var(--color-text-quaternary) 0 0 0 1px; }
 .theme-tile.is-active .theme-tile__art { box-shadow: var(--color-border-focus) 0 0 0 2px; }
