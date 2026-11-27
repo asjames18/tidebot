@@ -27,6 +27,7 @@ import { startMemoryConsolidation } from './agent/memory.js';
 import { rateLimit } from './lib/rateLimit.js';
 import { getPublicLlmConfig } from './agent/llm.js';
 import { formatStartupBanner } from './lib/startup.js';
+import { startSessionPurge } from './lib/auth.js';
 
 if (!desSelfTest()) throw new Error('DES self-test failed');
 initSubagents();
@@ -104,6 +105,7 @@ if (hasWebApp) {
 }
 
 recoverInterruptedRuns();
+startSessionPurge();
 const server = serve({ fetch: app.fetch, port: env.port, hostname: env.host }, (info) => {
   console.log(formatStartupBanner(info, getPublicLlmConfig(undefined, false)));
 });
