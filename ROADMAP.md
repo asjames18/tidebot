@@ -11,8 +11,8 @@ what is next, and what is deliberately locked — so contributors plan around vi
 priorities instead of guessing. Update this file when a phase closes; do not let it
 go stale.
 
-**Status as of November 25, 2026:** the app is live as a prerelease chain
-(latest: `v1.0.0-dev.78`). There is **no stable 1.0 yet** and builds are
+**Status as of November 27, 2026:** the app is live as a prerelease chain
+(latest: `v1.0.0-dev.170`). There is **no stable 1.0 yet** and builds are
 **unsigned**. Self-hosting works today via the desktop app, Docker, or building
 from source.
 
@@ -47,9 +47,12 @@ Phases run in order and close in order: Phase 1 first, then 2, and so on. Phases
       Blocked: needs the owner's decision to buy the certificates.
 - [ ] **Branch protection on `main`** — CI must pass (typecheck + build + test
       on Linux, macOS, Windows), no direct pushes, no force pushes.
-      Not enabled yet (checked November 25, 2026).
-- [ ] **Dependabot** (or equivalent) for npm dependencies, weekly cadence,
-      with a maintainer rota so its PRs do not pile up.
+      Partially done: protection is on (force pushes and branch deletion
+      blocked, enforced for admins — verified November 27, 2026). Required-CI
+      status checks still to confirm before this item closes.
+- [x] **Dependabot** for npm dependencies, weekly cadence
+      (`.github/dependabot.yml`, 5-open-PR cap per ecosystem — verified
+      November 27, 2026). Maintainer rota for reviewing its PRs still open.
 - [x] **Public roadmap** — this file.
 - [ ] Trademark / naming position in one paragraph: the code is MIT; what may
       forks call themselves?
