@@ -29,8 +29,12 @@ if (!gotLock) {
 }
 
 app.on('second-instance', () => {
+  if (quitting) return;
   const window = connectionWindow || mainWindow;
-  if (!window) return;
+  if (!window) {
+    if (app.isReady()) void restoreWorkspace();
+    return;
+  }
   if (window.isMinimized()) window.restore();
   window.focus();
 });
