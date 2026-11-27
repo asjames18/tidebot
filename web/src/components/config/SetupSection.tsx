@@ -9,6 +9,7 @@ export function SetupSection() {
   const refresh = useConfigUI((s) => s.loadLlmConfig);
   const config = useConfigUI((s) => s.llmConfig);
   const [account, setAccount] = useState<Awaited<ReturnType<typeof configApi.personalModel>>>();
+  const [accountLoadAttempt, setAccountLoadAttempt] = useState(0);
   const [key, setKey] = useState('');
   const [model, setModel] = useState('');
   const [busy, setBusy] = useState(false);
@@ -23,7 +24,7 @@ export function SetupSection() {
       if (active) { setAccount(value); setModel(value.defaultModel); }
     }).catch((error: Error) => { if (active) setResult({ ok: false, message: error.message }); });
     return () => { active = false; };
-  }, []);
+  }, [accountLoadAttempt]);
 
   const connect = async () => {
     if (busy) return;
@@ -76,6 +77,14 @@ export function SetupSection() {
         </button>
       </form>}
       {result && <p className={`byom-status ${result.ok ? 'is-ok' : 'is-err'}`} role={result.ok ? 'status' : 'alert'}>{result.message}</p>}
+      {!account && (result ? (
+        <button className="cfg-btn cfg-btn--secondary" type="button" onClick={() => {
+          setResult(undefined);
+          setAccountLoadAttempt((attempt) => attempt + 1);
+        }}>
+          Retry OpenRouter settings
+        </button>
+      ) : <p className="cfg-row__sub" role="status">Loading OpenRouter settings…</p>)}
     </section>
     <section className="cfg-section">
       <h2 className="cfg-section__label">{account?.canInvite ? 'Local or shared model' : 'Studio model'}</h2>
