@@ -20,6 +20,19 @@ export function createSession(c: Context, userId: string, verified: boolean) {
   setCookie(c, COOKIE, t, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: TTL_MS / 1000, secure: process.env.NODE_ENV === 'production' });
 }
 
+/** Delete sessions that have already expired. Lookups only accept `expires_at > now`, so this never removes a usable session. */
+export function purgeExpiredSessions() {
+  return db.prepare('DELETE FROM auth_sessions WHERE expires_at<=?').run(now()).changes;
+}
+
+/** Purge now, then again every `intervalMs` (default one hour). The timer does not keep the process alive. */
+export function startSessionPurge(intervalMs = 3600 * 1000) {
+  purgeExpiredSessions();
+  return setInterval(() => {
+    try { purgeExpiredSessions(); } catch (e) { console.warn('[auth] session purge failed', (e as Error).message); }
+  }, intervalMs).unref();
+}
+
 export function destroySession(c: Context) {
   const t = getCookie(c, COOKIE);
   if (t) db.prepare('DELETE FROM auth_sessions WHERE token=?').run(sha256(t));
