@@ -299,6 +299,7 @@ Contributions are welcome — bug reports, docs, new Operator tools, provider in
 5. Open a Pull Request describing **what changed and how to verify it**.
 
 - 🏗 Architecture and agent-runtime invariants: [`AGENTS.md`](AGENTS.md)
+- 🗺️ Where TideBot is headed: [`ROADMAP.md`](ROADMAP.md)
 - 🐛 Found a security issue? Please report privately per [SECURITY.md](SECURITY.md) — do not open a public issue.
 - 💬 Questions & ideas: [open a Discussion](https://github.com/asjames18/tidebot/discussions).
 - 📜 Community standards: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
