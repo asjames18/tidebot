@@ -5,7 +5,7 @@ export function ToolkitLogo({ name, logo, size = 40, radius = 8 }: { name: strin
   const [broken, setBroken] = useState(false);
   const letter = (name.trim()[0] ?? '?').toUpperCase();
   return (
-    <span className="toolkit-logo" style={{ width: size, height: size, borderRadius: radius }}>
+    <span className="toolkit-logo" aria-hidden="true" style={{ width: size, height: size, borderRadius: radius }}>
       {logo && !broken ? (
         <img src={logo} alt="" width={size * 0.7} height={size * 0.7} onError={() => setBroken(true)} draggable={false} />
       ) : (
