@@ -20,7 +20,8 @@ export function createSession(c: Context, userId: string, verified: boolean) {
   setCookie(c, COOKIE, t, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: TTL_MS / 1000, secure: process.env.NODE_ENV === 'production' });
 }
 
-const LOGIN_ATTEMPT_TTL_MS = 3600 * 1000;
+// The Google callback does not check an attempt's age, so keep attempts far longer than any sign-in takes.
+const LOGIN_ATTEMPT_TTL_MS = 24 * 3600 * 1000;
 
 /** Delete expired sign-in sessions and abandoned Google sign-in attempts. Nothing else removes them. */
 export function purgeExpiredAuth() {
@@ -28,6 +29,14 @@ export function purgeExpiredAuth() {
   const sessions = db.prepare('DELETE FROM auth_sessions WHERE expires_at<=?').run(t).changes;
   const attempts = db.prepare('DELETE FROM login_attempts WHERE created_at<?').run(t - LOGIN_ATTEMPT_TTL_MS).changes;
   return { sessions, attempts };
+}
+
+/** Purge now, then again every `intervalMs` (default one hour). The timer does not keep the process alive. */
+export function startAuthPurge(intervalMs = 3600 * 1000) {
+  purgeExpiredAuth();
+  return setInterval(() => {
+    try { purgeExpiredAuth(); } catch (e) { console.warn('[auth] purge failed', (e as Error).message); }
+  }, intervalMs).unref();
 }
 
 export function destroySession(c: Context) {
