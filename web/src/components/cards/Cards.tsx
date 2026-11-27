@@ -60,8 +60,10 @@ export function ApprovalCard({ body }: { body: Card<'approval'> }) {
   const hadFocusRef = useRef(false);
 
   useEffect(() => {
-    const activeInside = typeof document !== 'undefined' && Boolean(cardRef.current?.contains(document.activeElement));
-    if (shouldFocusApprovalOutcome(wasPendingRef.current, pending, hadFocusRef.current || activeInside)) {
+    const focused = document.activeElement;
+    const activeInside = Boolean(cardRef.current?.contains(focused));
+    const focusedElsewhere = Boolean(focused && !activeInside && focused !== document.body && focused !== document.documentElement);
+    if (shouldFocusApprovalOutcome(wasPendingRef.current, pending, hadFocusRef.current || activeInside, focusedElsewhere)) {
       outcomeRef.current?.focus();
     }
     if (!pending) hadFocusRef.current = false;

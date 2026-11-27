@@ -63,6 +63,10 @@ test('shouldFocusApprovalOutcome only moves focus on pending-to-resolved transit
   assert.equal(shouldFocusApprovalOutcome(false, true, true), false);
 });
 
+test('shouldFocusApprovalOutcome preserves focus that moved to another control', () => {
+  assert.equal(shouldFocusApprovalOutcome(true, false, true, true), false);
+});
+
 test('pending ApprovalCard renders landmark, labeled action group, tool-specific button labels, and keyboard-scrollable details', () => {
   const html = renderToStaticMarkup(
     React.createElement(ApprovalCard, {

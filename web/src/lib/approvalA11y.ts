@@ -76,12 +76,14 @@ export function approvalOutcomeAnnouncement(
 
 /**
  * Move focus to the resolved outcome region only when the card transitions
- * from pending to resolved while keyboard/user focus originated inside the card.
+ * from pending to resolved while focus originated inside the card and has
+ * not moved to another control.
  */
 export function shouldFocusApprovalOutcome(
   wasPending: boolean,
   isPending: boolean,
   hadCardFocus: boolean,
+  focusedElsewhere = false,
 ): boolean {
-  return wasPending && !isPending && hadCardFocus;
+  return wasPending && !isPending && hadCardFocus && !focusedElsewhere;
 }
