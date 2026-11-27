@@ -535,9 +535,6 @@ api.post('/approvals/:id', async (c) => {
     if (raw) {
       const body = JSON.parse(raw.body) as RowBody;
       if (body.type === 'card' && body.card === 'draft') {
-        // The status check, the update and the enqueue below run synchronously (no await), so a
-        // concurrent request cannot slip in between: the first decision wins, the rest get 409.
-        if (body.status !== 'pending') return c.json({ error: `draft already ${body.status}` }, 409);
         const nextStatus = decision === 'deny' ? 'discarded' : 'sent';
         updateRow(raw.bot_id, raw.seq, { ...body, status: nextStatus });
         if (nextStatus === 'sent') {
@@ -557,8 +554,6 @@ api.post('/bots/:id/cards/:seq/answer', async (c) => {
   const row = getRow(b.id, Number(c.req.param('seq')));
   const { answer } = await c.req.json<{ answer: string }>();
   if (!row || row.body.type !== 'card' || row.body.card !== 'question') return c.json({ error: 'not a question' }, 400);
-  // Synchronous from here to enqueue(): a repeated or concurrent answer must not add a second message or turn.
-  if (row.body.status !== 'pending') return c.json({ error: `question already ${row.body.status}` }, 409);
   updateRow(b.id, row.seq, { ...row.body, status: 'answered', answer });
   appendRow(b.id, 'message', { type: 'message', role: 'user', text: answer });
   enqueue(b.id, { type: 'user', text: `[Answer to "${row.body.question}"] ${answer}` });
