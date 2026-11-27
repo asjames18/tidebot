@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar';
 import { Toasts } from './Toasts';
 import { ReleaseNotice } from './ReleaseNotice';
 import { useConfigUI } from '../configStore';
+import { ApiError } from '../lib/api';
 import { configApi } from '../lib/configApi';
 
 const ConnectAppsModal = lazy(() => import('./modals/ConnectAppsModal').then((m) => ({ default: m.ConnectAppsModal })));
@@ -93,7 +94,12 @@ export function Shell() {
       if (!accountId || !active || useConfigUI.getState().llmConfig?.isConfigured) return;
       const seenKey = `tidebot.setup-seen:${accountId}`;
       try { if (localStorage.getItem(seenKey)) return; } catch { /* storage disabled */ }
-      await configApi.personalModel();
+      try {
+        await configApi.personalModel();
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return;
+        // Setup can retry temporary failures once it opens.
+      }
       if (!active || useStore.getState().user?.id !== accountId || useConfigUI.getState().appSettings) return;
       try { localStorage.setItem(seenKey, '1'); } catch { /* setup is still available */ }
       useConfigUI.getState().openAppSettings('setup');
