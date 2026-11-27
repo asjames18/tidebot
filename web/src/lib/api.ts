@@ -4,7 +4,23 @@ export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
+let authEpoch = 0;
+let unauthorizedHandler: (() => void) | null = null;
+/** Called once the app has confirmed a signed-in user, so older in-flight 401s are ignored. */
+export const markAuthenticated = () => { authEpoch += 1; };
+export const setUnauthorizedHandler = (fn: (() => void) | null) => { unauthorizedHandler = fn; };
+/** Capture before sending a request; pass to noteApiFailure with the response. */
+export const currentAuthEpoch = () => authEpoch;
+/**
+ * The session middleware answers 401 {error:'unauthenticated'}. Sign-in endpoints also use 401
+ * (wrong password), so they are excluded. A request that started before the latest sign-in is ignored.
+ */
+export function noteApiFailure(path: string, status: number, message: string, epoch: number) {
+  if (status === 401 && message === 'unauthenticated' && !path.startsWith('/auth/') && epoch === authEpoch) unauthorizedHandler?.();
+}
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const epoch = authEpoch;
   const res = await fetch(`/api${path}`, {
     method,
     credentials: 'include',
@@ -14,6 +30,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   if (!res.ok) {
     let msg = res.statusText;
     try { msg = ((await res.json()) as { error?: string }).error ?? msg; } catch { /* not json */ }
+    noteApiFailure(path, res.status, msg, epoch);
     throw new ApiError(res.status, msg);
   }
   if (res.status === 204) return undefined as T;
