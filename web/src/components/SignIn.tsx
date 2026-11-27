@@ -9,6 +9,7 @@ export function SignIn() {
   const checkAuth = useStore((s) => s.checkAuth);
   const googleLogin = useStore((s) => s.googleLogin);
   const localSignup = useStore((s) => s.localSignup);
+  const sessionExpired = useStore((s) => s.sessionExpired);
   const [email, setEmail] = useState('');
   const [mode, setMode] = useState<'signin' | 'invite' | 'local'>('signin');
   const inviteMode = mode === 'invite';
@@ -67,6 +68,7 @@ export function SignIn() {
           <BotAvatar shape="hex" color="cyan" size={76} ring />
         </div>
         <h1 className="signin__title">TideBot</h1>
+        {sessionExpired && <div className="signin__note" role="status">Your session ended. Sign in to pick up where you left off.</div>}
         <p className="signin__sub">
           Run agents with persistent memory using your own local model or a hosted provider such as OpenRouter.
         </p>
