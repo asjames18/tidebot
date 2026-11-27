@@ -25,6 +25,8 @@ import { configApi } from './routes-config.js';
 import { startIdleWatcher } from './idle.js';
 import { startMemoryConsolidation } from './agent/memory.js';
 import { rateLimit } from './lib/rateLimit.js';
+import { getPublicLlmConfig } from './agent/llm.js';
+import { formatStartupBanner } from './lib/startup.js';
 
 if (!desSelfTest()) throw new Error('DES self-test failed');
 initSubagents();
@@ -102,7 +104,9 @@ if (hasWebApp) {
 }
 
 recoverInterruptedRuns();
-const server = serve({ fetch: app.fetch, port: env.port, hostname: env.host }, (info) => console.log(`[grokbot] server on http://${info.address}:${info.port} (model ${env.xaiModel})`));
+const server = serve({ fetch: app.fetch, port: env.port, hostname: env.host }, (info) => {
+  console.log(formatStartupBanner(info, getPublicLlmConfig(undefined, false)));
+});
 attachVncRelay(server as unknown as Server);
 // GROKBOT_NO_SCHEDULER=1 for extra dev/test servers sharing a database copy, so routines and triggers don't fire twice.
 if (process.env.GROKBOT_NO_SCHEDULER !== '1') {
