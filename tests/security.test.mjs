@@ -155,6 +155,61 @@ test('invalid session cookie encoding is treated as signed out', () => {
   assert.equal(userFromCookieHeader('grokbot_session=%'), null);
 });
 
+test('rateLimit ignores spoofed X-Forwarded-For by default and returns Retry-After on 429', async () => {
+  const { Hono } = await import('hono');
+  const { rateLimit, resolveClientIp, parseTrustProxyHops } = await import('../server/dist/lib/rateLimit.js');
+
+  // Unit checks for TRUST_PROXY parsing and right-to-left hop selection.
+  assert.equal(parseTrustProxyHops(undefined), 0);
+  assert.equal(parseTrustProxyHops('0'), 0);
+  assert.equal(parseTrustProxyHops('false'), 0);
+  assert.equal(parseTrustProxyHops('true'), 1);
+  assert.equal(parseTrustProxyHops('1'), 1);
+  assert.equal(parseTrustProxyHops('2'), 2);
+  assert.equal(parseTrustProxyHops('garbage'), 0);
+
+  assert.equal(resolveClientIp({ forwardedFor: '1.2.3.4', remoteAddress: '198.51.100.7', trustProxyHops: 0 }), '198.51.100.7');
+  assert.equal(resolveClientIp({ forwardedFor: '1.1.1.1, 203.0.113.10', remoteAddress: '127.0.0.1', trustProxyHops: 1 }), '203.0.113.10');
+  assert.equal(resolveClientIp({ forwardedFor: '1.1.1.1, 203.0.113.10, 172.18.0.2', remoteAddress: '127.0.0.1', trustProxyHops: 2 }), '203.0.113.10');
+
+  // Default mode: rotating X-Forwarded-For cannot bypass the rate limit.
+  const app = new Hono();
+  app.use('/api/auth/*', rateLimit({ limit: 2, windowMs: 60_000, trustProxy: false }));
+  app.post('/api/auth/login', (c) => c.json({ ok: true }));
+
+  assert.equal((await app.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': '1.1.1.1' } })).status, 200);
+  assert.equal((await app.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': '2.2.2.2' } })).status, 200);
+  const blocked = await app.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': '3.3.3.3' } });
+  assert.equal(blocked.status, 429);
+  const retryAfter = Number(blocked.headers.get('retry-after'));
+  assert.ok(Number.isInteger(retryAfter) && retryAfter >= 1 && retryAfter <= 60, `unexpected Retry-After: ${retryAfter}`);
+
+  // Trusted 1-hop proxy mode: client-prepended spoof cannot bypass, distinct real clients get separate buckets.
+  const proxied = new Hono();
+  proxied.use('/api/auth/*', rateLimit({ limit: 1, windowMs: 60_000, trustProxy: 1 }));
+  proxied.post('/api/auth/login', (c) => c.json({ ok: true }));
+
+  assert.equal((await proxied.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': 'spoof-1, 203.0.113.5' } })).status, 200);
+  assert.equal((await proxied.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': 'spoof-2, 203.0.113.5' } })).status, 429);
+  assert.equal((await proxied.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': '203.0.113.6' } })).status, 200);
+});
+
+test('rateLimit prunes expired buckets before evicting active callers', async () => {
+  const { Hono } = await import('hono');
+  const { rateLimit } = await import('../server/dist/lib/rateLimit.js');
+  const app = new Hono();
+  app.use('/api/*', rateLimit({ limit: 1, windowMs: 40, trustProxy: 1, maxEntries: 2 }));
+  app.post('/api/ping', (c) => c.json({ ok: true }));
+
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.1' } })).status, 200);
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.2' } })).status, 200);
+  await new Promise((r) => setTimeout(r, 55));
+  // Active caller enters right after the first two expired; adding one more key triggers expired-first pruning.
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.3' } })).status, 200);
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.4' } })).status, 200);
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.3' } })).status, 429);
+});
+
 test('workspace writes create and replace regular files', () => {
   const root = fs.mkdtempSync(path.join(fixtures, 'write-'));
   const target = writeWorkspaceFile(root, 'nested/notes.txt', 'first');
