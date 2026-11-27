@@ -102,7 +102,7 @@ export function ChatView() {
     }
     if (!confirmFresh) {
       setConfirmFresh(true);
-      flash('Tap New chat again to start fresh (memories & skills stay)');
+      flash('Confirm New chat to clear this conversation. Memories and skills stay.');
       if (confirmTimer.current) window.clearTimeout(confirmTimer.current);
       confirmTimer.current = window.setTimeout(() => { setConfirmFresh(false); confirmTimer.current = null; }, 3500);
       return;
@@ -298,24 +298,8 @@ export function ChatView() {
                     },
                   }] : []),
                   {
-                    label: freshBusy ? 'Starting new chat…' : 'New conversation',
-                    onSelect: () => {
-                      if (freshBusy) return;
-                      if (confirmTimer.current) { window.clearTimeout(confirmTimer.current); confirmTimer.current = null; }
-                      setConfirmFresh(false);
-                      if (!rows.length) {
-                        flash(`Already in a fresh chat with ${displayName(bot)}`);
-                        return;
-                      }
-                      setFreshBusy(true);
-                      api.fresh(bot.id)
-                        .then(() => {
-                          set({ detailsOpen: false, detailsTab: 'activity' });
-                          flash(`Started a new chat with ${displayName(bot)}`);
-                        })
-                        .catch((e) => flash(e.message))
-                        .finally(() => setFreshBusy(false));
-                    },
+                    label: freshBusy ? 'Starting new chat…' : confirmFresh ? 'Confirm new chat' : 'New chat',
+                    onSelect: startNewChat,
                   },
                   { label: 'Operator settings', onSelect: () => useConfigUI.getState().openBotSettings(bot.id) },
                 ]}
