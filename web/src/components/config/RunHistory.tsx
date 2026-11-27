@@ -88,7 +88,14 @@ export function RunHistory({ botId, openLibrary }: { botId: string; openLibrary:
           <button type="button" className="link-btn" onClick={() => useConfigUI.getState().bump(versionKey)}>Refresh</button>
         </div>}
     </div>
-    {error && <p role="alert">{error}</p>}
+    {error && <div>
+      <p role="alert">{error}</p>
+      {selected && <button type="button" className="link-btn" onClick={() => {
+        setError('');
+        useConfigUI.getState().bump(versionKey);
+      }}>Retry run details</button>}
+    </div>}
+    {selected && !detail && !error && <p role="status">Loading run details…</p>}
     {planning ? <ResearchForm botId={botId} onCancel={() => setPlanning(false)} onStart={(id) => {
       setError('');
       setDetail(undefined);
