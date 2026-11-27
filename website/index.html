@@ -280,6 +280,8 @@
     .wl-status.ok { color: var(--emerald); }
     .wl-status.err { color: #f87171; }
     .wl-privacy { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+    .skip-link { position: absolute; left: 12px; top: -48px; z-index: 100; background: var(--teal); color: #05070B; padding: 8px 14px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+    .skip-link:focus { top: 12px; }
     .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 
     /* ---------- screenshots ---------- */
@@ -325,7 +327,8 @@
     <div class="orb orb-3"></div>
   </div>
 
-  <nav>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <nav aria-label="Primary">
     <div class="wrap nav-inner">
       <a class="logo" href="#top"><img class="logo-mark" src="favicon.png" alt="TideBot logo" /> TideBot</a>
       <div class="nav-links">
@@ -339,6 +342,7 @@
     </div>
   </nav>
 
+  <main id="main">
   <header class="hero" id="top">
     <div class="wrap">
       <span class="eyebrow"><span class="dot"></span> <span id="hero-version">v1.0.0-dev</span> · open source · self-hosted</span>
@@ -496,6 +500,7 @@ npm run dev <span class="cm"># studio at http://localhost:5173</span></pre>
       </div>
     </div>
   </section>
+  </main>
 
   <footer>
     <div class="wrap foot">

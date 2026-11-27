@@ -1,12 +1,14 @@
 import type { IncomingMessage, Server } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { db } from './db.js';
+import { env } from './env.js';
 import { userFromCookieHeader } from './lib/auth.js';
 import { vncAuthResponse } from './lib/des.js';
 import { orgo } from './orgo.js';
 import { screenFor } from './computer.js';
 import { viewerClosed, viewerOpened } from './idle.js';
 import { WatchFilter } from './lib/vncFilter.js';
+import { isAllowedVncOrigin, sanitizeVncError, truncateWsCloseReason } from './lib/vncSecurity.js';
 
 /**
  * VNC relay: browser <-> our server <-> Orgo websockify.
@@ -67,6 +69,7 @@ async function upstreamHandshake(q: ByteQueue, send: (b: Buffer) => void, passwo
   send(Buffer.from([1])); // ClientInit: shared
   const head = await q.read(24); // w,h,pixfmt(16),nameLen
   const nameLen = head.readUInt32BE(20);
+  if (nameLen > 65_536) throw new Error('VNC desktop name too long');
   const name = await q.read(nameLen);
   return Buffer.concat([head, name]);
 }
@@ -90,6 +93,11 @@ export function attachVncRelay(server: Server) {
     catch { socket.destroy(); return; }
     const m = url.pathname.match(/^\/api\/bots\/([^/]+)\/screen$/);
     if (!m) return; // not ours
+    if (!isAllowedVncOrigin(req.headers.origin, req.headers.host, [env.appUrl, env.serverUrl, env.desktopSignupOrigin])) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
     const user = userFromCookieHeader(req.headers.cookie);
     const bot = user ? (db.prepare('SELECT * FROM bots WHERE id=? AND user_id=?').get(m[1], user.id) as any) : null;
     if (!user || !bot) {
@@ -106,10 +114,12 @@ async function relay(client: WebSocket, userId: string, botId: string, mode: 'wa
   const fromClient = new ByteQueue();
   const fromUp = new ByteQueue();
   let upstream: WebSocket | null = null;
+  let vncPassword = '';
   let piping = false;
   const filter = new WatchFilter();
   const closeAll = (code = 1000, reason = '') => {
-    try { client.close(code, reason.slice(0, 120)); } catch { /* */ }
+    const safeReason = truncateWsCloseReason(sanitizeVncError(reason, vncPassword));
+    try { client.close(code, safeReason); } catch { /* */ }
     try { upstream?.close(); } catch { /* */ }
   };
 
@@ -124,6 +134,7 @@ async function relay(client: WebSocket, userId: string, botId: string, mode: 'wa
   try {
     const { computerId, screenId } = await screenFor(userId, botId);
     const { password } = await orgo.vncPassword(computerId);
+    vncPassword = password;
     const upUrl = `wss://www.orgo.ai/desktops/${computerId}/ws/websockify?token=${encodeURIComponent(password)}${screenId !== 'default' ? `&screen=${encodeURIComponent(screenId)}` : ''}`;
     upstream = new WebSocket(upUrl, ['binary']);
     upstream.on('message', (data: Buffer) => {
@@ -131,7 +142,7 @@ async function relay(client: WebSocket, userId: string, botId: string, mode: 'wa
       if (client.readyState === WebSocket.OPEN) client.send(data);
     });
     upstream.on('close', (code, reason) => { fromUp.close(new Error(`upstream closed ${code}`)); closeAll(1000, `upstream ${code} ${reason}`); });
-    upstream.on('error', (e) => { fromUp.close(e as Error); closeAll(1011, String(e)); });
+    upstream.on('error', (e) => { fromUp.close(e as Error); closeAll(1011, sanitizeVncError(e, vncPassword)); });
     await new Promise<void>((res, rej) => { upstream!.once('open', () => res()); upstream!.once('error', rej); });
 
     const serverInit = await upstreamHandshake(fromUp, (b) => upstream!.send(b), password);
@@ -139,14 +150,14 @@ async function relay(client: WebSocket, userId: string, botId: string, mode: 'wa
     // Flush anything that arrived during the handshake, then switch to piping.
     piping = true;
     const leftoverUp = fromUp.takeAll();
-    if (leftoverUp.length) client.send(leftoverUp);
+    if (leftoverUp.length && client.readyState === WebSocket.OPEN) client.send(leftoverUp);
     const leftoverClient = fromClient.takeAll();
-    if (leftoverClient.length) {
+    if (leftoverClient.length && upstream.readyState === WebSocket.OPEN) {
       const fwd = mode === 'watch' ? filter.feed(leftoverClient) : leftoverClient;
       if (fwd.length) upstream.send(fwd);
     }
   } catch (e: any) {
-    console.warn('[vnc] relay failed', e?.message ?? e);
-    closeAll(1011, String(e?.message ?? e));
+    console.warn('[vnc] relay failed', sanitizeVncError(e, vncPassword));
+    closeAll(1011, sanitizeVncError(e, vncPassword));
   }
 }
