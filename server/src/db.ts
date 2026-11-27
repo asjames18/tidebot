@@ -238,4 +238,20 @@ CREATE TABLE IF NOT EXISTS llm_settings (
 );
 `);
 
+// Proactivity table used by set_checkins / getCheckins. Previously it only
+// existed after initProactive() ran at server startup, so any other entry
+// point (tests, scripts, a future CLI) hit "no such table: proactivity".
+// Same shape as proactive.ts initProactive(), which stays as a no-op.
+db.exec(`
+CREATE TABLE IF NOT EXISTS proactivity (
+  user_id TEXT PRIMARY KEY,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  times TEXT NOT NULL DEFAULT '["09:00","16:30"]',
+  timezone TEXT NOT NULL DEFAULT 'UTC',
+  last_fired TEXT,
+  silent_streak INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL
+);
+`);
+
 export const now = () => Date.now();
