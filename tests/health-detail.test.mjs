@@ -69,7 +69,10 @@ test('buildHealthDetail reports providers as booleans only, never key material',
 function runDoctor(env) {
   const doctorPath = fileURLToPath(new URL('../scripts/doctor.mjs', import.meta.url));
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [doctorPath], { env: { ...process.env, ...env } });
+    const child = spawn(process.execPath, [doctorPath], {
+      env: { ...process.env, ...env },
+      timeout: 10_000,
+    });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (d) => { stdout += d; });
@@ -107,4 +110,30 @@ test('doctor exits non-zero when no server is listening', async () => {
   const { code, stderr } = await runDoctor({ PORT: '1' });
   assert.notEqual(code, 0);
   assert.match(stderr, /not reachable/);
+});
+
+test('doctor reports an invalid health response without dumping a stack trace', async (t) => {
+  const server = http.createServer((_req, res) => {
+    res.end('<html>Wrong service</html>');
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+
+  const { code, stdout, stderr } = await runDoctor({ PORT: String(server.address().port) });
+  assert.equal(code, 1);
+  assert.equal(stdout, '');
+  assert.match(stderr, /^doctor: .*invalid health response[^\n]*\n$/);
+});
+
+test('doctor times out when the health response body stalls', async (t) => {
+  const server = http.createServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.write('{');
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+
+  const { code, stderr } = await runDoctor({ PORT: String(server.address().port) });
+  assert.equal(code, 1);
+  assert.match(stderr, /^doctor: .*timed out[^\n]*\n$/);
 });

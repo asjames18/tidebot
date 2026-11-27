@@ -5,18 +5,31 @@
 // printed). Exits non-zero when the server is unreachable or unhealthy.
 const port = Number(process.env.PORT ?? '8787');
 const base = `http://127.0.0.1:${port}`;
+const healthUrl = `${base}/api/health?detail=1`;
+const signal = AbortSignal.timeout(5_000);
 let res;
+let d;
 try {
-  res = await fetch(`${base}/api/health?detail=1`);
+  res = await fetch(healthUrl, { signal, redirect: 'manual' });
+  if (res.ok) d = await res.json();
 } catch {
-  console.error(`doctor: server not reachable at ${base} — is it running? (npm run dev -w server / npm start)`);
+  if (signal.aborted) {
+    console.error(`doctor: health check timed out at ${healthUrl}`);
+  } else if (res) {
+    console.error(`doctor: invalid health response from ${healthUrl}`);
+  } else {
+    console.error(`doctor: server not reachable at ${base} — is it running? (npm run dev -w server / npm start)`);
+  }
   process.exit(1);
 }
 if (!res.ok) {
   console.error(`doctor: /api/health?detail=1 returned HTTP ${res.status}`);
   process.exit(1);
 }
-const d = await res.json();
+if (typeof d?.ok !== 'boolean' || !d.database) {
+  console.error(`doctor: invalid health response from ${healthUrl}`);
+  process.exit(1);
+}
 const db = d.database ?? {};
 const sb = d.sandbox?.bubblewrap ?? {};
 const providers = d.providers ?? {};
