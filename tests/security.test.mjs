@@ -286,6 +286,76 @@ test('web fetch check blocks loopback and metadata hosts', async () => {
   await assert.rejects(() => assertPublicUrl('http://169.254.169.254/'), /Private/);
 });
 
+test('web-source decodes HTML entities in a single pass and handles case-insensitive MIME types', async () => {
+  const { decodeHtmlEntities, parseWebResponse } = await import('../server/dist/lib/web-source.js');
+
+  // Single-pass decoding: &amp;lt; must NOT double-unescape into <.
+  assert.equal(decodeHtmlEntities('&amp;lt;script&amp;gt;'), '&lt;script&gt;');
+  assert.equal(decodeHtmlEntities('Don&#39;t &mdash; Q&amp;A &#x1F30A;'), 'Don\'t — Q&A 🌊');
+  assert.equal(decodeHtmlEntities('&#0; &#xd800; &#x999999;'), '&#0; &#xd800; &#x999999;');
+
+  // Case-insensitive MIME and structured +json / +xml suffixes.
+  assert.equal(parseWebResponse('https://a.test/api', 'Application/VND.API+JSON; charset=utf-8', '{"ok":true}').format, 'json');
+  assert.equal(parseWebResponse('https://a.test/note', 'Text/Plain; charset=utf-8', '  hello  ').content, 'hello');
+  assert.equal(parseWebResponse('https://a.test/feed', 'application/rss+xml', '<rss/>').format, 'text');
+  assert.throws(() => parseWebResponse('https://a.test/doc.pdf', 'application/pdf', '%PDF'), /not a readable/);
+
+  // HTML comments with '>', SVG/template bloat, and encoded <title> entities.
+  const html = '<html><head><title>Q&amp;A &mdash; Don&#39;t Panic</title></head><body><!-- a > b --><svg><path d="M0 0"/></svg><template>hidden</template><p>Hello &amp;lt;world&amp;gt;!</p></body></html>';
+  const parsed = parseWebResponse('https://a.test/page', 'TEXT/HTML; charset=utf-8', html);
+  assert.equal(parsed.title, "Q&A — Don't Panic");
+  assert.equal(parsed.content, 'Hello &lt;world&gt;!');
+});
+
+test('safeFetch strips Authorization/Cookie on cross-origin redirects and destroys oversized streams', async (t) => {
+  const addresses = [{ address: '1.1.1.1', family: 4 }];
+  t.mock.method(dns, 'lookup', async () => addresses);
+  const seen = [];
+  t.mock.method(https, 'request', (url, options, onResponse) => {
+    seen.push({ origin: url.origin, path: url.pathname, headers: options.headers });
+    const req = new EventEmitter();
+    if (url.origin === 'https://a.example.test' && url.pathname === '/start') {
+      req.end = () => onResponse(Object.assign(Readable.from([]), {
+        statusCode: 302, headers: { location: '/same' },
+      }));
+    } else if (url.origin === 'https://a.example.test' && url.pathname === '/same') {
+      req.end = () => onResponse(Object.assign(Readable.from([]), {
+        statusCode: 302, headers: { location: 'https://b.example.test/final' },
+      }));
+    } else {
+      req.end = () => onResponse(Object.assign(Readable.from([Buffer.from('ok')]), {
+        statusCode: 200, headers: { 'content-type': 'text/plain' },
+      }));
+    }
+    return req;
+  });
+
+  const res = await safeFetch('https://a.example.test/start', {
+    headers: { Authorization: 'Bearer secret', Cookie: 'sid=1', 'X-Custom': 'keep' },
+  });
+  assert.equal(res.text, 'ok');
+  assert.equal(seen.length, 3);
+  assert.equal(seen[1].headers.Authorization, 'Bearer secret', 'same-origin redirect keeps auth');
+  assert.equal(seen[2].headers.Authorization, undefined, 'cross-origin redirect strips Authorization');
+  assert.equal(seen[2].headers.Cookie, undefined, 'cross-origin redirect strips Cookie');
+  assert.equal(seen[2].headers['X-Custom'], 'keep');
+
+  // Oversized response must destroy the incoming stream immediately.
+  let destroyed = false;
+  t.mock.method(https, 'request', (_url, _options, onResponse) => {
+    const req = new EventEmitter();
+    const stream = Readable.from([Buffer.alloc(100), Buffer.alloc(100)]);
+    const origDestroy = stream.destroy.bind(stream);
+    stream.destroy = (...args) => { destroyed = true; return origDestroy(...args); };
+    req.end = () => onResponse(Object.assign(stream, {
+      statusCode: 200, headers: { 'content-type': 'text/plain' },
+    }));
+    return req;
+  });
+  await assert.rejects(() => safeFetch('https://a.example.test/big', { maxBytes: 50 }), /Response too large/);
+  assert.equal(destroyed, true, 'oversized stream must be destroyed');
+});
+
 test('web fetch preserves the HTTPS hostname while connecting to validated addresses', async (t) => {
   const addresses = [{ address: '1.1.1.1', family: 4 }];
   const resolve = t.mock.method(dns, 'lookup', async () => addresses);
