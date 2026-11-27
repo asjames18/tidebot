@@ -11,7 +11,7 @@ export function startEvents(): () => void {
   let stopped = false;
   let retry = 1000;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let everConnected = false;
+  let resyncOnOpen = false;
   let hiddenAt: number | null = null;
 
   const resync = () => {
@@ -29,13 +29,15 @@ export function startEvents(): () => void {
     es.onopen = () => {
       retry = 1000;
       useStore.getState().set({ sseConnected: true });
-      if (everConnected) resync();
-      everConnected = true;
+      if (resyncOnOpen) resync();
+      resyncOnOpen = true;
     };
     es.onmessage = (m) => {
       try { useStore.getState().handleEvent(JSON.parse(m.data) as ServerEvent); } catch (e) { console.warn('bad event', e); }
     };
     es.onerror = () => {
+      // The studio's initial requests may have failed along with the stream.
+      resyncOnOpen = true;
       useStore.getState().set({ sseConnected: false });
       if (es?.readyState === EventSource.CLOSED) {
         es = null;
@@ -51,7 +53,7 @@ export function startEvents(): () => void {
     if (!es || es.readyState !== EventSource.OPEN) {
       retry = 1000;
       open();
-    } else if (everConnected) {
+    } else if (resyncOnOpen) {
       resync();
     }
   };
