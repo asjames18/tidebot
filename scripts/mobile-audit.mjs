@@ -1,22 +1,28 @@
 #!/usr/bin/env node
-/**
- * 18-viewport headless Chromium CDP mobile layout audit for TideBot.
- *
- * Usage:
- *   AUDIT_URL=http://127.0.0.1:8787 node scripts/mobile-audit.mjs
- *
- * Optional env vars:
- *   AUDIT_URL      Target URL (default: http://127.0.0.1:8787)
- *   AUDIT_OUT_DIR  Directory for screenshots (default: <tmpdir>/tidebot-mobile-audit)
- *   CHROME_PATH    Path to Chrome/Chromium binary (auto-detected if omitted)
- *   Use only a disposable loopback server with DEV_LOGIN=1 and an empty test database.
- *   CDP_PORT       Remote debugging port (default: 9223)
- */
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+
+const usage = `18-viewport headless Chromium CDP mobile layout audit for TideBot.
+
+Usage
+  AUDIT_URL=http://127.0.0.1:8787 node scripts/mobile-audit.mjs
+  node scripts/mobile-audit.mjs --help    Show this help (also -h)
+
+Optional environment variables
+  AUDIT_URL      Target URL (default: http://127.0.0.1:8787)
+  AUDIT_OUT_DIR  Directory for screenshots (default: <tmpdir>/tidebot-mobile-audit)
+  CHROME_PATH    Path to Chrome/Chromium binary (auto-detected if omitted)
+  CDP_PORT       Remote debugging port (default: 9223)
+
+Use only a disposable loopback server with DEV_LOGIN=1 and an empty test database.`;
+
+if (process.argv.includes('--help', 2) || process.argv.includes('-h', 2)) {
+  console.log(usage);
+  process.exit(0);
+}
 
 const OUT_DIR = process.env.AUDIT_OUT_DIR || path.join(os.tmpdir(), 'tidebot-mobile-audit');
 fs.mkdirSync(OUT_DIR, { recursive: true });
