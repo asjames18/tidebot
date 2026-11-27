@@ -45,7 +45,7 @@ export function AppSettings() {
   const navRef = useRef<HTMLElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const mainTouchStartYRef = useRef<number | null>(null);
-  const swipeRef = useRef<{ x: number; y: number; locked: boolean | null } | null>(null);
+  const swipeRef = useRef<{ x: number; y: number; locked: boolean } | null>(null);
   const [dragX, setDragX] = useState(0);
 
   const blurActiveOnMobile = () => {
@@ -94,13 +94,19 @@ export function AppSettings() {
     return () => window.removeEventListener('keydown', k);
   }, [section, close]);
 
+  const onTouchCancel = () => {
+    swipeRef.current = null;
+    setDragX(0);
+  };
+
   const onTouchStart = (e: React.TouchEvent) => {
-    if (window.innerWidth > 900 || e.touches.length !== 1) return;
+    if (e.touches.length !== 1) { onTouchCancel(); return; }
+    if (window.innerWidth > 900) return;
     const target = e.target as HTMLElement | null;
     if (target?.closest('.app-settings__nav, .byom-filter-tabs')) return;
     const t = e.touches[0];
     if (!t || t.clientX > 28) return;
-    swipeRef.current = { x: t.clientX, y: t.clientY, locked: null };
+    swipeRef.current = { x: t.clientX, y: t.clientY, locked: false };
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
@@ -109,28 +115,22 @@ export function AppSettings() {
     if (!s || !t) return;
     const dx = t.clientX - s.x;
     const dy = t.clientY - s.y;
-    if (s.locked === null) {
+    if (!s.locked) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      s.locked = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.2;
-      if (!s.locked) { swipeRef.current = null; return; }
+      if (dx <= 0 || dx <= Math.abs(dy) * 1.2) { onTouchCancel(); return; }
+      s.locked = true;
       blurActiveOnMobile();
     }
-    if (s.locked && dx > 0) setDragX(dx);
+    setDragX(Math.max(0, dx));
   };
 
-  const onTouchEnd = () => {
+  const onTouchEnd = (e: React.TouchEvent) => {
     const s = swipeRef.current;
-    swipeRef.current = null;
-    if (s?.locked && dragX > 72) {
+    const t = e.changedTouches[0];
+    onTouchCancel();
+    if (s?.locked && t && t.clientX - s.x > 72) {
       handleClose();
-      return;
     }
-    setDragX(0);
-  };
-
-  const onTouchCancel = () => {
-    swipeRef.current = null;
-    setDragX(0);
   };
 
   if (!section) return null;
