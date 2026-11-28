@@ -184,7 +184,15 @@ async function startServer() {
     }
   });
 
-  await waitForHealth(port, child);
+  try {
+    await waitForHealth(port, child);
+  } catch (error) {
+    // Retire a failed startup so the next attempt can launch a fresh server.
+    if (serverProc === child) stopServer();
+    const detail = stderrTail.trim();
+    if (!detail) throw error;
+    throw new Error(`${error.message}\n\n${detail}`, { cause: error });
+  }
   ready = true;
   if (settings.port !== port) {
     settings = { ...settings, port };
