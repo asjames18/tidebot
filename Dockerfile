@@ -25,5 +25,5 @@ COPY --from=build /app/web/dist ./web/dist
 USER node
 EXPOSE 8787
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:8787/api/health',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exitCode=1}).catch(()=>process.exitCode=1)"]
+  CMD ["node", "--input-type=module", "-e", "import {env} from './server/dist/env.js'; fetch('http://127.0.0.1:'+env.port+'/api/health',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exitCode=1}).catch(()=>process.exitCode=1)"]
 CMD ["node", "server/dist/index.js"]
