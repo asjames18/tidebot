@@ -151,15 +151,38 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
   );
 }
 
-function useTasks(botId?: string): Task[] | null {
-  const v = useVersion(botId ? `tasks:${botId}` : 'tasks');
-  const [tasks, setTasks] = useState<Task[] | null>(null);
+function useTasks(botId?: string) {
+  const key = botId ? `tasks:${botId}` : 'tasks';
+  const v = useVersion(key);
+  const [result, setResult] = useState<{ key: string; tasks: Task[] | null; failed: boolean } | null>(null);
   useEffect(() => {
     let alive = true;
-    (botId ? configApi.botTasks(botId) : configApi.tasks()).then((r) => { if (alive) setTasks(r.tasks); }).catch(() => { if (alive) setTasks([]); });
+    (botId ? configApi.botTasks(botId) : configApi.tasks())
+      .then(({ tasks }) => { if (alive) setResult({ key, tasks, failed: false }); })
+      .catch(() => {
+        if (alive) setResult((previous) => ({
+          key,
+          tasks: previous?.key === key ? previous.tasks : null,
+          failed: true,
+        }));
+      });
     return () => { alive = false; };
-  }, [botId, v]);
-  return tasks;
+  }, [botId, key, v]);
+  const current = result?.key === key ? result : null;
+  return {
+    tasks: current?.tasks ?? null,
+    failed: current?.failed ?? false,
+    retry: () => useConfigUI.getState().bump(key),
+  };
+}
+
+function TaskLoadError({ retry }: { retry: () => void }) {
+  return (
+    <div className="cfg-empty">
+      <p role="alert">Could not load tasks.</p>
+      <button type="button" className="cfg-btn cfg-btn--secondary" onClick={retry}>Try again</button>
+    </div>
+  );
 }
 
 function sortTasks(list: Task[]) {
@@ -171,7 +194,7 @@ function sortTasks(list: Task[]) {
 export function TasksView() {
   const bots = useStore((s) => s.bots);
   const selectedId = useStore((s) => s.selectedBotId);
-  const tasks = useTasks();
+  const { tasks, failed, retry } = useTasks();
   const [filter, setFilter] = useState<Filter>('open');
   const [newTitle, setNewTitle] = useState('');
   const [targetBotId, setTargetBotId] = useState<string>('');
@@ -329,13 +352,16 @@ export function TasksView() {
               </button>
             </form>
           )}
-          {tasks === null ? <div className="cfg-empty">Loading…</div> : shown.length === 0 ? (
+          {failed && <TaskLoadError retry={retry} />}
+          {!failed && tasks === null && <div className="cfg-empty">Loading…</div>}
+          {!failed && tasks !== null && shown.length === 0 && (
             <div className="tasks-empty">
               <Glyph name="tasks" size={28} opacity={0.35} />
               <div className="tasks-empty__title">{filter === 'done' ? 'Nothing finished yet' : 'No active tasks'}</div>
               <div className="tasks-empty__sub">Assign a multi-part goal to an Operator or add a task above—then click "Run ↗" to dispatch it autonomously.</div>
             </div>
-          ) : (
+          )}
+          {shown.length > 0 && (
             <div className="task-list" role="list">{shown.map((t) => <TaskRow key={t.id} t={t} bot={byId.get(t.botId)} showBot />)}</div>
           )}
         </div>
@@ -347,7 +373,7 @@ export function TasksView() {
 /** Sidebar entry for the Tasks view, with a count of tasks waiting on the user. */
 export function TasksIsland() {
   const view = useConfigUI((s) => s.view);
-  const tasks = useTasks();
+  const { tasks } = useTasks();
   const waiting = tasks?.filter((t) => t.state === 'needs_input').length ?? 0;
   return (
     <button
@@ -370,7 +396,7 @@ export function TasksIsland() {
 
 /** Tasks for one bot (details panel → Tasks tab). */
 export function BotTasks({ bot }: { bot: Bot }) {
-  const tasks = useTasks(bot.id);
+  const { tasks, failed, retry } = useTasks(bot.id);
   const [newTitle, setNewTitle] = useState('');
   const [adding, setAdding] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -430,9 +456,12 @@ export function BotTasks({ bot }: { bot: Bot }) {
             {adding ? <span className="cfg-spinner" /> : <Icon name="plus" size={12} />}
           </button>
         </form>
-        {tasks === null ? <div className="panel-card"><div className="panel-empty">Loading…</div></div> : sorted.length === 0 ? (
+        {failed && <TaskLoadError retry={retry} />}
+        {!failed && tasks === null && <div className="panel-card"><div className="panel-empty">Loading…</div></div>}
+        {!failed && tasks !== null && sorted.length === 0 && (
           <div className="panel-card"><div className="panel-empty">No tasks yet. Ask {bot.name} for a few things at once and they’ll be tracked here.</div></div>
-        ) : (
+        )}
+        {sorted.length > 0 && (
           <div className="panel-card task-list task-list--compact" role="list">{sorted.map((t) => <TaskRow key={t.id} t={t} bot={bot} showBot={false} />)}</div>
         )}
       </section>
