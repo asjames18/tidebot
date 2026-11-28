@@ -151,7 +151,7 @@ Before opening the studio from source, enable at least one sign-in method in `.e
 
 You can add model API keys in `.env` now, or start the server first and paste them into **Settings → Models & OpenRouter** in the web UI. If you were signed in before upgrading, sign in again.
 
-In the desktop app, select **Create local account** to choose your own email and password. Desktop accounts are stored in TideBot on that computer and use a personal OpenRouter key configured under **Settings → Models & OpenRouter**.
+In the desktop app, select **Create local account** to choose your own email and password. The first local account manages provider settings for that installation unless a studio administrator is configured. Use **Settings → Connected apps** for your Composio key, **Models & OpenRouter** for model providers, and **Setup** for Orgo. Other local accounts can use their own personal OpenRouter keys.
 
 On the first sign-in without a model, TideBot opens **Settings → Setup**. Use **Connect and test OpenRouter** to verify a key before saving it, or continue without a model to explore the studio. Studio administrators can choose a shared OpenAI-compatible model in **Models & OpenRouter** and configure optional app, cloud desktop, and voice services. A local model must already be running at the address you enter.
 

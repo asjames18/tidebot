@@ -33,7 +33,7 @@ for (const p of ['/bots/*', '/skills/*', '/computer/*', '/llm/*']) configApi.use
 
 configApi.get('/llm/config', (c) => {
   if (c.req.query('scope') === 'studio') {
-    if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can view shared settings.' }, 403);
+    if (!c.get('canManageStudio')) return c.json({ error: 'Only the studio owner or administrator can view shared settings.' }, 403);
     return c.json(getPublicLlmConfig());
   }
   return c.json(getPublicLlmConfig(c.get('user').id, false));
@@ -42,7 +42,7 @@ configApi.get('/llm/config', (c) => {
 configApi.get('/llm/personal', (c) => {
   if (!c.get('verifiedSession')) return c.json({ error: 'Sign in with your account to manage your OpenRouter key.' }, 403);
   c.header('Cache-Control', 'no-store');
-  return c.json({ ...publicPersonalModel(c.get('user').id), canInvite: c.get('studioAdmin') });
+  return c.json({ ...publicPersonalModel(c.get('user').id), canInvite: c.get('studioAdmin'), canManageStudio: c.get('canManageStudio') });
 });
 
 configApi.put('/llm/personal', async (c) => {
@@ -55,7 +55,7 @@ configApi.put('/llm/personal', async (c) => {
     return c.json({ error: 'Enter a valid OpenRouter model ID.' }, 400);
   }
   c.header('Cache-Control', 'no-store');
-  return c.json({ ...savePersonalModel(c.get('user').id, body.openrouterKey, body.defaultModel), canInvite: c.get('studioAdmin') });
+  return c.json({ ...savePersonalModel(c.get('user').id, body.openrouterKey, body.defaultModel), canInvite: c.get('studioAdmin'), canManageStudio: c.get('canManageStudio') });
 });
 
 configApi.post('/llm/personal/test', async (c) => {
@@ -80,7 +80,7 @@ configApi.post('/llm/personal/connect', async (c) => {
 });
 
 configApi.put('/llm/config', async (c) => {
-  if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can change shared settings.' }, 403);
+  if (!c.get('canManageStudio')) return c.json({ error: 'Only the studio owner or administrator can change shared settings.' }, 403);
   const body = await c.req.json().catch(() => ({}));
   if (body.customBaseUrl !== undefined && String(body.customBaseUrl).trim()) {
     try { await assertPublicUrl(String(body.customBaseUrl).trim(), { allowLoopback: true }); }
@@ -106,11 +106,11 @@ configApi.put('/llm/config', async (c) => {
 });
 
 configApi.post('/llm/test', async (c) => {
-  return c.json(await testLlmConnection(c.get('studioAdmin') ? undefined : c.get('user').id));
+  return c.json(await testLlmConnection(c.get('canManageStudio') ? undefined : c.get('user').id));
 });
 
 configApi.post('/llm/test-composio', async (c) => {
-  if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can test the Composio key.' }, 403);
+  if (!c.get('canManageStudio')) return c.json({ error: 'Only the studio owner or administrator can test the Composio key.' }, 403);
   const t0 = Date.now();
   try {
     if (!env.composioKey) return c.json({ ok: false, error: 'COMPOSIO_API_KEY is not configured.' });
@@ -122,7 +122,7 @@ configApi.post('/llm/test-composio', async (c) => {
 });
 
 configApi.post('/llm/connect-orgo', async (c) => {
-  if (!c.get('studioAdmin')) return c.json({ error: 'Only the studio administrator can connect Orgo.' }, 403);
+  if (!c.get('canManageStudio')) return c.json({ error: 'Only the studio owner or administrator can connect Orgo.' }, 403);
   const { apiKey } = (await c.req.json<{ apiKey?: unknown }>().catch(() => null)) ?? {};
   if (typeof apiKey !== 'string' || !apiKey.trim() || apiKey.length > 512 || /\s/.test(apiKey)) {
     return c.json({ error: 'Enter a valid Orgo API key.' }, 400);

@@ -441,7 +441,7 @@ function AccountModelsSection() {
       </form>}
       {status && <p role="status" className="cfg-row__sub">{status}</p>}
     </section>
-    {personal?.canInvite && <ModelsSection />}
+    {personal?.canManageStudio && <ModelsSection />}
   </>;
 }
 
@@ -1135,12 +1135,20 @@ function AppsSection() {
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const setLlmConfig = useConfigUI((s) => s.setLlmConfig);
   const [apps, setApps] = useState<Toolkit[] | null>(null);
+  const [canManageStudio, setCanManageStudio] = useState<boolean | 'unavailable'>();
   const [composioKey, setComposioKey] = useState('');
   const [savingKey, setSavingKey] = useState(false);
   const [testingKey, setTestingKey] = useState(false);
   const [keyNote, setKeyNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => { configApi.connectedApps().then((r) => setApps(r.connectedApps ?? [])).catch(() => setApps([])); }, [version]);
+  useEffect(() => {
+    let active = true;
+    api.systemStatus()
+      .then((status) => { if (active) setCanManageStudio(status.canManageStudio); })
+      .catch(() => { if (active) setCanManageStudio('unavailable'); });
+    return () => { active = false; };
+  }, []);
   const openApps = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
@@ -1159,7 +1167,7 @@ function AppsSection() {
   };
 
   const saveComposioKey = async () => {
-    if (!composioKey.trim() || savingKey || testingKey) return;
+    if (canManageStudio !== true || !composioKey.trim() || savingKey || testingKey) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(12); } catch {}
     }
@@ -1181,7 +1189,7 @@ function AppsSection() {
   };
 
   const testComposio = async () => {
-    if (testingKey || savingKey) return;
+    if (canManageStudio !== true || testingKey || savingKey) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
@@ -1216,46 +1224,53 @@ function AppsSection() {
         <div className="cfg-section__label">Composio Engine Status</div>
         <div className="cfg-card cfg-card--padded">
           <div className="cfg-field">
-            <label className="cfg-field__label">
+            <div className="cfg-field__label">
               Composio API Key
               {llmConfig?.hasComposioKey ? (
-                <span className="cfg-chip" style={{ marginLeft: 8 }}>Active: {llmConfig.composioKeyHint}</span>
+                <span className="cfg-chip" style={{ marginLeft: 8 }}>{canManageStudio === true ? `Active: ${llmConfig.composioKeyHint}` : 'Configured'}</span>
               ) : (
                 <span className="cfg-chip" style={{ marginLeft: 8, opacity: 0.7 }}>Unconfigured</span>
               )}
-            </label>
-            <input
-              type="password"
-              className="cfg-input"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              autoComplete="off"
-              enterKeyHint="done"
-              placeholder={llmConfig?.hasComposioKey ? 'Paste new key to replace saved COMPOSIO_API_KEY (ak_...)' : 'ak_...'}
-              value={composioKey}
-              onChange={(e) => { setComposioKey(e.target.value); if (keyNote) setKeyNote(null); }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (window.innerWidth <= 900) e.currentTarget.blur();
-                  if (composioKey.trim()) void saveComposioKey();
-                }
-              }}
-            />
-            <div className="cfg-field__hint">
-              Get your key at <a href="https://app.composio.dev" target="_blank" rel="noreferrer">app.composio.dev</a>. Hot-reloads immediately without restarting the server.
             </div>
+            {canManageStudio === true ? <>
+              <input
+                aria-label="Composio API key"
+                type="password"
+                className="cfg-input"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                autoComplete="off"
+                enterKeyHint="done"
+                placeholder={llmConfig?.hasComposioKey ? 'Paste new key to replace saved COMPOSIO_API_KEY (ak_...)' : 'ak_...'}
+                value={composioKey}
+                onChange={(e) => { setComposioKey(e.target.value); if (keyNote) setKeyNote(null); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (window.innerWidth <= 900) e.currentTarget.blur();
+                    if (composioKey.trim()) void saveComposioKey();
+                  }
+                }}
+              />
+              <div className="cfg-field__hint">
+                Get your key at <a href="https://app.composio.dev" target="_blank" rel="noreferrer">app.composio.dev</a>. Hot-reloads immediately without restarting the server.
+              </div>
+            </> : <p className="cfg-field__hint" role="status">
+              {canManageStudio === false ? 'The studio owner or administrator manages the shared Composio key. You can connect your own apps once it is configured.'
+                : canManageStudio === 'unavailable' ? 'Could not check studio permissions. Reopen Settings to try again.'
+                : 'Checking studio permissions…'}
+            </p>}
           </div>
           <div className="byom-actions">
-            {composioKey.trim() && (
+            {canManageStudio === true && composioKey.trim() && (
               <button type="button" className="cfg-btn cfg-btn--primary" disabled={savingKey || testingKey} onClick={() => void saveComposioKey()}>
                 {savingKey ? 'Saving…' : 'Save Key'}
               </button>
             )}
-            <button type="button" className="cfg-btn cfg-btn--secondary" disabled={testingKey || savingKey} onClick={() => void testComposio()}>
+            {canManageStudio === true && <button type="button" className="cfg-btn cfg-btn--secondary" disabled={testingKey || savingKey} onClick={() => void testComposio()}>
               {testingKey ? 'Verifying…' : 'Test Composio Catalog'}
-            </button>
+            </button>}
             <button type="button" className="cfg-btn cfg-btn--primary" onClick={openApps}>
               Browse & Connect Apps
             </button>

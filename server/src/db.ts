@@ -212,6 +212,19 @@ db.exec(`
   );
 `);
 addColumn('local_passwords', 'desktop_only', 'INTEGER NOT NULL DEFAULT 0');
+db.exec(`
+  CREATE TABLE IF NOT EXISTS desktop_owner (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    user_id TEXT REFERENCES local_passwords(user_id) ON DELETE SET NULL
+  );
+`);
+if (env.desktopSignupOrigin) {
+  // Existing desktop installs keep the first local password account as their owner.
+  db.exec(`
+    INSERT OR IGNORE INTO desktop_owner (id, user_id)
+    SELECT 1, user_id FROM local_passwords WHERE desktop_only = 1 ORDER BY rowid LIMIT 1;
+  `);
+}
 // Older builds could attach an existing workspace desktop to more than one account.
 // Disconnect those ambiguous assignments without touching the remote desktops.
 db.transaction(() => {
