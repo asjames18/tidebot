@@ -316,6 +316,7 @@ export function Sidebar() {
             <Icon name="apps" />
           </button>
         </div>
+        {!collapsed && <div className="sidebar__credit">Built by Melanated in Tech</div>}
       </div>
     </aside>
   );
