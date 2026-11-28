@@ -5,6 +5,7 @@ import { newId, sha256 } from '../lib/ids.js';
 import { assertUrlHostAllowedSync } from '../lib/ssrf.js';
 import { withRetry } from '../lib/retry.js';
 import { decryptSecret, encryptSecret } from '../lib/secrets.js';
+import { extractProviderUsage, type ProviderUsage } from '../lib/usage.js';
 import path from 'node:path';
 
 const secretsDir = () => path.dirname(env.dbPath);
@@ -578,7 +579,7 @@ export async function streamModelTurn(opts: {
   tools: any[];
   signal: AbortSignal;
   callbacks: StreamTurnCallbacks;
-}): Promise<{ output: any[]; inputTokens?: number; isLocalFallback?: boolean; localReply?: string }> {
+}): Promise<{ output: any[]; inputTokens?: number; usage?: ProviderUsage | null; provider?: LlmProvider; model?: string; isLocalFallback?: boolean; localReply?: string }> {
   const cfg = getLlmConfig(opts.userId);
   const model = resolveBotModel(opts.bot, cfg);
   const { client, apiKey } = getClient(cfg);
@@ -643,7 +644,8 @@ export async function streamModelTurn(opts: {
       }
     }
     if (!final) throw new Error('model stream ended without a response');
-    return { output: final.output ?? [], inputTokens: final.usage?.input_tokens };
+    const usage = extractProviderUsage(final.usage);
+    return { output: final.output ?? [], inputTokens: usage?.inputTokens ?? undefined, usage, provider: cfg.provider, model };
   }
 
   // Path B: OpenRouter & Custom OpenAI-Compatible Chat Completions API
@@ -655,6 +657,7 @@ export async function streamModelTurn(opts: {
     model,
     messages,
     stream: true,
+    stream_options: { include_usage: true },
     reasoning: { effort },
   };
   if (chatTools.length) {
@@ -669,11 +672,17 @@ export async function streamModelTurn(opts: {
     } catch (e: any) {
       const rejectedToolStream = cfg.provider === 'custom' && e?.status === 500 &&
         e.error?.message === 'Cannot use tools with stream';
-      if (opts.signal.aborted || !reqBody.tools?.length ||
-          !(rejectedToolStream || e?.status === 400 || e?.status === 404)) throw e;
+      const rejectedStreamOptions = cfg.provider === 'custom' && reqBody.stream_options && (e?.status === 400 || e?.status === 422);
+      if (opts.signal.aborted) throw e;
+      if (rejectedStreamOptions && !reqBody.tools?.length) {
+        delete reqBody.stream_options;
+        return send();
+      }
+      if (!reqBody.tools?.length || !(rejectedToolStream || e?.status === 400 || e?.status === 404 || e?.status === 422)) throw e;
       console.warn('[llm] provider rejected tool request; retrying plain chat');
       delete reqBody.tools;
       delete reqBody.reasoning;
+      if (cfg.provider === 'custom') delete reqBody.stream_options;
       return send();
     }
   }, opts.signal) as unknown as AsyncIterable<any>;
@@ -682,10 +691,15 @@ export async function streamModelTurn(opts: {
   let fullReasoning = '';
   const toolCallsByIndex = new Map<number, { id: string; name: string; arguments: string }>();
   let inputTokens: number | undefined;
+  let usage: ProviderUsage | null = null;
 
   for await (const chunk of stream) {
-    if (chunk?.usage?.prompt_tokens) {
-      inputTokens = chunk.usage.prompt_tokens;
+    if (chunk?.usage) {
+      const parsed = extractProviderUsage(chunk.usage);
+      if (parsed) {
+        usage = parsed;
+        if (parsed.inputTokens !== null) inputTokens = parsed.inputTokens;
+      }
     }
     const delta = chunk?.choices?.[0]?.delta;
     if (!delta) continue;
@@ -741,7 +755,7 @@ export async function streamModelTurn(opts: {
     });
   }
 
-  return { output, inputTokens };
+  return { output, inputTokens, usage, provider: cfg.provider, model };
 }
 
 /** Non-streaming helper for memory consolidation, history summarization, and connection testing. */

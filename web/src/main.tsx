@@ -20,10 +20,12 @@ createRoot(document.getElementById('root')!).render(
 );
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
+  // A deployed worker claims this tab via skipWaiting + clients.claim; attach
+  // before load/registration so an update arriving during startup is not missed.
+  watchForAppUpdates(navigator.serviceWorker, () => window.location.reload());
+  const registerSw = () => {
     navigator.serviceWorker.register('/sw.js').catch(() => { /* offline shell is best-effort */ });
-    // A deployed worker claims this tab via skipWaiting + clients.claim;
-    // reload once so the tab runs the fresh bundle instead of dangling chunks.
-    watchForAppUpdates(navigator.serviceWorker, () => window.location.reload());
-  });
+  };
+  if (document.readyState === 'complete') registerSw();
+  else window.addEventListener('load', registerSw, { once: true });
 }

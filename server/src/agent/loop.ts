@@ -13,6 +13,7 @@ import { maybeCompact, noteUsage } from './memory.js';
 import { noteCheckinOutcome } from '../proactive.js';
 import { resolveBotModel, getLlmConfig, streamModelTurn } from './llm.js';
 import { redactSecrets } from '../lib/redact.js';
+import { recordUsageEvent } from '../lib/usage.js';
 import { activityFor, functionSchemas, humanizeSlug, policyFor, runComposioTool, toolMap, type ToolCtx, type ToolResult } from './tools.js';
 
 export type Trigger =
@@ -428,6 +429,15 @@ async function callModel(ctx: ToolCtx, tools: any[], signal: AbortSignal): Promi
     flush(false);
     db.prepare('UPDATE bots SET unread = unread + 1 WHERE id=?').run(botId);
   }
+  try {
+    recordUsageEvent(db, {
+      botId,
+      runId: runContext.getStore()?.id ?? null,
+      provider: res.provider ?? 'openrouter',
+      model: res.model ?? activeModel,
+      usage: res.usage ?? null,
+    });
+  } catch { /* best-effort telemetry; never fail a completed turn */ }
   if (res.inputTokens) noteUsage(botId, res.inputTokens, history.length);
   return { output: res.output };
 }

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tidebot.melanatedintech.com/sitemap.xml

@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Bot, ComputerState, Routine } from '@shared/types';
+import type { Bot, BotUsageResponse, ComputerState, Routine } from '@shared/types';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { api, openPopup } from '../lib/api';
+import { configApi } from '../lib/configApi';
 import { botVars } from '../lib/colors';
 import { closeDetailsAndReturnFocus } from '../lib/detailsFocus';
+import { formatUsageSummary } from '../lib/usageFormat';
 import { displayName, useSelectedBot, useStore } from '../store';
 import { Icon } from './Icon';
 import { ToolkitLogo } from './ToolkitLogo';
 import { VoiceSettings } from './VoiceSettings';
 import { MembersCard } from './MembersCard';
-import { useConfigUI } from '../configStore';
+import { useConfigUI, useVersion } from '../configStore';
 import { Glyph } from './config/glyphs';
 import { LibraryTab } from './config/LibraryTab';
 import { RunHistory } from './config/RunHistory';
@@ -175,10 +177,21 @@ export function DetailsPanel() {
   const swipeLocked = useRef<'x' | 'y' | null>(null);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [botUsage, setBotUsage] = useState<BotUsageResponse | null>(null);
+  const runsVersion = useVersion(bot ? `runs:${bot.id}` : 'runs:none');
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [tab, bot?.id]);
+
+  useEffect(() => {
+    if (!bot || bot.kind === 'room') { setBotUsage(null); return; }
+    let active = true;
+    configApi.botUsage(bot.id)
+      .then((res) => { if (active) setBotUsage(res); })
+      .catch(() => { if (active) setBotUsage(null); });
+    return () => { active = false; };
+  }, [bot?.id, bot?.kind, runsVersion, tab]);
 
   useEffect(() => {
     if (window.innerWidth <= 900) closeRef.current?.focus();
@@ -187,6 +200,7 @@ export function DetailsPanel() {
   if (!bot) return null;
 
   const activeModel = bot.model || llmConfig?.defaultModel || 'anthropic/claude-3.7-sonnet';
+  const operatorUsage = formatUsageSummary(botUsage?.totals);
 
   const blurActiveOnMobile = () => {
     if (window.innerWidth <= 900) {
@@ -402,6 +416,17 @@ export function DetailsPanel() {
                     </span>
                     <Icon name="chev_right" size={12} opacity={0.56} />
                   </button>
+                  <div className="panel-row" aria-label="Operator usage and cost">
+                    <span className="panel-row__text">
+                      <span className="panel-row__title">
+                        {operatorUsage.tokens}
+                      </span>
+                      <span className="panel-row__sub">
+                        {operatorUsage.cost}
+                        {operatorUsage.note ? ` · ${operatorUsage.note}` : ''}
+                      </span>
+                    </span>
+                  </div>
                 </div>
               </section>
             )}

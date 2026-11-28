@@ -93,12 +93,14 @@ export function CreateBotModal() {
   const [mode, setMode] = useState<Bot['mode']>('personal');
   const [activeTemplate, setActiveTemplate] = useState(BLANK.id);
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bodyTouchStartYRef = useRef<number | null>(null);
   const customChoices = useRef({ shape: false, color: false, mode: false });
   const close = useCallback(() => setModal(null), [setModal]);
-  const canCreate = name.trim().length > 0 && !busy;
+  const canCreate = name.trim().length > 0 && !busy && !importing;
 
   useEffect(() => {
     if (!curatedModels.length) void loadModels();
@@ -135,6 +137,33 @@ export function CreateBotModal() {
   const chooseMode = (mode: Bot['mode']) => {
     customChoices.current.mode = true;
     setMode(mode);
+  };
+
+  const importTemplateFile = async (file: File | null) => {
+    if (!file || busy || importing) return;
+    setImporting(true);
+    setError(null);
+    try {
+      const text = await file.text();
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        throw new Error('Selected file is not valid JSON.');
+      }
+      const { bot } = await api.importBot(parsed);
+      const st = useStore.getState();
+      st.set({ bots: st.bots.some((b) => b.id === bot.id) ? st.bots : [...st.bots, bot], detailsOpen: false, detailsTab: 'activity' });
+      useConfigUI.getState().setView('chat');
+      st.selectBot(bot.id);
+      st.notify(`Imported ${bot.name}`);
+      close();
+    } catch (e) {
+      setError((e as Error).message || 'Could not import Operator template.');
+      setImporting(false);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const create = async () => {
@@ -204,7 +233,25 @@ export function CreateBotModal() {
           onTouchCancel={() => { bodyTouchStartYRef.current = null; }}
         >
           <section className="create-modal__section" aria-labelledby="create-bot-role">
-            <h3 id="create-bot-role">Choose a role</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <h3 id="create-bot-role" style={{ margin: 0 }}>Choose a role</h3>
+              <button
+                type="button"
+                className="link-btn link-btn--small"
+                disabled={busy || importing}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {importing ? 'Importing…' : 'Import from file…'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                style={{ display: 'none' }}
+                aria-label="Import Operator template JSON file"
+                onChange={(e) => void importTemplateFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
             <div className="create-modal__templates" role="group" aria-labelledby="create-bot-role">
               {STARTERS.map((t) => (
                 <button

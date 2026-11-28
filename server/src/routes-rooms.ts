@@ -21,10 +21,12 @@ function eligibleMembers(userId: string, ids: unknown): string[] {
 roomsApi.get('/:id/members', (c) => {
   const room = ownRoom(c.get('user').id, c.req.param('id'));
   if (!room) return c.json({ error: 'not found' }, 404);
-  const members = roomMembers(room.id).map((m) => {
-    const b = db.prepare('SELECT id, name, label, avatar_shape, avatar_color FROM bots WHERE id=?').get(m.id) as any;
-    return { id: b.id, name: b.name, label: b.label, avatarShape: b.avatar_shape, avatarColor: b.avatar_color };
-  });
+  const members = roomMembers(room.id)
+    .map((m) => {
+      const b = db.prepare('SELECT id, name, label, avatar_shape, avatar_color FROM bots WHERE id=?').get(m.id) as any;
+      return b ? { id: b.id, name: b.name, label: b.label, avatarShape: b.avatar_shape, avatarColor: b.avatar_color } : null;
+    })
+    .filter(Boolean);
   return c.json({ members });
 });
 

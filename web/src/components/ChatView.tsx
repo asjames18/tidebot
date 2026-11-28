@@ -285,18 +285,21 @@ export function ChatView() {
                   { label: 'Open computer', onSelect: () => set({ viewerOpen: true }) },
                   { label: 'Copy conversation (.md)', onSelect: () => void shareTranscript() },
                   { label: 'Download full transcript (.md)', onSelect: () => { window.open(api.exportBotUrl(bot.id), '_blank'); } },
-                  ...(bot.kind !== 'room' ? [{
-                    label: cloneBusy ? `Cloning ${bot.name}…` : `Clone ${bot.name}`,
-                    onSelect: () => {
-                      if (cloneBusy) return;
-                      setCloneBusy(true);
-                      api.cloneBot(bot.id).then(({ bot: cloned }) => {
-                        useStore.getState().loadBots().then(() => useStore.getState().selectBot(cloned.id));
-                        flash(`Cloned ${bot.name} → ${cloned.name}`);
-                      }).catch((e) => flash(e.message))
-                        .finally(() => setCloneBusy(false));
+                  ...(bot.kind !== 'room' ? [
+                    { label: `Export ${bot.name} (.json)`, onSelect: () => { window.open(api.exportBotTemplateUrl(bot.id), '_blank'); } },
+                    {
+                      label: cloneBusy ? `Cloning ${bot.name}…` : `Clone ${bot.name}`,
+                      onSelect: () => {
+                        if (cloneBusy) return;
+                        setCloneBusy(true);
+                        api.cloneBot(bot.id).then(({ bot: cloned }) => {
+                          useStore.getState().loadBots().then(() => useStore.getState().selectBot(cloned.id));
+                          flash(`Cloned ${bot.name} → ${cloned.name}`);
+                        }).catch((e) => flash(e.message))
+                          .finally(() => setCloneBusy(false));
+                      },
                     },
-                  }] : []),
+                  ] : []),
                   {
                     label: freshBusy ? 'Starting new chat…' : 'New conversation',
                     onSelect: () => {
