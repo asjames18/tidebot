@@ -1,10 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { closeMenuAndRestoreFocus, nextMenuIndex } from '../lib/menuNav';
 
 export interface MenuItem { label: string; onSelect: () => void; danger?: boolean; hint?: string }
 
-/** Small popover menu anchored by its parent (position: relative). Closes on outside click / Escape. */
+/** Small popover menu anchored by its parent (position: relative). Supports Arrow/Home/End navigation and closes on outside click, Tab, or Escape (restoring trigger focus). */
 export function Menu({ items, onClose, align = 'left', placement = 'below', children }: { items: MenuItem[]; onClose: () => void; align?: 'left' | 'right' | 'center'; placement?: 'below' | 'above'; children?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Keep popover menus within viewport bounds on narrow mobile screens (including rotation / keyboard resize).
   useLayoutEffect(() => {
@@ -41,8 +44,38 @@ export function Menu({ items, onClose, align = 'left', placement = 'below', chil
   }, [items.length, align, placement]);
 
   useEffect(() => {
-    const down = (e: Event) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    const prior = document.activeElement as HTMLElement | null;
+    const getItems = () =>
+      ref.current
+        ? [...ref.current.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])')]
+        : [];
+
+    const first = getItems()[0];
+    first?.focus?.({ preventScroll: true });
+
+    const down = (e: Event) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onCloseRef.current();
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMenuAndRestoreFocus(() => onCloseRef.current(), prior);
+        return;
+      }
+      if (e.key === 'Tab') {
+        onCloseRef.current();
+        return;
+      }
+      const menuItems = getItems();
+      const currentIdx = menuItems.indexOf(document.activeElement as HTMLElement);
+      const next = nextMenuIndex(currentIdx, menuItems.length, e.key);
+      if (next !== null) {
+        e.preventDefault();
+        e.stopPropagation();
+        menuItems[next]?.focus({ preventScroll: true });
+      }
+    };
     const t = setTimeout(() => {
       document.addEventListener('pointerdown', down, { passive: true });
     });
@@ -52,7 +85,7 @@ export function Menu({ items, onClose, align = 'left', placement = 'below', chil
       document.removeEventListener('pointerdown', down);
       document.removeEventListener('keydown', key, true);
     };
-  }, [onClose]);
+  }, []);
   return (
     <div ref={ref} className={`menu is-${align} is-${placement}`} role="menu">
       {children}
@@ -61,12 +94,13 @@ export function Menu({ items, onClose, align = 'left', placement = 'below', chil
           key={it.label}
           type="button"
           role="menuitem"
+          tabIndex={-1}
           className={`menu__item${it.danger ? ' is-danger' : ''}`}
           onClick={() => {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
               try { navigator.vibrate(8); } catch {}
             }
-            onClose();
+            onCloseRef.current();
             it.onSelect();
           }}
         >
