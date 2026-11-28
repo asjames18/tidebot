@@ -155,7 +155,8 @@ export function ChatView() {
     }
   };
 
-  const shareTranscript = async () => {
+  const canShareTranscript = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const exportTranscript = async (action: 'copy' | 'share') => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     setMenu(false);
     setModelMenu(false);
@@ -175,7 +176,7 @@ export function ChatView() {
       }),
     ].join('\n');
 
-    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    if (action === 'share' && canShareTranscript) {
       try {
         await navigator.share({
           title: `Conversation with ${displayName(bot)}`,
@@ -190,6 +191,10 @@ export function ChatView() {
 
     if (await copyText(md)) {
       flash('Copied conversation as Markdown');
+      return;
+    }
+    if (action === 'copy') {
+      flash('Could not copy the conversation. Try Download full transcript.');
       return;
     }
     const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
@@ -283,7 +288,8 @@ export function ChatView() {
                   ...(llmConfig?.isConfigured && !briefingBusy && !live?.isRunning ? [{ label: 'Get a briefing', onSelect: requestBriefing }] : []),
                   { label: 'Search commands', onSelect: () => useStore.getState().setModal('search') },
                   { label: 'Open computer', onSelect: () => set({ viewerOpen: true }) },
-                  { label: 'Copy conversation (.md)', onSelect: () => void shareTranscript() },
+                  { label: 'Copy conversation as Markdown', onSelect: () => void exportTranscript('copy') },
+                  ...(canShareTranscript ? [{ label: 'Share conversation', onSelect: () => void exportTranscript('share') }] : []),
                   { label: 'Download full transcript (.md)', onSelect: () => { window.open(api.exportBotUrl(bot.id), '_blank'); } },
                   ...(bot.kind !== 'room' ? [{
                     label: cloneBusy ? `Cloning ${bot.name}…` : `Clone ${bot.name}`,
@@ -434,8 +440,8 @@ export function ChatView() {
           <button
             type="button"
             className="share-btn"
-            onClick={() => { void shareTranscript(); }}
-            title="Export conversation as Markdown"
+            onClick={() => { void exportTranscript('share'); }}
+            title="Share conversation as Markdown"
             aria-label="Share conversation"
           >
             <Icon name="share" size={14} opacity={0.8} />
