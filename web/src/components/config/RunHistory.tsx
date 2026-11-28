@@ -3,6 +3,7 @@ import type { AgentRun, Row } from '@shared/types';
 import { useConfigUI, useVersion } from '../../configStore';
 import { gitReviewLauncher } from '../../lib/desktop';
 import { configApi } from '../../lib/configApi';
+import { formatUsageSummary } from '../../lib/usageFormat';
 import { useStore } from '../../store';
 import { Markdown } from '../Markdown';
 import { ResearchForm } from './ResearchForm';
@@ -78,6 +79,7 @@ export function RunHistory({ botId, openLibrary }: { botId: string; openLibrary:
   const openGitReview = gitReviewLauncher();
   const request = detail?.rows.find((row) => row.body.type === 'message' && row.body.role === 'user')?.body;
   const prompt = request?.type === 'message' && detail?.run.state === 'completed' ? request.text : '';
+  const detailUsage = detail ? formatUsageSummary(detail.run.usage) : null;
 
   return <section className="details__sections run-history" aria-label="Run history">
     <div className="section-label section-label--row">
@@ -98,6 +100,12 @@ export function RunHistory({ botId, openLibrary }: { botId: string; openLibrary:
       <div className="run-history__summary">
         <strong>{detail.run.title}</strong>
         <span>{states[detail.run.state]}</span>
+        {detailUsage && (
+          <p className="panel-row__sub" style={{ margin: '4px 0 0' }}>
+            {detailUsage.tokens} · {detailUsage.cost}
+            {detailUsage.note ? ` (${detailUsage.note})` : ''}
+          </p>
+        )}
         {detail.run.summary && <p>{detail.run.summary}</p>}
         <div className="run-history__actions">
           {prompt && <button type="button" className="link-btn" onClick={() =>
@@ -112,19 +120,25 @@ export function RunHistory({ botId, openLibrary }: { botId: string; openLibrary:
         {!detail.rows.length && <p>No output recorded for this run.</p>}
       </div>
     </> : runs?.length ? <ul className="panel-card run-history__list">
-      {runs.map((run) => <li key={run.id}>
-        <button type="button" className="panel-row run-history__item" onClick={() => {
-          setError('');
-          setDetail(undefined);
-          setSelected(run.id);
-        }}>
-          <span className="panel-row__text">
-            <span className="panel-row__title">{run.title}</span>
-            <span className="panel-row__sub">{sources[run.source]} · {new Date(run.createdAt).toLocaleString()}</span>
-          </span>
-          <span className="run-history__state">{states[run.state]}</span>
-        </button>
-      </li>)}
+      {runs.map((run) => {
+        const u = run.usage && run.usage.calls > 0 ? formatUsageSummary(run.usage) : null;
+        return <li key={run.id}>
+          <button type="button" className="panel-row run-history__item" onClick={() => {
+            setError('');
+            setDetail(undefined);
+            setSelected(run.id);
+          }}>
+            <span className="panel-row__text">
+              <span className="panel-row__title">{run.title}</span>
+              <span className="panel-row__sub">
+                {sources[run.source]} · {new Date(run.createdAt).toLocaleString()}
+                {u ? ` · ${u.inline}` : ''}
+              </span>
+            </span>
+            <span className="run-history__state">{states[run.state]}</span>
+          </button>
+        </li>;
+      })}
     </ul> : <p>{runs ? 'Chat with this bot or run a routine to see its history here.' : 'Loading runs…'}</p>}
   </section>;
 }

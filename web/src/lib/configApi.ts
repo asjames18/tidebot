@@ -1,4 +1,4 @@
-import type { AgentRun, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
+import type { AgentRun, BotUsageResponse, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
 import { ApiError } from './api';
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -81,6 +81,7 @@ export const configApi = {
     req<{ runId: string }>('POST', `/bots/${botId}/research`, plan),
   runs: (botId: string) => req<{ runs: AgentRun[] }>('GET', `/bots/${botId}/runs`),
   runDetails: (botId: string, runId: string) => req<{ run: AgentRun; rows: Row[] }>('GET', `/bots/${botId}/runs/${runId}`),
+  botUsage: (botId: string) => req<BotUsageResponse>('GET', `/bots/${botId}/usage`),
 
   tasks: () => req<{ tasks: Task[] }>('GET', '/tasks'),
   botTasks: (botId: string) => req<{ tasks: Task[] }>('GET', `/bots/${botId}/tasks`),
