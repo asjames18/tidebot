@@ -13,6 +13,7 @@ import { maybeCompact, noteUsage } from './memory.js';
 import { noteCheckinOutcome } from '../proactive.js';
 import { resolveBotModel, getLlmConfig, streamModelTurn } from './llm.js';
 import { redactSecrets } from '../lib/redact.js';
+import { recordUsageEvent } from '../lib/usage.js';
 import { activityFor, functionSchemas, humanizeSlug, policyFor, runComposioTool, toolMap, type ToolCtx, type ToolResult } from './tools.js';
 
 export type Trigger =
@@ -219,23 +220,43 @@ async function runTurn(botId: string, trigger: Trigger, runId?: string) {
     }
     if (ctrl.signal.aborted) throw new Error('interrupted');
     if (runId) {
-      if (withoutModel) setRunState(runId, botId, 'failed', 'No model was available for this run.');
-      else setRunState(runId, botId, 'completed');
+      if (withoutModel) {
+        const failureReason = 'No model was available for this run.';
+        setRunState(runId, botId, 'failed', failureReason);
+        if (trigger.type === 'routine') {
+          appendRow(botId, 'notice', { type: 'notice', text: `Routine "${trigger.name}" failed: ${failureReason}`, tone: 'error' });
+          db.prepare('UPDATE bots SET unread = unread + 1 WHERE id=?').run(botId);
+          emitBot(botId);
+        }
+      } else {
+        setRunState(runId, botId, 'completed');
+      }
+      if (trigger.type === 'routine') hub.emit(userId, { type: 'routines', botId });
     }
     if (isCheckin) {
       noteCheckinOutcome(userId, producedMessage && !stayedSilent);
     }
   } catch (e: any) {
     if (getBotRow(botId)?.generation !== bot.generation) return;
-    const msg = ctrl.signal.aborted ? 'Stopped.' : `Something went wrong: ${e?.message ?? e}`;
+    const safeError = redactSecrets(e?.message ?? e, llmKeyValues()).slice(0, 240);
+    const msg = ctrl.signal.aborted
+      ? 'Stopped.'
+      : trigger.type === 'routine'
+        ? `Routine "${trigger.name}" failed: ${safeError}`
+        : `Something went wrong: ${safeError}`;
     appendRow(botId, 'notice', { type: 'notice', text: msg, tone: ctrl.signal.aborted ? 'info' : 'error' });
+    if (!ctrl.signal.aborted && trigger.type === 'routine') {
+      db.prepare('UPDATE bots SET unread = unread + 1 WHERE id=?').run(botId);
+      emitBot(botId);
+    }
     if (runId) {
       const pending = readPending(botId);
       if (pending?.runId === runId) await finishPending(ctx, pending, false);
       setRunState(runId, botId, ctrl.signal.aborted ? 'interrupted' : 'failed',
-        ctrl.signal.aborted ? 'Stopped by the user.' : 'See the conversation for the error.');
+        ctrl.signal.aborted ? 'Stopped by the user.' : safeError || 'See the conversation for the error.');
+      if (trigger.type === 'routine') hub.emit(userId, { type: 'routines', botId });
     }
-    if (!ctrl.signal.aborted) console.error('[agent]', e);
+    if (!ctrl.signal.aborted) console.error('[agent]', redactSecrets(e, llmKeyValues()));
   } finally {
     aborts.delete(botId);
     const stillPending = db.prepare('SELECT 1 FROM pending_turns WHERE bot_id=?').get(botId);
@@ -428,6 +449,15 @@ async function callModel(ctx: ToolCtx, tools: any[], signal: AbortSignal): Promi
     flush(false);
     db.prepare('UPDATE bots SET unread = unread + 1 WHERE id=?').run(botId);
   }
+  try {
+    recordUsageEvent(db, {
+      botId,
+      runId: runContext.getStore()?.id ?? null,
+      provider: res.provider ?? 'openrouter',
+      model: res.model ?? activeModel,
+      usage: res.usage ?? null,
+    });
+  } catch { /* best-effort telemetry; never fail a completed turn */ }
   if (res.inputTokens) noteUsage(botId, res.inputTokens, history.length);
   return { output: res.output };
 }

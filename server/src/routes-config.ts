@@ -8,6 +8,7 @@ import { newId } from './lib/ids.js';
 import { hub } from './lib/hub.js';
 import { requireUser, type AuthVars } from './lib/auth.js';
 import { getBotRow, listRoutines, listTasks } from './store.js';
+import { setupStatus } from './setup-status.js';
 import { computerState, ensureComputer } from './computer.js';
 import { orgo } from './orgo.js';
 import { checkComposioConnection } from './composio.js';
@@ -27,7 +28,7 @@ import type { LibraryFile, Memory, Skill } from './types.js';
  */
 export const configApi = new Hono<AuthVars>();
 
-for (const p of ['/bots/*', '/skills/*', '/computer/*', '/llm/*']) configApi.use(p, requireUser);
+for (const p of ['/bots/*', '/skills/*', '/computer/*', '/llm/*', '/setup/*']) configApi.use(p, requireUser);
 
 // ---------- BYOM / OpenRouter runtime config & models ----------
 
@@ -37,6 +38,14 @@ configApi.get('/llm/config', (c) => {
     return c.json(getPublicLlmConfig());
   }
   return c.json(getPublicLlmConfig(c.get('user').id, false));
+});
+
+// ---------- first-run wizard (plan §2.2) ----------
+
+/** Resume state for the guided first-run wizard: which of its steps are done. */
+configApi.get('/setup/status', (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json(setupStatus(c.get('user').id));
 });
 
 configApi.get('/llm/personal', (c) => {

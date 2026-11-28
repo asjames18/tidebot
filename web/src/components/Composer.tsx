@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Bot } from '@shared/types';
 import { api } from '../lib/api';
+import { DraftStore, insertDictatedText } from '../lib/composerDrafts';
 import { configApi } from '../lib/configApi';
 import { displayName, useStore } from '../store';
 import { useConfigUI } from '../configStore';
@@ -10,7 +11,7 @@ import { endCall, isCallActive, startCall, useVoice } from '../voice/call';
 import { useDictation } from '../voice/dictation';
 
 const MAX_H = 200;
-const drafts = new Map<string, string>();
+const drafts = new DraftStore();
 const EFFORT_CYCLE: Bot['effort'][] = ['low', 'medium', 'high', 'xhigh'];
 
 const SLASH_COMMANDS: { cmd: string; desc: string; template?: string; action?: 'clear' | 'apps' | 'fast' | 'deep' | 'models' }[] = [
@@ -28,7 +29,7 @@ const SLASH_COMMANDS: { cmd: string; desc: string; template?: string; action?: '
 ];
 
 export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
-  const [text, setText] = useState(() => drafts.get(bot.id) ?? '');
+  const [text, setText] = useState(() => drafts.get(bot.id));
   const [sending, setSending] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [freshBusy, setFreshBusy] = useState(false);
@@ -37,14 +38,23 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   const [menu, setMenu] = useState(false);
   const [confirmFresh, setConfirmFresh] = useState(false);
   const confirmTimer = useRef<number | null>(null);
+  const activeBotIdRef = useRef(bot.id);
+  activeBotIdRef.current = bot.id;
   const ref = useRef<HTMLTextAreaElement>(null);
   const setModal = useStore((s) => s.setModal);
 
-  // Per-bot drafts.
+  const updateText = (next: string) => {
+    drafts.set(activeBotIdRef.current, next);
+    setText(next);
+  };
+
+  // Per-bot drafts: read directly on switch without overwriting the newly selected bot's draft.
   useEffect(() => {
-    setText(drafts.get(bot.id) ?? '');
+    setText(drafts.get(bot.id));
     setError(null);
     setMenu(false);
+    setSending(false);
+    setEnhancing(false);
     setStopping(false);
     setFreshBusy(false);
     setConfirmFresh(false);
@@ -55,7 +65,6 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   }, [bot.id]);
   useEffect(() => { if (!running) setStopping(false); }, [running]);
   useEffect(() => () => { if (confirmTimer.current) window.clearTimeout(confirmTimer.current); }, []);
-  useEffect(() => { drafts.set(bot.id, text); }, [bot.id, text]);
 
   // Auto-grow.
   useLayoutEffect(() => {
@@ -79,21 +88,27 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(10); } catch {}
     }
+    const targetBotId = bot.id;
     setSending(true); setError(null);
     let sent = false;
     try {
-      await api.send(bot.id, t);
-      setText('');
-      drafts.delete(bot.id);
+      await api.send(targetBotId, t);
+      if (drafts.completeSend(targetBotId, activeBotIdRef.current, t)) {
+        setText('');
+      }
       sent = true;
     } catch (e) {
-      setError((e as Error).message || 'Message failed to send');
+      if (activeBotIdRef.current === targetBotId) {
+        setError((e as Error).message || 'Message failed to send');
+      }
     } finally {
-      setSending(false);
-      if (sent && typeof window !== 'undefined' && window.innerWidth <= 900) {
-        ref.current?.blur();
-      } else if (typeof window === 'undefined' || window.innerWidth > 900) {
-        ref.current?.focus();
+      if (activeBotIdRef.current === targetBotId) {
+        setSending(false);
+        if (sent && typeof window !== 'undefined' && window.innerWidth <= 900) {
+          ref.current?.blur();
+        } else if (typeof window === 'undefined' || window.innerWidth > 900) {
+          ref.current?.focus();
+        }
       }
     }
   };
@@ -120,33 +135,35 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
     const raw = text.trim();
     if (!raw || enhancing) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+    const targetBotId = bot.id;
     setEnhancing(true);
     setError(null);
     try {
       const res = await configApi.enhancePrompt(raw, bot.name, bot.label);
-      if (res.ok && res.text) {
+      if (res.ok && res.text && drafts.completeEnhance(targetBotId, activeBotIdRef.current, raw, res.text)) {
         setText(res.text);
         requestAnimationFrame(() => ref.current?.focus());
       }
     } catch (e) {
-      setError((e as Error).message || 'Could not enhance prompt');
+      if (activeBotIdRef.current === targetBotId) {
+        setError((e as Error).message || 'Could not enhance prompt');
+      }
     } finally {
-      setEnhancing(false);
+      if (activeBotIdRef.current === targetBotId) setEnhancing(false);
     }
   };
 
   // Dictation: insert the transcript at the cursor.
   const insertText = (t: string) => {
     const el = ref.current;
+    const targetBotId = activeBotIdRef.current;
     setText((cur) => {
       const start = el && document.activeElement === el ? el.selectionStart : cur.length;
       const end = el && document.activeElement === el ? el.selectionEnd : cur.length;
-      const before = cur.slice(0, start);
-      const after = cur.slice(end);
-      const pre = before && !/\s$/.test(before) ? ' ' : '';
-      const post = after && !/^\s/.test(after) ? ' ' : '';
-      requestAnimationFrame(() => { if (el) { const pos = before.length + pre.length + t.length; el.focus(); el.setSelectionRange(pos, pos); } });
-      return before + pre + t + post + after;
+      const { text: next, caret } = insertDictatedText(cur, t, start, end);
+      drafts.set(targetBotId, next);
+      requestAnimationFrame(() => { if (el) { el.focus(); el.setSelectionRange(caret, caret); } });
+      return next;
     });
   };
   const dictation = useDictation(insertText, setError, bot.voiceLanguage);
@@ -161,12 +178,11 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
   const runSlash = (item: (typeof SLASH_COMMANDS)[number]) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     if (item.template) {
-      setText(item.template);
+      updateText(item.template);
       requestAnimationFrame(() => ref.current?.focus());
       return;
     }
-    setText('');
-    drafts.delete(bot.id);
+    updateText('');
     if (typeof window !== 'undefined' && window.innerWidth <= 900 && (item.action === 'apps' || item.action === 'models')) {
       ref.current?.blur();
     }
@@ -356,14 +372,14 @@ export function Composer({ bot, running }: { bot: Bot; running: boolean }) {
             enterKeyHint="send"
             value={text}
             placeholder={`Message ${displayName(bot)} (type / for commands)`}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => updateText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Tab' && matchingSlash.length > 0) {
                 e.preventDefault();
                 runSlash(matchingSlash[0]);
                 return;
               }
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) {
                 e.preventDefault();
                 if (matchingSlash.length === 1 && text.trim() === matchingSlash[0].cmd) {
                   runSlash(matchingSlash[0]);

@@ -27,6 +27,10 @@
   <a href="AGENTS.md">AGENTS.md</a>
 </p>
 
+<p align="center">
+  Built by <a href="https://melanatedintech.com">Melanated in Tech</a>
+</p>
+
 ---
 
 ## ✨ Key Features
@@ -297,7 +301,7 @@ tidebot/
 
 Contributions are welcome — bug reports, docs, new Operator tools, provider integrations, UI polish. Great first contributions: an OpenRouter/Ollama model cookbook entry, a Composio tool example, or a WebGL shader preset.
 
-1. Read [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, branch naming, and the PR checklist.
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, branch naming, and the PR checklist. See [CHANGELOG.md](CHANGELOG.md) for what changed recently.
 2. Fork the repository and create a feature branch (`git checkout -b feat/amazing-capability`).
 3. Run verification before committing:
    ```bash
@@ -311,6 +315,7 @@ Contributions are welcome — bug reports, docs, new Operator tools, provider in
 - 💬 Questions & ideas: [open a Discussion](https://github.com/asjames18/tidebot/discussions).
 - 📜 Community standards: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - 📦 Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — licenses for bundled work.
+- 🗺️ Roadmap: [ROADMAP.md](ROADMAP.md) — where TideBot is headed, phase by phase.
 
 ---
 

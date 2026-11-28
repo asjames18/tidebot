@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-
-const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+import {
+  MODAL_AUTOFOCUS_SELECTOR,
+  MODAL_FOCUSABLE_SELECTOR,
+  initialModalControlSelector,
+  nextModalTabTarget,
+  pickInitialModalFocus,
+  sheetSwipeDeltaY,
+  shouldDismissOnEscape,
+} from '../../lib/modalFocus';
 
 /** 50% black scrim + centered dialog. Escape and scrim click close. Focus is trapped inside and restored on close. */
 export function Modal({ onClose, children, className, label, top }: { onClose: () => void; children: ReactNode; className?: string; label: string; top?: number }) {
@@ -72,12 +79,12 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
   const onSheetTouchEnd = (e: React.TouchEvent) => {
     if (touchStartY.current === null) return;
     const wasLocked = dragLocked.current === true;
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    const deltaY = sheetSwipeDeltaY(e.changedTouches, touchStartY.current);
     touchStartY.current = null;
     touchStartX.current = null;
     dragLocked.current = null;
     setDragging(false);
-    if (wasLocked && deltaY > 56) {
+    if (wasLocked && deltaY !== null && deltaY > 56) {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(8); } catch {}
       }
@@ -105,22 +112,26 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
 
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
+    const visible = (el: HTMLElement) => el.offsetParent !== null || el === document.activeElement;
     const k = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); safeClose(); return; }
+      if (shouldDismissOnEscape(e)) { e.preventDefault(); safeClose(); return; }
       if (e.key !== 'Tab' || !ref.current) return;
-      const els = [...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement);
-      if (!els.length) return;
-      const first = els[0];
-      const last = els[els.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-      else if (!ref.current.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+      const els = [...ref.current.querySelectorAll<HTMLElement>(MODAL_FOCUSABLE_SELECTOR)].filter(visible);
+      const active = document.activeElement as HTMLElement | null;
+      const target = nextModalTabTarget(ref.current, els, active, e.shiftKey, ref.current.contains(active));
+      if (target) { e.preventDefault(); target.focus(); }
     };
     window.addEventListener('keydown', k);
     const t = setTimeout(() => {
+      const dialog = ref.current;
+      if (!dialog) return;
+      if (document.activeElement && document.activeElement !== dialog && dialog.contains(document.activeElement)) return;
       const mobile = window.innerWidth <= 900;
-      const el = ref.current?.querySelector<HTMLElement>(mobile ? '[autofocus], button' : '[autofocus], input, textarea, button');
-      el?.focus();
+      const isVisible = (el: HTMLElement) => el.offsetParent !== null;
+      const autofocused = [...dialog.querySelectorAll<HTMLElement>(MODAL_AUTOFOCUS_SELECTOR)].filter(isVisible);
+      const preferred = [...dialog.querySelectorAll<HTMLElement>(initialModalControlSelector(mobile))].filter(isVisible);
+      const focusables = [...dialog.querySelectorAll<HTMLElement>(MODAL_FOCUSABLE_SELECTOR)].filter(isVisible);
+      pickInitialModalFocus(dialog, autofocused, preferred, focusables).focus();
     });
     return () => {
       window.removeEventListener('keydown', k);
@@ -138,6 +149,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
         role="dialog"
         aria-modal="true"
         aria-label={label}
+        tabIndex={-1}
         onTouchStart={onSheetTouchStart}
         onTouchMove={onSheetTouchMove}
         onTouchEnd={onSheetTouchEnd}

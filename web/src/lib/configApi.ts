@@ -1,4 +1,4 @@
-import type { AgentRun, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
+import type { AgentRun, BotUsageResponse, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, RoutineDryRunResult, SetupStatus, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
 import { ApiError } from './api';
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -42,6 +42,7 @@ export const configApi = {
     req<{ ok: boolean; model: string; error?: string }>('POST', '/llm/personal/connect', { openrouterKey, defaultModel }),
   connectOrgo: (apiKey: string) => req<{ ok: boolean }>('POST', '/llm/connect-orgo', { apiKey }),
   llmConfig: () => req<LlmConfigPublic>('GET', '/llm/config'),
+  setupStatus: () => req<SetupStatus>('GET', '/setup/status'),
   studioLlmConfig: () => req<LlmConfigPublic>('GET', '/llm/config?scope=studio'),
   saveLlmConfig: (p: Partial<{ provider: LlmProvider; openrouterKey: string; xaiKey: string; customBaseUrl: string; customApiKey: string; defaultModel: string; shaderStyle: ShaderStyle; composioKey: string; orgoKey: string }>) =>
     req<LlmConfigPublic>('PUT', '/llm/config', p),
@@ -68,7 +69,9 @@ export const configApi = {
   createRoutine: (botId: string, r: { name: string; prompt: string; schedule: string; timezone?: string }) => req<{ routine: Routine }>('POST', `/bots/${botId}/routines`, r),
   updateRoutine: (id: string, r: Partial<{ name: string; prompt: string; schedule: string; timezone: string; enabled: boolean }>) => req<{ routine: Routine }>('PATCH', `/routines/${id}`, r),
   setRoutine: (id: string, enabled: boolean) => req<{ routine: Routine }>('PATCH', `/routines/${id}`, { enabled }),
-  runRoutine: (id: string) => req<{ ok: true }>('POST', `/routines/${id}/run`),
+  runRoutine: (id: string) => req<{ ok: true; runId?: string }>('POST', `/routines/${id}/run`),
+  dryRunRoutine: (id: string) => req<RoutineDryRunResult>('POST', `/routines/${id}/dry-run`),
+  routineRuns: (id: string, limit = 15) => req<{ runs: AgentRun[] }>('GET', `/routines/${id}/runs?limit=${limit}`),
   deleteRoutine: (id: string) => req<{ ok: true }>('DELETE', `/routines/${id}`),
 
   projects: () => req<{ projects: Project[] }>('GET', '/projects'),
@@ -81,6 +84,7 @@ export const configApi = {
     req<{ runId: string }>('POST', `/bots/${botId}/research`, plan),
   runs: (botId: string) => req<{ runs: AgentRun[] }>('GET', `/bots/${botId}/runs`),
   runDetails: (botId: string, runId: string) => req<{ run: AgentRun; rows: Row[] }>('GET', `/bots/${botId}/runs/${runId}`),
+  botUsage: (botId: string) => req<BotUsageResponse>('GET', `/bots/${botId}/usage`),
 
   tasks: () => req<{ tasks: Task[] }>('GET', '/tasks'),
   botTasks: (botId: string) => req<{ tasks: Task[] }>('GET', `/bots/${botId}/tasks`),

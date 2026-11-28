@@ -30,7 +30,7 @@ TideBot keeps everything on your own machine — there is no cloud copy. The dat
 | Source checkout | `<checkout>/data/grokbot.db` | `<checkout>/data/workspaces/<botId>/` | `<checkout>/.env` |
 | Docker Compose | `tidebot-data` volume, `/data/grokbot.db` | `tidebot-data` volume, `/data/workspaces/<botId>/` | `tidebot-data` volume, `/data/studio.env` |
 
-The desktop data folder is `~/Library/Application Support/TideBot` on macOS, `%APPDATA%\TideBot` on Windows, and `~/.config/TideBot` on Linux. In the desktop app, open it from the **TideBot menu → Open Data Folder**. Changes saved in TideBot's Settings take precedence over the corresponding values in `.env`. Keep `.env` (or `studio.env`) private — it holds your provider keys.
+The desktop data folder is `~/Library/Application Support/TideBot` on macOS, `%APPDATA%\TideBot` on Windows, and `~/.config/TideBot` on Linux. In the desktop app, open it from the **TideBot menu (macOS) or File menu (Windows/Linux) → Open Data Folder**. Changes saved in TideBot's Settings take precedence over the corresponding values in `.env`. Keep `.env` (or `studio.env`) private — it holds your provider keys.
 
 ### Back up and restore
 
@@ -55,3 +55,19 @@ To restore, put the files back in the same locations and start the server again.
 ### Uninstall / clean slate
 
 Uninstalling the desktop app removes the app but leaves your data behind. To start over completely, delete the data folder for your install: the desktop data folder above, `<checkout>/data/` plus `<checkout>/.env` for a source install, or `docker compose down -v` for Docker — the `-v` flag deletes the `tidebot-data` volume and everything in it, so back up first if you want to keep anything.
+
+## Troubleshooting
+
+### Shell commands are refused: "Bubblewrap isolation is unavailable"
+
+**Symptom:** on Linux, asking a bot to run a shell command returns `Shell disabled: Bubblewrap isolation is unavailable. Command was not run.` The command never runs — TideBot refuses rather than running it unsandboxed (`server/src/lib/sandbox.ts`, `runShell`).
+
+**Fix:** install Bubblewrap from your distro's official repository. The package is named `bubblewrap` on all three:
+
+- Debian / Ubuntu: `sudo apt install bubblewrap`
+- Fedora: `sudo dnf install bubblewrap`
+- Arch Linux: `sudo pacman -S bubblewrap`
+
+Restart the server after installing — the server checks for Bubblewrap once when it starts, so an install after startup is not picked up until then. Then verify: `bwrap --version` should print a version, and `npm run doctor` should report `sandbox: bubblewrap installed (<path>)`. The real check is asking a bot to run any shell command — if it returns output instead of the refusal above, the fix worked.
+
+**Still refused after installing?** The binary is found, but the isolation probe (`server/src/lib/sandbox.ts`, `probeBwrap`) also has to pass — it needs unprivileged user namespaces to work on your system. If your distro restricts them, the refusal stays until that is allowed; check your distro's documentation for unprivileged user namespaces.

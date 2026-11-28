@@ -6,13 +6,19 @@ import { BotAvatarFor } from '../avatar/BotAvatar';
 import { displayName, useStore } from '../store';
 import { api } from '../lib/api';
 import { hasNativeDesktopWindow } from '../lib/desktop';
+import {
+  accountDisplayName,
+  endDrawerSwipe,
+  IDLE_DRAWER_SWIPE,
+  moveDrawerSwipe,
+  partitionSidebarBots,
+  sidebarPreviewText,
+  startDrawerSwipe,
+  userInitials,
+  type DrawerSwipeState,
+} from '../lib/sidebar';
 import { Icon } from './Icon';
 import { Menu } from './Menu';
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?';
-}
 
 export function TrafficLights() {
   if (hasNativeDesktopWindow()) return null;
@@ -23,12 +29,6 @@ export function TrafficLights() {
       <span style={{ background: '#28C840' }} />
     </div>
   );
-}
-
-function previewFor(bot: Bot, running: boolean, awaiting: string | null) {
-  if (awaiting) return `Waiting for you: ${awaiting}`;
-  if (running && !bot.lastPreview) return 'Working…';
-  return bot.lastPreview ?? 'No messages yet';
 }
 
 const BotRow = memo(function BotRow({ bot, selected, running, awaiting, pending, onSelect }: { bot: Bot; selected: boolean; running: boolean; awaiting: string | null; pending: number; onSelect: (id: string) => void }) {
@@ -42,7 +42,7 @@ const BotRow = memo(function BotRow({ bot, selected, running, awaiting, pending,
       </span>
       <span className="bot-row__text">
         <span className="bot-row__name">{displayName(bot)}</span>
-        <span className="bot-row__preview">{previewFor(bot, running, awaiting)}</span>
+        <span className="bot-row__preview">{sidebarPreviewText(bot, running, awaiting)}</span>
       </span>
       {pending > 0 && (
         <span className="bot-row__approval-badge" aria-label={`${pending} approval${pending === 1 ? '' : 's'} waiting`}>{pending}</span>
@@ -75,18 +75,16 @@ export function Sidebar() {
   const [accountMenu, setAccountMenu] = useState(false);
   const logout = async () => { await api.logout().catch(() => {}); location.reload(); };
 
-  const primary = bots.find((b) => b.isPrimary);
-  const others = bots.filter((b) => !b.isPrimary).sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+  const { primary, others } = partitionSidebarBots(bots);
 
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const swipeLocked = useRef<'x' | 'y' | null>(null);
+  const swipeRef = useRef<DrawerSwipeState>(IDLE_DRAWER_SWIPE);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     if (!mobileOpen) {
+      swipeRef.current = IDLE_DRAWER_SWIPE;
       setAccountMenu(false);
       setDragging(false);
       setDragX(0);
@@ -96,38 +94,40 @@ export function Sidebar() {
     selectedEl?.scrollIntoView({ block: 'nearest' });
   }, [mobileOpen]);
 
+  const resetSwipe = () => {
+    swipeRef.current = IDLE_DRAWER_SWIPE;
+    setDragging(false);
+    setDragX(0);
+  };
+
   const onTouchStart = (e: React.TouchEvent) => {
-    if (!mobileOpen || e.touches.length !== 1) return;
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    swipeLocked.current = null;
+    if (!mobileOpen || e.touches.length !== 1 || !e.touches[0]) return;
+    swipeRef.current = startDrawerSwipe(e.touches[0].clientX, e.touches[0].clientY);
   };
   const onTouchMove = (e: React.TouchEvent) => {
-    if (!mobileOpen || touchStartX.current === null || touchStartY.current === null) return;
-    const dx = e.touches[0].clientX - touchStartX.current;
-    const dy = e.touches[0].clientY - touchStartY.current;
-    if (!swipeLocked.current) {
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-      swipeLocked.current = Math.abs(dx) > Math.abs(dy) * 1.2 && dx < 0 ? 'x' : 'y';
-      if (swipeLocked.current === 'x') {
-        setAccountMenu(false);
-        setDragging(true);
-      }
+    if (!mobileOpen || !swipeRef.current.active) return;
+    if (e.touches.length !== 1 || !e.touches[0]) {
+      resetSwipe();
+      return;
     }
-    if (swipeLocked.current === 'x') {
-      setDragX(Math.min(0, dx));
+    const { next, lockedHorizontalNow } = moveDrawerSwipe(swipeRef.current, e.touches[0].clientX, e.touches[0].clientY);
+    swipeRef.current = next;
+    if (lockedHorizontalNow) {
+      setAccountMenu(false);
+      setDragging(true);
+    }
+    if (next.locked === 'x') {
+      setDragX(next.dragX);
     }
   };
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    const wasHorizontal = swipeLocked.current === 'x';
-    touchStartX.current = null;
-    touchStartY.current = null;
-    swipeLocked.current = null;
+    if (!swipeRef.current.active) return;
+    const endX = e.changedTouches[0]?.clientX;
+    const { shouldClose, next } = endDrawerSwipe(swipeRef.current, endX);
+    swipeRef.current = next;
     setDragging(false);
     setDragX(0);
-    if (wasHorizontal && deltaX < -56 && mobileOpen) {
+    if (shouldClose && mobileOpen) {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try { navigator.vibrate(10); } catch {}
       }
@@ -135,11 +135,7 @@ export function Sidebar() {
     }
   };
   const onTouchCancel = () => {
-    touchStartX.current = null;
-    touchStartY.current = null;
-    swipeLocked.current = null;
-    setDragging(false);
-    setDragX(0);
+    resetSwipe();
   };
 
   return (
@@ -214,6 +210,7 @@ export function Sidebar() {
               className={`pinned__tile${selectedBotId === primary.id ? ' is-selected' : ''}`}
               onClick={() => selectBot(primary.id)}
               aria-current={selectedBotId === primary.id || undefined}
+              aria-label={collapsed ? displayName(primary) : undefined}
               title={displayName(primary)}
             >
               <span className="pinned__avatar">
@@ -235,7 +232,15 @@ export function Sidebar() {
         <div className="bot-list">
           {others.map((b) =>
             collapsed ? (
-              <button key={b.id} type="button" className={`bot-rail-item${selectedBotId === b.id ? ' is-selected' : ''}`} onClick={() => selectBot(b.id)} title={displayName(b)}>
+              <button
+                key={b.id}
+                type="button"
+                className={`bot-rail-item${selectedBotId === b.id ? ' is-selected' : ''}`}
+                onClick={() => selectBot(b.id)}
+                aria-current={selectedBotId === b.id || undefined}
+                aria-label={displayName(b)}
+                title={displayName(b)}
+              >
                 <BotAvatarFor bot={b} size={36} />
               </button>
             ) : (
@@ -278,8 +283,8 @@ export function Sidebar() {
                 aria-expanded={accountMenu}
                 title={user?.email}
               >
-                <span className="account__initials">{initials(user?.name ?? user?.email ?? '')}</span>
-                <span className="account__name">{user?.name ?? user?.email}</span>
+                <span className="account__initials">{userInitials(accountDisplayName(user))}</span>
+                <span className="account__name">{accountDisplayName(user)}</span>
               </button>
               {accountMenu && (
                 <Menu
