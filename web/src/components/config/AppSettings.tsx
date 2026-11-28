@@ -4,6 +4,7 @@ import type { LlmProvider, ShaderStyle, Toolkit } from '@shared/types';
 import { BotAvatarFor } from '../../avatar/BotAvatar';
 import { configApi, type ComputerDetails } from '../../lib/configApi';
 import { api } from '../../lib/api';
+import { copyText } from '../../lib/clipboard';
 import { desktopUpdateChecker } from '../../lib/desktop';
 import { relativeShort } from '../../lib/time';
 import { useConfigUI, type AppSection, type Theme } from '../../configStore';
@@ -1296,6 +1297,19 @@ function AppsSection() {
 
 // ---------------------------------------------------------------------------
 
+function InviteCode({ code }: { code: string }) {
+  const [copyStatus, setCopyStatus] = useState('');
+
+  return <div className="cfg-field">
+    <input className="text-input" aria-label="Invite code to share" readOnly value={code} onFocus={(event) => event.target.select()} />
+    <button type="button" className="cfg-btn cfg-btn--secondary" onClick={async () => {
+      const copied = await copyText(code);
+      setCopyStatus(copied ? 'Invite code copied.' : 'Could not copy the invite code. Select it to copy manually.');
+    }}>Copy invite code</button>
+    {copyStatus && <p className="cfg-row__sub" role="status">{copyStatus}</p>}
+  </div>;
+}
+
 function AccountSection() {
   const user = useStore((s) => s.user);
   const [canInvite, setCanInvite] = useState(false);
@@ -1355,7 +1369,7 @@ function AccountSection() {
             value={email} onChange={(event) => setEmail(event.target.value)} required />
           <button className="cfg-btn" type="submit" disabled={busy}>Create invite code</button>
         </form>
-        {invite && <input className="text-input" aria-label="Invite code to share" readOnly value={invite} onFocus={(event) => event.target.select()} />}
+        {invite && <InviteCode key={invite} code={invite} />}
         {status && <p className="cfg-row__sub" role="status">{status}</p>}
       </section>}
     </>
