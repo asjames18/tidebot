@@ -210,17 +210,18 @@ jobs:
           tag="v$VERSION"
           # Never clobber a published release. A stale draft from an
           # earlier run of this same release (e.g. a re-run after a
-          # failure) is removed first so the create below succeeds.
+          # failure) is removed first, preserving any existing Git tag.
           if gh release view "$tag" >/dev/null 2>&1; then
             if [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" = "true" ]; then
               echo "Removing stale draft $tag from an earlier run of this release."
-              gh release delete "$tag" -y --cleanup-tag
+              gh release delete "$tag" -y
             else
               echo "Release $tag already exists and is published — refusing to overwrite it." >&2
               exit 1
             fi
           fi
-          args=(--draft --title "$tag")
+          # Pin new tags to the commit the build jobs packaged.
+          args=(--draft --title "$tag" --target "$GITHUB_SHA")
           if [ "$RELEASE_TYPE" = "prerelease" ]; then args+=(--prerelease); fi
           gh release create "$tag" "${args[@]}"
           # Upload by explicit glob, not by directory: electron-builder may
