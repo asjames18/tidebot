@@ -248,6 +248,7 @@ const RENDER_WINDOW = 80;
 
 export function Transcript({ bot, rows, live, loaded }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollBeforeExpand = useRef<{ top: number; height: number } | null>(null);
   const stick = useRef(true);
   const jumpingUntilRef = useRef(0);
   const touchStartYRef = useRef<number | null>(null);
@@ -263,10 +264,18 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
   const streamingNow = last?.body.type === 'message' && last.body.role === 'assistant' && !!last.body.streaming;
   const showActivity = (running && !streamingNow) || waiting;
 
-  // Keep pinned to the bottom while new content arrives, unless the user scrolled up.
+  // Preserve the reading position when earlier messages are inserted above it.
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (el && stick.current) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    const previous = scrollBeforeExpand.current;
+    if (previous) {
+      scrollBeforeExpand.current = null;
+      stick.current = false;
+      el.scrollTop = previous.top + el.scrollHeight - previous.height;
+    } else if (stick.current) {
+      el.scrollTop = el.scrollHeight;
+    }
   });
   // Jump to bottom when switching bots.
   useLayoutEffect(() => {
@@ -355,6 +364,8 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
             className="earlier-btn"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+              const el = scrollRef.current;
+              if (el) scrollBeforeExpand.current = { top: el.scrollTop, height: el.scrollHeight };
               setExpanded(true);
             }}
           >
