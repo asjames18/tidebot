@@ -3,7 +3,24 @@
 // Prints Node version, database readability/writability, sandbox status and
 // which provider keys are configured (yes/no flags only — keys are never
 // printed). Exits non-zero when the server is unreachable or unhealthy.
-const port = Number(process.env.PORT ?? '8787');
+import { readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
+
+function configuredPort() {
+  const file = process.env.ENV_PATH || new URL('../.env', import.meta.url);
+  try {
+    const port = Number(parseEnv(readFileSync(file, 'utf8')).PORT);
+    if (Number.isInteger(port) && port > 0 && port <= 65535) return port;
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('doctor: could not read the server environment file');
+      process.exit(1);
+    }
+  }
+  return 8787;
+}
+
+const port = process.env.PORT === undefined ? configuredPort() : Number(process.env.PORT);
 const base = `http://127.0.0.1:${port}`;
 const healthUrl = `${base}/api/health?detail=1`;
 const signal = AbortSignal.timeout(5_000);
