@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Bot } from '@shared/types';
+import { resolveVoiceSelectOptions, VoicePatchTracker } from '../lib/voiceSettingsState';
 import { useStore } from '../store';
 import { voiceApi, type VoiceOptions } from '../voice/api';
 import { endCall, isCallActive, previewVoice, startCall, useVoice } from '../voice/call';
@@ -42,6 +43,16 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inCall = useVoice((s) => isCallActive(s) && s.botId === bot.id);
+  const mountedRef = useRef(true);
+  const activeBotIdRef = useRef(bot.id);
+  const previewGenRef = useRef(0);
+  const trackerRef = useRef(new VoicePatchTracker());
+  activeBotIdRef.current = bot.id;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -49,35 +60,52 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
     return () => { alive = false; };
   }, []);
   useEffect(() => {
+    previewGenRef.current += 1;
     setError(null);
     setPreviewing(false);
   }, [bot.id]);
 
   const save = async (patch: Partial<Pick<Bot, 'voice' | 'voiceSpeed' | 'voiceLanguage'>>) => {
-    const prev = useStore.getState().bots.find((b) => b.id === bot.id);
+    const botId = bot.id;
+    const prev = useStore.getState().bots.find((b) => b.id === botId);
+    const handle = trackerRef.current.begin(botId, patch, prev);
     // Optimistic; the server's `bot` event confirms.
-    useStore.setState((s) => ({ bots: s.bots.map((b) => (b.id === bot.id ? { ...b, ...patch } : b)) }));
+    useStore.setState((s) => ({ bots: s.bots.map((b) => (b.id === botId ? { ...b, ...patch } : b)) }));
     setError(null);
     try {
-      const res = await fetch(`/api/bots/${bot.id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
+      const res = await fetch(`/api/bots/${encodeURIComponent(botId)}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      trackerRef.current.succeed(handle);
     } catch {
-      if (prev) useStore.setState((s) => ({ bots: s.bots.map((b) => (b.id === bot.id ? { ...b, voice: prev.voice, voiceSpeed: prev.voiceSpeed, voiceLanguage: prev.voiceLanguage } : b)) }));
-      setError('Couldn’t save that setting.');
+      const rollback = trackerRef.current.fail(handle);
+      if (Object.keys(rollback).length > 0) {
+        useStore.setState((s) => ({ bots: s.bots.map((b) => (b.id === botId ? { ...b, ...rollback } : b)) }));
+        if (mountedRef.current && activeBotIdRef.current === botId) {
+          setError('Couldn’t save that setting.');
+        }
+      }
     }
   };
 
   const preview = async () => {
     if (previewing) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
+    const gen = ++previewGenRef.current;
+    const botId = bot.id;
     setPreviewing(true); setError(null);
-    try { await previewVoice({ botId: bot.id, voice: bot.voice, speed: bot.voiceSpeed, language: bot.voiceLanguage }); }
-    catch (e) { setError((e as Error).message || 'Preview unavailable'); }
-    finally { setPreviewing(false); }
+    try { await previewVoice({ botId, voice: bot.voice, speed: bot.voiceSpeed, language: bot.voiceLanguage }); }
+    catch (e) {
+      if (mountedRef.current && previewGenRef.current === gen && activeBotIdRef.current === botId) {
+        setError((e as Error).message || 'Preview unavailable');
+      }
+    } finally {
+      if (mountedRef.current && previewGenRef.current === gen) {
+        setPreviewing(false);
+      }
+    }
   };
 
-  const voices = opts.voices.some((v) => v.id === bot.voice) ? opts.voices : [{ id: bot.voice, name: bot.voice }, ...opts.voices];
-  const speeds = opts.speeds.includes(bot.voiceSpeed) ? opts.speeds : [...opts.speeds, bot.voiceSpeed].sort((a, b) => a - b);
+  const { voices, speeds, languages } = resolveVoiceSelectOptions(opts, bot);
 
   return (
     <div className="panel-card">
@@ -94,7 +122,7 @@ export function VoiceSettings({ bot }: { bot: Bot }) {
       </div>
       <div className="panel-row panel-row--setting">
         <span>Language</span>
-        <NativeSelect label="Language" value={bot.voiceLanguage} options={opts.languages.map((l) => ({ value: l.code, label: l.name }))} onChange={(voiceLanguage) => save({ voiceLanguage })} />
+        <NativeSelect label="Language" value={bot.voiceLanguage} options={languages.map((l) => ({ value: l.code, label: l.name }))} onChange={(voiceLanguage) => save({ voiceLanguage })} />
       </div>
       <button
         type="button"
