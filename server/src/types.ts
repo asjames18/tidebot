@@ -48,6 +48,29 @@ export interface Project {
 
 export type AgentRunState = 'queued' | 'running' | 'waiting' | 'completed' | 'failed' | 'interrupted';
 
+export interface UsageSummary {
+  /** Total model calls recorded. */
+  calls: number;
+  /** Calls where the provider reported token usage. */
+  reportedCalls: number;
+  /** Calls where the provider reported USD cost. */
+  costReportedCalls: number;
+  /** Sum of provider-reported input tokens, or null if none reported. */
+  inputTokens: number | null;
+  /** Sum of provider-reported output tokens, or null if none reported. */
+  outputTokens: number | null;
+  /** Sum of provider-reported total tokens, or null if none reported. */
+  totalTokens: number | null;
+  /** Sum of provider-reported cost in USD, or null if none reported. Never estimated from guessed prices. */
+  costUsd: number | null;
+}
+
+export interface BotUsageResponse {
+  botId: string;
+  totals: UsageSummary;
+  byModel: Array<{ provider: string; model: string; usage: UsageSummary }>;
+}
+
 export interface AgentRun {
   id: string;
   source: 'chat' | 'manual-routine' | 'schedule' | 'event' | 'research';
@@ -58,6 +81,7 @@ export interface AgentRun {
   startedAt: number | null;
   finishedAt: number | null;
   summary: string | null;
+  usage?: UsageSummary;
 }
 
 /** A transcript row. `seq` orders rows; `updatedSeq` is a per-bot revision counter (rows are rewritten while streaming). */
