@@ -74,7 +74,7 @@ export function listRuns(botId: string) {
 
 export function listRoutineRuns(routineId: string, limit = 20) {
   const safeLimit = Math.min(Math.max(Math.floor(limit), 1), 50);
-  return (db.prepare('SELECT * FROM agent_runs WHERE routine_id=? ORDER BY rowid DESC LIMIT ?').all(routineId, safeLimit) as RunRecord[]).map(toRun);
+  return (db.prepare('SELECT * FROM agent_runs WHERE routine_id=? ORDER BY rowid DESC LIMIT ?').all(routineId, safeLimit) as RunRecord[]).map((r) => toRun(r));
 }
 
 export function latestRoutineRuns(botId: string): Map<string, AgentRun> {
