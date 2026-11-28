@@ -7,13 +7,20 @@
 //
 // The reload is skipped when no controller existed yet — that first claim is
 // the initial install, not an update, and reloading would discard state for
-// no benefit.
-export function watchForAppUpdates(sw: ServiceWorkerContainer, reload: () => void): void {
-  const hadController = Boolean(sw.controller);
+// no benefit. Once that initial worker claims the tab, subsequent deployments
+// must still trigger the one-shot reload.
+export function watchForAppUpdates(sw: ServiceWorkerContainer, reload: () => void): () => void {
+  let hadController = Boolean(sw.controller);
   let reloaded = false;
-  sw.addEventListener('controllerchange', () => {
-    if (!hadController || reloaded) return;
+  const onControllerChange = () => {
+    if (!hadController) {
+      hadController = Boolean(sw.controller);
+      return;
+    }
+    if (!sw.controller || reloaded) return;
     reloaded = true;
     reload();
-  });
+  };
+  sw.addEventListener('controllerchange', onControllerChange);
+  return () => sw.removeEventListener('controllerchange', onControllerChange);
 }

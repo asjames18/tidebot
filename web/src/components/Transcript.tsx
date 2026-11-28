@@ -2,6 +2,7 @@ import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState }
 import type { Bot, LiveState, MessageBody, Row, ToolCallBody } from '@shared/types';
 import { BotAvatar, BotAvatarFor } from '../avatar/BotAvatar';
 import { clock, dividerLabel } from '../lib/time';
+import { buildTranscriptItems, cornerClass, formatSpeechText } from '../lib/transcriptItems';
 import { useStore } from '../store';
 import { ActivityLine } from './ActivityLine';
 import { CardRow } from './cards/Cards';
@@ -11,52 +12,6 @@ import { ShaderCanvas } from './ShaderCanvas';
 import { useConfigUI } from '../configStore';
 import { api } from '../lib/api';
 import { copyText } from '../lib/clipboard';
-
-type Item =
-  | { kind: 'divider'; key: string; ts: number }
-  | { kind: 'group'; key: string; side: 'left' | 'right'; from?: MessageBody['from']; rows: Row[] }
-  | { kind: 'steps'; key: string; rows: Row[] }
-  | { kind: 'row'; key: string; row: Row };
-
-const DIVIDER_GAP = 60 * 60 * 1000;
-const GROUP_GAP = 5 * 60 * 1000;
-
-/** Turns rows into render items: date dividers, grouped bubbles, collapsed tool-call steps, cards, events. */
-function buildItems(rows: Row[]): Item[] {
-  const items: Item[] = [];
-  let prevTs = 0;
-  for (const row of rows) {
-    if (!prevTs || row.createdAt - prevTs > DIVIDER_GAP) items.push({ kind: 'divider', key: `d${row.seq}`, ts: row.createdAt });
-    prevTs = row.createdAt;
-    const last = items[items.length - 1];
-    const b = row.body;
-    if (b.type === 'tool-call') {
-      if (last?.kind === 'steps') last.rows.push(row);
-      else items.push({ kind: 'steps', key: `s${row.seq}`, rows: [row] });
-      continue;
-    }
-    if (b.type === 'message') {
-      if (!b.text && !b.streaming) continue;
-      const side = b.role === 'user' && (!b.from || b.from.kind === 'voice') ? 'right' : 'left';
-      const sender = b.from ? `${b.from.kind}:${b.from.id}` : b.role;
-      const lastRow = last?.kind === 'group' ? last.rows[last.rows.length - 1] : null;
-      const lastBody = lastRow?.body as MessageBody | undefined;
-      const lastSender = lastBody ? (lastBody.from ? `${lastBody.from.kind}:${lastBody.from.id}` : lastBody.role) : null;
-      if (last?.kind === 'group' && lastSender === sender && row.createdAt - lastRow!.createdAt < GROUP_GAP) last.rows.push(row);
-      else items.push({ kind: 'group', key: `g${row.seq}`, side, from: b.from, rows: [row] });
-      continue;
-    }
-    items.push({ kind: 'row', key: `r${row.seq}`, row });
-  }
-  return items;
-}
-
-function cornerClass(i: number, n: number) {
-  if (n < 2) return '';
-  if (i === 0) return ' is-first';
-  if (i === n - 1) return ' is-last';
-  return ' is-mid';
-}
 
 const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left' | 'right'; pos: string }) {
   const b = row.body as MessageBody;
@@ -186,22 +141,32 @@ const Bubble = memo(function Bubble({ row, side, pos }: { row: Row; side: 'left'
 function SpeakButton({ text }: { text: string }) {
   const [speaking, setSpeaking] = useState(false);
   const speakingRef = useRef(false);
-  useEffect(() => () => {
-    if (speakingRef.current && 'speechSynthesis' in window) {
-      speechSynthesis.cancel();
-      speakingRef.current = false;
-    }
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (speakingRef.current && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        speechSynthesis.cancel();
+        speakingRef.current = false;
+      }
+    };
   }, []);
-  if (!('speechSynthesis' in window)) return null;
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
   const toggle = () => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(8); } catch {}
     }
     if (speaking) { speechSynthesis.cancel(); speakingRef.current = false; setSpeaking(false); return; }
-    const clean = text.replace(/```[\s\S]*?```/g, ' code block ').replace(/[#*_`>[\]()]/g, '').slice(0, 1200);
+    const clean = formatSpeechText(text);
+    if (!clean) return;
     const u = new SpeechSynthesisUtterance(clean);
-    u.onend = () => { speakingRef.current = false; setSpeaking(false); };
-    u.onerror = () => { speakingRef.current = false; setSpeaking(false); };
+    const done = () => {
+      speakingRef.current = false;
+      if (mountedRef.current) setSpeaking(false);
+    };
+    u.onend = done;
+    u.onerror = done;
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
     speakingRef.current = true;
@@ -290,7 +255,7 @@ export function Transcript({ bot, rows, live, loaded }: Props) {
   const [expanded, setExpanded] = useState(false);
   const visibleRows = expanded ? rows : rows.slice(-RENDER_WINDOW);
   const hiddenCount = rows.length - visibleRows.length;
-  const items = useMemo(() => buildItems(visibleRows), [visibleRows]);
+  const items = useMemo(() => buildTranscriptItems(visibleRows), [visibleRows]);
 
   const running = !!live?.isRunning;
   const waiting = !running && (!!live?.awaiting || live?.activity?.kind === 'waiting_for_you');

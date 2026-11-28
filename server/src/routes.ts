@@ -6,7 +6,9 @@ import nodePath from 'node:path';
 import { localWorkspaceDir } from './agent/tools.js';
 import { pendingApprovalCounts } from './lib/approvals.js';
 import { resolveWithinWorkspace } from './lib/files.js';
+import { summarizeBotUsage } from './lib/usage.js';
 import { db, now } from './db.js';
+import './db-config.js';
 import { env } from './env.js';
 import { newId, sha256, token } from './lib/ids.js';
 import { hub } from './lib/hub.js';
@@ -14,14 +16,15 @@ import { createSession, destroySession, requireUser, userFromCookieHeader, type 
 import { hashPassword, verifyPassword } from './lib/passwords.js';
 import { deleteProject, listProjects, projectDraft, saveProject } from './projects.js';
 import { researchPlan } from './research.js';
-import { getRun, listRuns } from './runs.js';
+import { getRun, listRoutineRuns, listRuns } from './runs.js';
 import { allLive, appendRow, clearConversation, describeCron, emitBot, getBot, getBotRow, getRow, listBots, listRoutines, listRows, listRunRows, listTasks, toRoutine, updateRow } from './store.js';
 import { enqueue, interrupt, resolveApproval } from './agent/loop.js';
-import { getPersonalModel, getPublicLlmConfig } from './agent/llm.js';
+import { getLlmConfig, getPersonalModel, getPublicLlmConfig } from './agent/llm.js';
+import { buildOperatorTemplate, operatorTemplateFilename, validateOperatorTemplate } from './lib/operatorTemplate.js';
 import { computerState, ensureComputer, refreshComputer, suspendComputer } from './computer.js';
 import { orgo } from './orgo.js';
 import { catalog, connectedToolkits, deleteConnection, disconnect, googleProfile, startConnect, startGoogleLogin, toolkitInfo } from './composio.js';
-import { MAX_ROUTINES_PER_BOT, runRoutine, scheduleRoutine, routineScheduleChangeError, unscheduleRoutine, validateRoutineSchedule } from './routines.js';
+import { MAX_ROUTINES_PER_BOT, dryRunRoutine, runRoutine, scheduleRoutine, routineScheduleChangeError, unscheduleRoutine, validateRoutineSchedule } from './routines.js';
 import { deleteEventTrigger, deleteEventTriggersForBot, isEventSchedule, setEventRoutineEnabled } from './triggers.js';
 import { dispatchRoomMessage } from './agent/rooms.js';
 import { voiceApi } from './voice.js';
@@ -44,13 +47,16 @@ function hashPick<T>(id: string, list: T[]): T {
   return list[h % list.length];
 }
 
-function createBot(userId: string, b: { name: string; label?: string; description?: string; instructions?: string; avatarShape?: string; avatarColor?: string; mode?: string; model?: string; isPrimary?: boolean }) {
+const EFFORTS = new Set(['low', 'medium', 'high', 'xhigh']);
+
+function createBot(userId: string, b: { name: string; label?: string; description?: string; instructions?: string; avatarShape?: string; avatarColor?: string; mode?: string; effort?: string; model?: string; isPrimary?: boolean }) {
   const id = newId('bot');
   const shape = SHAPES.includes(b.avatarShape as AvatarShape) ? b.avatarShape : hashPick(id, SHAPES.slice(0, 13));
   const color = COLORS.includes(b.avatarColor as AvatarColor) ? b.avatarColor : hashPick(id, COLORS.filter((c) => c !== 'black'));
+  const effort = EFFORTS.has(String(b.effort ?? '')) ? String(b.effort) : 'medium';
   db.prepare(
-    'INSERT INTO bots(id,user_id,name,label,description,instructions,avatar_shape,avatar_color,mode,model,is_primary,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-  ).run(id, userId, b.name.trim().slice(0, 60) || 'New Bot', b.label ?? '', b.description ?? '', b.instructions ?? '', shape, color, b.mode === 'teammate' ? 'teammate' : 'personal', (b.model ?? '').trim(), b.isPrimary ? 1 : 0, now(), now());
+    'INSERT INTO bots(id,user_id,name,label,description,instructions,avatar_shape,avatar_color,mode,effort,model,is_primary,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+  ).run(id, userId, b.name.trim().slice(0, 60) || 'New Bot', b.label ?? '', b.description ?? '', b.instructions ?? '', shape, color, b.mode === 'teammate' ? 'teammate' : 'personal', effort, (b.model ?? '').trim(), b.isPrimary ? 1 : 0, now(), now());
   hub.emit(userId, { type: 'roster' });
   return getBot(id)!;
 }
@@ -324,6 +330,46 @@ api.post('/bots', async (c) => {
   return c.json({ bot: createBot(c.get('user').id, body) });
 });
 
+api.post('/bots/import', bodyLimit({ maxSize: 256 * 1024, onError: (c) => c.json({ error: 'Operator template file is too large (max 256 KB).' }, 413) }), async (c) => {
+  const user = c.get('user');
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON in Operator template file.' }, 400);
+  }
+  const checked = validateOperatorTemplate(raw);
+  if (!checked.ok) return c.json({ error: checked.error }, 400);
+  const tpl = checked.template;
+
+  const created = db.transaction(() => {
+    const bot = createBot(user.id, {
+      name: tpl.name,
+      label: tpl.label,
+      description: tpl.description,
+      instructions: tpl.instructions,
+      avatarShape: tpl.avatarShape,
+      avatarColor: tpl.avatarColor,
+      mode: tpl.mode,
+      effort: tpl.effort,
+      model: tpl.model,
+    });
+    const ts = now();
+    const insertSkill = db.prepare('INSERT INTO skills(id,bot_id,name,description,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?)');
+    for (const s of tpl.tools) {
+      insertSkill.run(newId('skl'), bot.id, s.name, s.description ?? '', s.body, ts, ts);
+    }
+    const insertMem = db.prepare("INSERT INTO memories(id,bot_id,text,created_at,source) VALUES (?,?,?,?,'chat')");
+    for (let i = 0; i < tpl.memorySeed.length; i++) {
+      insertMem.run(newId('mem'), bot.id, tpl.memorySeed[i], ts + i);
+    }
+    return bot;
+  })();
+
+  hub.emit(user.id, { type: 'roster' });
+  return c.json({ bot: created, imported: { tools: tpl.tools.length, memories: tpl.memorySeed.length } }, 201);
+});
+
 api.patch('/bots/:id', async (c) => {
   const b = ownBot(c.get('user').id, c.req.param('id'));
   if (!b) return c.json({ error: 'not found' }, 404);
@@ -360,23 +406,60 @@ api.post('/bots/:id/clone', (c) => {
   const user = c.get('user');
   const b = ownBot(user.id, c.req.param('id'));
   if (!b) return c.json({ error: 'not found' }, 404);
-  const cloned = createBot(user.id, {
-    name: `${b.name} Copy`,
-    label: b.label,
-    description: b.description,
-    instructions: b.instructions,
-    avatarShape: b.avatar_shape,
-    avatarColor: b.avatar_color,
-    mode: b.mode,
-    model: b.model,
-  });
-  const skills = db.prepare('SELECT name, description, body FROM skills WHERE bot_id=?').all(b.id) as any[];
-  for (const s of skills) {
-    db.prepare('INSERT INTO skills(id,bot_id,name,description,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?)')
-      .run(newId('skl'), cloned.id, s.name, s.description ?? '', s.body, now(), now());
-  }
+  if (b.kind === 'room') return c.json({ error: 'Rooms cannot be duplicated.' }, 400);
+  const cloned = db.transaction(() => {
+    const bot = createBot(user.id, {
+      name: `${b.name} Copy`,
+      label: b.label,
+      description: b.description,
+      instructions: b.instructions,
+      avatarShape: b.avatar_shape,
+      avatarColor: b.avatar_color,
+      mode: b.mode,
+      effort: b.effort,
+      model: b.model,
+    });
+    const ts = now();
+    const skills = db.prepare('SELECT name, description, body FROM skills WHERE bot_id=? ORDER BY created_at ASC').all(b.id) as any[];
+    const insertSkill = db.prepare('INSERT INTO skills(id,bot_id,name,description,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?)');
+    for (const s of skills) {
+      insertSkill.run(newId('skl'), bot.id, s.name, s.description ?? '', s.body, ts, ts);
+    }
+    const memories = db.prepare('SELECT text, source FROM memories WHERE bot_id=? ORDER BY created_at ASC').all(b.id) as any[];
+    const insertMem = db.prepare('INSERT INTO memories(id,bot_id,text,created_at,source) VALUES (?,?,?,?,?)');
+    for (let i = 0; i < memories.length; i++) {
+      const m = memories[i];
+      insertMem.run(newId('mem'), bot.id, m.text, ts + i, m.source === 'learned' ? 'learned' : 'chat');
+    }
+    return bot;
+  })();
   hub.emit(user.id, { type: 'roster' });
   return c.json({ bot: cloned });
+});
+
+api.get('/bots/:id/template', (c) => {
+  const user = c.get('user');
+  const b = ownBot(user.id, c.req.param('id'));
+  if (!b) return c.json({ error: 'not found' }, 404);
+  if (b.kind === 'room') return c.json({ error: 'Rooms cannot be exported as Operator templates.' }, 400);
+  const skills = db.prepare('SELECT name, description, body FROM skills WHERE bot_id=? ORDER BY created_at ASC').all(b.id) as any[];
+  const memories = db.prepare('SELECT text FROM memories WHERE bot_id=? ORDER BY created_at ASC').all(b.id) as any[];
+  const extraSecrets: string[] = [];
+  try {
+    const cfg = getLlmConfig();
+    extraSecrets.push(cfg.openrouterKey, cfg.xaiKey, cfg.customApiKey);
+    const personal = getPersonalModel(user.id);
+    if (personal?.key) extraSecrets.push(personal.key);
+  } catch { /* ignore */ }
+  const template = buildOperatorTemplate(b, skills, memories, extraSecrets);
+  const filename = operatorTemplateFilename(b.name);
+  return new Response(`${JSON.stringify(template, null, 2)}\n`, {
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store',
+    },
+  });
 });
 
 api.get('/bots/:id/export', (c) => {
@@ -460,6 +543,13 @@ api.get('/bots/:id/runs', (c) => {
   if (!bot) return c.json({ error: 'not found' }, 404);
   c.header('Cache-Control', 'no-store');
   return c.json({ runs: listRuns(bot.id) });
+});
+
+api.get('/bots/:id/usage', (c) => {
+  const bot = ownBot(c.get('user').id, c.req.param('id'));
+  if (!bot) return c.json({ error: 'not found' }, 404);
+  c.header('Cache-Control', 'no-store');
+  return c.json(summarizeBotUsage(db, bot.id));
 });
 
 api.post('/bots/:id/research', bodyLimit({ maxSize: 128 * 1024, onError: (c) => c.json({ error: 'Research plan is too large.' }, 413) }), async (c) => {
@@ -634,8 +724,27 @@ api.patch('/routines/:id', async (c) => {
 api.post('/routines/:id/run', (c) => {
   const r = db.prepare('SELECT r.* FROM routines r JOIN bots b ON b.id=r.bot_id WHERE r.id=? AND b.user_id=?').get(c.req.param('id'), c.get('user').id) as any;
   if (!r) return c.json({ error: 'not found' }, 404);
-  runRoutine(r.id, 'manual-routine', enqueue);
-  return c.json({ ok: true });
+  if (c.req.query('dryRun') === '1') {
+    const preview = dryRunRoutine(r.id);
+    return preview ? c.json(preview) : c.json({ error: 'not found' }, 404);
+  }
+  const runId = runRoutine(r.id, 'manual-routine', enqueue);
+  return c.json({ ok: true, runId });
+});
+
+api.post('/routines/:id/dry-run', (c) => {
+  const r = db.prepare('SELECT r.* FROM routines r JOIN bots b ON b.id=r.bot_id WHERE r.id=? AND b.user_id=?').get(c.req.param('id'), c.get('user').id) as any;
+  if (!r) return c.json({ error: 'not found' }, 404);
+  const preview = dryRunRoutine(r.id);
+  return preview ? c.json(preview) : c.json({ error: 'not found' }, 404);
+});
+
+api.get('/routines/:id/runs', (c) => {
+  const r = db.prepare('SELECT r.* FROM routines r JOIN bots b ON b.id=r.bot_id WHERE r.id=? AND b.user_id=?').get(c.req.param('id'), c.get('user').id) as any;
+  if (!r) return c.json({ error: 'not found' }, 404);
+  c.header('Cache-Control', 'no-store');
+  const limit = Number(c.req.query('limit') ?? 20);
+  return c.json({ runs: listRoutineRuns(r.id, Number.isFinite(limit) ? limit : 20) });
 });
 
 api.delete('/routines/:id', async (c) => {

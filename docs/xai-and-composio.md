@@ -686,3 +686,33 @@ Sessions are free to create. Triggers are billed per **delivered** event, and po
 4. Whether the `OpenAIResponsesProvider` tool output drops straight into xAI unchanged. In particular, check any `strict` field and root schema shapes. Some Composio tools may have schemas whose root is not an object, which xAI rejects with 400.
 5. The exact camelCase SDK params for `composio.toolkits.get()` list filters (`sortBy`, `category`, `search`). The REST names are documented; the TypeScript `ToolkitListParams` field names are not shown.
 6. The current `@composio/openai` version.
+
+---
+
+## Troubleshooting
+
+Two different things can be wrong, and they have different fixes: the **model provider key** (OpenRouter / xAI / custom) and the **Composio key or a connected app account** (Gmail, Slack, …). Work out which one first — the symptoms below tell them apart.
+
+### "Something went wrong" in chat, or the run says "No model was available"
+
+That is the model provider, not Composio. When a turn fails, the chat shows a red notice starting `Something went wrong: …` with the provider's own error message, and the run is marked failed (`server/src/agent/loop.ts`). If no model is configured at all, the run fails with `No model was available for this run.`
+
+Diagnose it with the built-in test — Settings → Model → **Test Connection** (studio key) or **Test saved key** (your personal OpenRouter key). The test sends a short "Ping from TideBot" to the configured provider and model, saves any pending key/model edits first, and reports the provider's error with your key replaced by `[redacted]` (`server/src/agent/llm.ts`, `checkConnection`). A passing test means the key, provider, and model all work; a failing test means one of them does not, and the error is the place to start.
+
+Common causes, in the order to check them:
+
+1. **No key saved.** A personal OpenRouter key must look like `sk-or-v1-` followed by 64 hex characters — anything else is rejected with `Enter a valid OpenRouter API key.` Studio keys (OpenRouter, xAI, custom) are saved in Settings → Model by the studio administrator, or in `.env` as `OPENROUTER_API_KEY` / `XAI_API_KEY`. Keys deleted from `.env` stop being used without a restart (see `docs/secrets-handling.md`).
+2. **Wrong provider for the key.** An OpenRouter key with provider `xai` (or the reverse) fails. Check the provider dropdown matches where the key came from.
+3. **Wrong model ID.** `The provider returned no reply. Try another model.` usually means the model ID is wrong for that provider or the model cannot answer this call. Pick an ID from the model list in Settings or from `docs/model-cookbook.md`.
+4. **Custom provider base URL.** A custom provider needs a reachable base URL; an invalid one is rejected when you save it. `http://localhost:…` works for local servers such as Ollama — see `docs/local-model.md`.
+5. **Billing / rate limit at the provider.** The test error is the provider's own message (for example an OpenRouter 402 for no credits, or a 429). Fix it on the provider's dashboard, not in TideBot — TideBot has no way to add credits or raise a limit.
+6. **Personal vs studio key.** If the studio key works (Test Connection passes) but your own chats fail, the problem is your personal key — test it with **Test saved key** in the personal OpenRouter section instead.
+
+### "Composio could not verify this key" or apps stop working
+
+First, separate the two Composio failures:
+
+- **The Composio API key** (`COMPOSIO_API_KEY`) — Settings → Connected apps → **Test Composio Catalog**. It calls `GET /toolkits?limit=1` on Composio's API (`server/src/composio.ts`, `checkComposioConnection`). `COMPOSIO_API_KEY is not configured.` means no key is saved; `Composio could not verify this key. Check the key and try again.` means the key is wrong, revoked, or Composio is unreachable. Paste a fresh key from [app.composio.dev](https://app.composio.dev), **Save Key**, and test again — it hot-reloads, no restart needed. While Composio is unreachable the Apps list still opens, using a built-in fallback catalog, but connecting an app needs a live key.
+- **One connected app account expired** (Gmail / Slack / GitHub token revoked or re-authorized elsewhere). There is no automatic expired-account handling on main yet: the `composio.connected_account.expired` → "reconnect card" flow described in §B.8.7 above is a plan, not shipped code, so an expired account surfaces as a failed tool call inside a run, not as a banner. Fix it by hand: Settings → Connected apps → **Browse & Connect Apps**, **Disconnect** the app (this also deletes the Composio connected account, `server/src/composio.ts`, `disconnect`), then connect it again — the fresh OAuth grant is the reconnect. If the app no longer shows as Connected at all, just connect it again.
+
+Honest limit: the expired-account path above is verified against the code, not against a live expired token — no live Composio key was used in this run.

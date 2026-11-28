@@ -7,8 +7,10 @@ export const projectDraft = z.object({
   name: z.string().trim().min(1).max(80),
   instructions: z.string().trim().max(4000),
   files: z.array(z.object({
-    name: z.string().trim().max(160).regex(/^[^/\\\x00-\x1f]+\.(?:md|txt|csv|json)$/i),
-    text: z.string().min(1).max(8000),
+    name: z.string().trim().max(160).regex(/^(?!\.)[^/\\\x00-\x1f\x7f]+\.(?:md|txt|csv|json)$/i),
+    text: z.string().min(1).max(8000).refine((s) => s.trim().length > 0, {
+      message: 'Reference file text cannot be empty.',
+    }),
   })).max(6),
   botIds: z.array(z.string().min(1).max(80)).max(100),
 }).refine(({ files }) => new Set(files.map((file) => file.name.toLowerCase())).size === files.length, {
@@ -19,12 +21,25 @@ type Draft = z.infer<typeof projectDraft>;
 type ProjectRow = { id: string; name: string; instructions: string; files: string; revision: number };
 type SaveResult = { project: Project } | { error: string; status: 400 | 404 | 409 };
 
+function safeParseProjectFiles(raw: string): Project['files'] {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (f): f is { name: string; text: string } =>
+        Boolean(f && typeof f === 'object' && typeof f.name === 'string' && typeof f.text === 'string'),
+    );
+  } catch {
+    return [];
+  }
+}
+
 function toProject(row: ProjectRow, botIds: string[]): Project {
-  return { id: row.id, name: row.name, instructions: row.instructions, files: JSON.parse(row.files), revision: row.revision, botIds };
+  return { id: row.id, name: row.name, instructions: row.instructions, files: safeParseProjectFiles(row.files), revision: row.revision, botIds };
 }
 
 export function listProjects(userId: string) {
-  const bots = db.prepare('SELECT id, project_id FROM bots WHERE user_id=? AND project_id IS NOT NULL ORDER BY created_at')
+  const bots = db.prepare("SELECT id, project_id FROM bots WHERE user_id=? AND project_id IS NOT NULL AND COALESCE(kind,'agent')<>'room' AND COALESCE(hidden,0)=0 ORDER BY created_at")
     .all(userId) as { id: string; project_id: string }[];
   const projects = db.prepare('SELECT * FROM projects WHERE user_id=? ORDER BY updated_at DESC').all(userId) as ProjectRow[];
   return projects.map((project) => toProject(project, bots.filter((bot) => bot.project_id === project.id).map((bot) => bot.id)));
@@ -40,7 +55,7 @@ export function saveProject(userId: string, draft: Draft, existing?: { id: strin
       return { error: 'You can create up to 20 projects.', status: 400 };
     }
     const botIds = [...new Set(draft.botIds)];
-    const available = db.prepare("SELECT id FROM bots WHERE user_id=? AND kind<>'room' AND (project_id IS NULL OR project_id=?)")
+    const available = db.prepare("SELECT id FROM bots WHERE user_id=? AND COALESCE(kind,'agent')<>'room' AND COALESCE(hidden,0)=0 AND (project_id IS NULL OR project_id=?)")
       .all(userId, projectId) as { id: string }[];
     const allowed = new Set(available.map(({ id }) => id));
     if (botIds.some((id) => !allowed.has(id))) return { error: 'A selected bot is unavailable or belongs to another project.', status: 409 };

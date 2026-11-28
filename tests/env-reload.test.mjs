@@ -58,3 +58,65 @@ test('a key that only ever lived in process.env is untouched by a reload', async
   assert.equal(process.env.XAI_API_KEY, 'proc-only-key');
   delete process.env.XAI_API_KEY;
 });
+
+test('deleting .env revokes all keys it provided while preserving external process.env keys', async () => {
+  const file = path.join(fixtures, 'a.env');
+  writeEnv(file, 'OPENROUTER_API_KEY=sk-revoked\nCOMPOSIO_API_KEY=comp-revoked\n');
+  process.env.ORGO_API_KEY = 'external-orgo';
+  const { env } = await import('../server/dist/env.js');
+
+  assert.equal(env.openrouterKey, 'sk-revoked');
+  assert.equal(env.composioKey, 'comp-revoked');
+  assert.equal(env.orgoKey, 'external-orgo');
+
+  fs.unlinkSync(file);
+
+  assert.equal(env.openrouterKey, '');
+  assert.equal(env.composioKey, '');
+  assert.equal(process.env.OPENROUTER_API_KEY, undefined);
+  assert.equal(process.env.COMPOSIO_API_KEY, undefined);
+  assert.equal(env.orgoKey, 'external-orgo');
+  delete process.env.ORGO_API_KEY;
+});
+
+test('reloads changes when file size changes even with an identical mtime', async () => {
+  const file = path.join(fixtures, 'a.env');
+  const fixedTime = new Date(mtimeSeq);
+  fs.writeFileSync(file, 'OPENROUTER_API_KEY=sk-short\n');
+  fs.utimesSync(file, fixedTime, fixedTime);
+  const { env } = await import('../server/dist/env.js');
+  assert.equal(env.openrouterKey, 'sk-short');
+
+  fs.writeFileSync(file, 'OPENROUTER_API_KEY=sk-much-longer-key\n');
+  fs.utimesSync(file, fixedTime, fixedTime);
+  assert.equal(env.openrouterKey, 'sk-much-longer-key');
+});
+
+test('numeric and provider env getters normalize valid values and fall back safely on invalid input', async () => {
+  const file = path.join(fixtures, 'a.env');
+  const { env } = await import('../server/dist/env.js');
+
+  writeEnv(file, [
+    'PORT=not-a-port',
+    'ORGO_RAM_GB=-4',
+    'ORGO_CPU=0',
+    'LLM_PROVIDER=XAI',
+    'XAI_API_KEY=xai-1',
+  ].join('\n') + '\n');
+
+  assert.equal(env.port, 8787);
+  assert.equal(env.serverUrl, 'http://localhost:8787');
+  assert.equal(env.orgoRamGb, 8);
+  assert.equal(env.orgoCpu, 2);
+  assert.equal(env.llmProvider, 'xai');
+
+  writeEnv(file, 'PORT=99999\nLLM_PROVIDER=bogus\nLLM_BASE_URL=http://localhost:11434/v1\n');
+  assert.equal(env.port, 8787);
+  assert.equal(env.llmProvider, 'custom');
+
+  writeEnv(file, 'PORT=4000\nORGO_RAM_GB=16\nORGO_CPU=4\n');
+  assert.equal(env.port, 4000);
+  assert.equal(env.orgoRamGb, 16);
+  assert.equal(env.orgoCpu, 4);
+});
+

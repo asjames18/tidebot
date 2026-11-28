@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import test from 'node:test';
@@ -93,3 +93,53 @@ test('leaves operations that may run content filters to the Git client', {
   await assert.rejects(review.changes(repo), /Git content filters/);
   await assert.rejects(review.diff(repo, 'tracked.txt'), /Git content filters/);
 });
+
+test('handles symlinked repository paths for new-file previews and worktree containment checks', async (t) => {
+  const { root, repo } = await fixture(t);
+  const link = join(root, 'repo-symlink');
+  await symlink(repo, link);
+  await writeFile(join(repo, 'untracked.txt'), 'via symlink\n');
+
+  // Reading an untracked file through a symlinked repo path must not falsely claim it is outside.
+  const preview = await review.diff(link, 'untracked.txt');
+  assert.equal(preview.newFile.text, 'via symlink\n');
+  assert.equal(preview.newFile.note, '');
+
+  // Creating a worktree inside the real repo via a symlinked repo path must still be rejected.
+  const nested = join(repo, 'nested');
+  await mkdir(nested);
+  await assert.rejects(review.createWorktree(link, nested), /outside the source repository/);
+});
+
+test('truncates >64 KB UTF-8 new files cleanly without emitting a U+FFFD replacement character', async (t) => {
+  const { repo } = await fixture(t);
+  // 65,535 ASCII bytes + a 4-byte emoji forces the 64 KB (65,536-byte) cut mid-codepoint.
+  const payload = 'a'.repeat(65_535) + '🚀' + 'tail';
+  await writeFile(join(repo, 'large-utf8.txt'), payload, 'utf8');
+
+  const res = await review.diff(repo, 'large-utf8.txt');
+  assert.equal(res.newFile.note, 'Showing the first 64 KB.');
+  assert.ok(!res.newFile.text.includes('\uFFFD'), 'truncated UTF-8 preview must not contain U+FFFD');
+  assert.equal(res.newFile.text, 'a'.repeat(65_535));
+});
+
+test('trims leading and trailing dashes from punctuation-heavy repository names when creating worktrees', async (t) => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'tidebot-git-leaf-')));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const repo = join(root, '.dotfiles.');
+  const dest = join(root, 'worktrees');
+  await mkdir(repo);
+  await mkdir(dest);
+  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key)));
+  const runGit = (...args) => execFileSync('git', [
+    '-C', repo, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', ...args,
+  ], { env, encoding: 'utf8' });
+  runGit('init', '-qb', 'main');
+  await writeFile(join(repo, 'a.txt'), 'ok\n');
+  runGit('add', 'a.txt');
+  runGit('commit', '-qm', 'init');
+
+  const worktree = await review.createWorktree(repo, dest);
+  assert.match(basename(worktree), /^dotfiles-tidebot-[0-9a-f]{8}$/);
+});
+

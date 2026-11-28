@@ -10,9 +10,12 @@ import path from 'node:path';
 
 const fixtures = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-routine-triggers-'));
 process.env.DB_PATH = path.join(fixtures, 'test.db');
+process.env.ENV_PATH = path.join(fixtures, '.env');
+fs.writeFileSync(process.env.ENV_PATH, '');
 const { db } = await import('../server/dist/db.js');
 const { deleteEventTrigger, deleteEventTriggersForBot } = await import('../server/dist/triggers.js');
 const { routineScheduleChangeError } = await import('../server/dist/routines.js');
+const { findDueCheckinSlot, getCheckins, initProactive, noteCheckinOutcome, setCheckins } = await import('../server/dist/proactive.js');
 
 after(() => {
   try { db.close(); } finally { fs.rmSync(fixtures, { recursive: true, force: true }); }
@@ -53,4 +56,101 @@ test('schedule conversion guard rejects event-schedule edits both ways', () => {
   assert.match(routineScheduleChangeError('event:A', 'event:B'), /delete the routine/);
   assert.equal(routineScheduleChangeError('0 8 * * *', '0 9 * * *'), null);
   assert.equal(routineScheduleChangeError('0 8 * * *', '0 8 * * *'), null);
+});
+
+test('proactive check-in store works before initProactive and validates inputs strictly', () => {
+  // Without initProactive() (e.g. GROKBOT_NO_SCHEDULER=1), reads/writes must not crash with missing table.
+  assert.deepEqual(getCheckins('u1'), { enabled: false, times: ['09:00', '16:30'], timezone: 'UTC' });
+
+  const saved = setCheckins('u1', {
+    enabled: true,
+    times: [' 09:00 ', '09:00', 'invalid', 42, '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
+    timezone: 'America/New_York',
+  });
+  assert.deepEqual(saved, {
+    enabled: true,
+    times: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00'],
+    timezone: 'America/New_York',
+  });
+
+  noteCheckinOutcome('u1', false);
+  assert.equal(db.prepare("SELECT silent_streak FROM proactivity WHERE user_id='u1'").get().silent_streak, 1);
+  noteCheckinOutcome('u1', true);
+  assert.equal(db.prepare("SELECT silent_streak FROM proactivity WHERE user_id='u1'").get().silent_streak, 0);
+
+  assert.throws(() => setCheckins('u1', { times: '09:00' }), /array/);
+  assert.throws(() => setCheckins('u1', { enabled: 'yes' }), /boolean/);
+  assert.throws(() => setCheckins('u1', { timezone: '' }), /Invalid timezone/);
+  assert.throws(() => setCheckins('u1', { timezone: 'Mars/Olympus' }));
+});
+
+test('findDueCheckinSlot handles normal slots and midnight calendar wraparound', () => {
+  assert.deepEqual(
+    findDueCheckinSlot(['09:00', '16:30'], 'UTC', new Date('2026-05-10T09:03:00Z')),
+    { slot: '09:00', key: '2026-05-10 09:00' },
+  );
+  assert.equal(findDueCheckinSlot(['09:00'], 'UTC', new Date('2026-05-10T09:05:00Z')), null);
+  assert.equal(findDueCheckinSlot(['09:00'], 'UTC', new Date('2026-05-10T08:59:00Z')), null);
+
+  // Midnight wraparound across month boundary (non-leap and leap year).
+  assert.deepEqual(
+    findDueCheckinSlot(['23:58'], 'UTC', new Date('2026-03-01T00:01:00Z')),
+    { slot: '23:58', key: '2026-02-28 23:58' },
+  );
+  assert.deepEqual(
+    findDueCheckinSlot(['23:58'], 'UTC', new Date('2028-03-01T00:01:00Z')),
+    { slot: '23:58', key: '2028-02-29 23:58' },
+  );
+  assert.equal(findDueCheckinSlot(['23:58'], 'UTC', new Date('2026-03-01T00:03:00Z')), null);
+});
+
+test('checkins HTTP API rejects malformed JSON with 400 and reports /now scheduler/primary status', async () => {
+  fs.writeFileSync(process.env.ENV_PATH, [
+    'DEV_LOGIN=1',
+    'STUDIO_EMAIL=owner@example.test',
+    'STUDIO_PASSWORD=' + 'test-password',
+  ].join('\n'));
+  const { Hono } = await import('hono');
+  const { api } = await import('../server/dist/routes.js');
+  const { checkinsApi } = await import('../server/dist/routes-proactive.js');
+  const app = new Hono();
+  app.route('/api/checkins', checkinsApi);
+  app.route('/api', api);
+
+  const login = await app.request('/api/auth/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'owner@example.test', password: 'test-password' }),
+  });
+  assert.equal(login.status, 200);
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+
+  // Malformed JSON and invalid types return 400 rather than 500.
+  const badJson = await app.request('/api/checkins', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', cookie },
+    body: '{bad json',
+  });
+  assert.equal(badJson.status, 400);
+
+  const badTimes = await app.request('/api/checkins', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', cookie },
+    body: JSON.stringify({ times: '09:00' }),
+  });
+  assert.equal(badTimes.status, 400);
+
+  // Before initProactive(), POST /now reports 503 instead of silently returning ok.
+  const disabledNow = await app.request('/api/checkins/now', { method: 'POST', headers: { cookie } });
+  assert.equal(disabledNow.status, 503);
+
+  const queued = [];
+  initProactive((botId, trigger) => { queued.push({ botId, trigger }); });
+
+  // Once initialized, POST /now enqueues a check-in on the user's primary bot.
+  const okNow = await app.request('/api/checkins/now', { method: 'POST', headers: { cookie } });
+  assert.equal(okNow.status, 200);
+  assert.deepEqual(await okNow.json(), { ok: true });
+  assert.equal(queued.length, 1);
+  assert.match(queued[0].trigger.text, /\[check-in\]/);
 });

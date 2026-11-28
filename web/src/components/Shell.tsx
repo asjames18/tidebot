@@ -1,5 +1,12 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { startEvents } from '../lib/events';
+import {
+  detectEdgeSwipeStart,
+  resolveEdgeSwipeEnd,
+  resolveShellShortcut,
+  shouldCloseScrimSwipe,
+  type EdgeTouch,
+} from '../lib/shellShortcuts';
 import { useStore } from '../store';
 import { ChatView } from './ChatView';
 import { Sidebar } from './Sidebar';
@@ -26,7 +33,7 @@ export function Shell() {
   const collapsed = useStore((s) => s.sidebarCollapsed);
   const hasBot = useStore((s) => !!s.selectedBotId);
   const view = useConfigUI((s) => s.view);
-  const edgeTouch = useRef<{ x: number; y: number; side: 'left' | 'right' } | null>(null);
+  const edgeTouch = useRef<EdgeTouch | null>(null);
   const scrimTouch = useRef<{ x: number; y: number } | null>(null);
 
   // Switching views (e.g. to Tasks from the sidebar drawer) closes the mobile drawer.
@@ -36,37 +43,38 @@ export function Shell() {
   useEffect(() => {
     const onStart = (e: TouchEvent) => {
       if (window.innerWidth > 900) return;
-      if (e.touches.length !== 1) { edgeTouch.current = null; return; }
+      if (e.touches.length !== 1 || !e.touches[0]) { edgeTouch.current = null; return; }
       const st = useStore.getState();
       const cfg = useConfigUI.getState();
       if (st.mobileSidebarOpen || st.detailsOpen || st.modal || st.viewerOpen || cfg.botSettings || cfg.appSettings) return;
       const t = e.touches[0];
       const target = e.target as HTMLElement | null;
       if (target?.closest('input, textarea, select, [contenteditable="true"], .md-table, pre, .composer-quick-bar, .composer-telemetry, .toast--item, .empty-quick-prompts, .tasks-filters, .vcall, .menu, .slash-palette')) return;
-      if (t.clientX <= 28) {
-        edgeTouch.current = { x: t.clientX, y: t.clientY, side: 'left' };
-      } else if (t.clientX >= window.innerWidth - 28 && st.selectedBotId && cfg.view === 'chat') {
-        edgeTouch.current = { x: t.clientX, y: t.clientY, side: 'right' };
-      } else {
-        edgeTouch.current = null;
-      }
+      edgeTouch.current = detectEdgeSwipeStart(
+        t.clientX,
+        t.clientY,
+        window.innerWidth,
+        Boolean(st.selectedBotId && cfg.view === 'chat'),
+      );
     };
     const onEnd = (e: TouchEvent) => {
       const start = edgeTouch.current;
       edgeTouch.current = null;
-      if (!start || !e.changedTouches.length) return;
+      if (!start || !e.changedTouches.length || !e.changedTouches[0]) return;
+      if (window.innerWidth > 900) return;
+      const st = useStore.getState();
+      const cfg = useConfigUI.getState();
+      if (st.mobileSidebarOpen || st.detailsOpen || st.modal || st.viewerOpen || cfg.botSettings || cfg.appSettings) return;
       const t = e.changedTouches[0];
-      const dx = t.clientX - start.x;
-      const dy = t.clientY - start.y;
-      if (Math.abs(dx) < 52 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      const action = resolveEdgeSwipeEnd(start, t.clientX, t.clientY);
+      if (!action) return;
       const ae = document.activeElement;
       if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
-      if (start.side === 'left' && dx > 52) {
-        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-        useStore.getState().set({ mobileSidebarOpen: true, sidebarCollapsed: false });
-      } else if (start.side === 'right' && dx < -52) {
-        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-        useStore.getState().set({ detailsOpen: true });
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
+      if (action === 'open-sidebar') {
+        st.set({ mobileSidebarOpen: true, sidebarCollapsed: false });
+      } else {
+        st.set({ detailsOpen: true });
       }
     };
     const onCancel = () => { edgeTouch.current = null; };
@@ -115,35 +123,36 @@ export function Shell() {
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       const st = useStore.getState();
-      const key = e.key.toLowerCase();
-      if (key === 'escape' && !e.defaultPrevented && window.innerWidth <= 900) {
-        const cfg = useConfigUI.getState();
-        if (!st.modal && !st.viewerOpen && !cfg.botSettings && !cfg.appSettings && (st.mobileSidebarOpen || st.detailsOpen)) {
-          e.preventDefault();
-          st.set({ mobileSidebarOpen: false, detailsOpen: false });
-          return;
-        }
-      }
-      if (e.altKey && !e.metaKey && !e.ctrlKey && key === 'n') {
-        e.preventDefault();
+      const cfg = useConfigUI.getState();
+      const isMobile = window.innerWidth <= 900;
+      const action = resolveShellShortcut(e, {
+        isMobile,
+        hasModal: Boolean(st.modal),
+        viewerOpen: st.viewerOpen,
+        hasConfigModal: Boolean(cfg.botSettings || cfg.appSettings),
+        mobileSidebarOpen: st.mobileSidebarOpen,
+        detailsOpen: st.detailsOpen,
+      });
+      if (!action) return;
+      e.preventDefault();
+      if (action === 'close-mobile-drawers') {
+        st.set({ mobileSidebarOpen: false, detailsOpen: false });
+      } else if (action === 'toggle-create') {
         st.setModal(st.modal === 'create' ? null : 'create');
-        return;
-      }
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
-      if (key === 'k') { e.preventDefault(); st.setModal(st.modal === 'search' ? null : 'search'); }
-      else if (key === 'b') {
-        e.preventDefault();
-        if (window.innerWidth <= 900) {
+      } else if (action === 'toggle-search') {
+        st.setModal(st.modal === 'search' ? null : 'search');
+      } else if (action === 'toggle-sidebar') {
+        if (isMobile) {
           const next = !st.mobileSidebarOpen;
           st.set({ mobileSidebarOpen: next, sidebarCollapsed: false, ...(next ? { detailsOpen: false } : {}) });
         } else {
           st.set({ sidebarCollapsed: !st.sidebarCollapsed });
         }
+      } else if (action === 'toggle-details') {
+        st.set({ detailsOpen: !st.detailsOpen });
+      } else if (action === 'open-settings') {
+        cfg.openAppSettings();
       }
-      else if (e.shiftKey && key === 'o') { e.preventDefault(); st.setModal(st.modal === 'create' ? null : 'create'); }
-      else if (e.shiftKey && (key === ',' || key === '<')) { e.preventDefault(); st.set({ detailsOpen: !st.detailsOpen }); }
-      else if (key === ',') { e.preventDefault(); useConfigUI.getState().openAppSettings(); }
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
@@ -156,17 +165,14 @@ export function Shell() {
         <div
           className="mobile-scrim"
           onTouchStart={(e) => {
-            if (e.touches.length !== 1) return;
+            if (e.touches.length !== 1 || !e.touches[0]) { scrimTouch.current = null; return; }
             scrimTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
           }}
           onTouchEnd={(e) => {
             const start = scrimTouch.current;
             scrimTouch.current = null;
-            if (!start || !e.changedTouches.length) return;
-            const dx = e.changedTouches[0].clientX - start.x;
-            const dy = e.changedTouches[0].clientY - start.y;
-            if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
-            if ((mobileSidebarOpen && dx < -36) || (detailsOpen && dx > 36)) {
+            if (!start || !e.changedTouches.length || !e.changedTouches[0]) return;
+            if (shouldCloseScrimSwipe(start, e.changedTouches[0].clientX, e.changedTouches[0].clientY, mobileSidebarOpen, detailsOpen)) {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
               const ae = document.activeElement;
               if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
