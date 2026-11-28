@@ -25,7 +25,10 @@ const PHRASES: Record<string, string[]> = {
   remembering: ['Making a note of it'],
 };
 
-const nice = (s?: string) => !!s && !/[_]/.test(s) && !/^[a-z0-9-]+$/.test(s);
+const nice = (s?: string): string | null => {
+  const trimmed = typeof s === 'string' ? s.trim() : '';
+  return trimmed && !/[_]/.test(trimmed) && !/^[a-z0-9-]+$/.test(trimmed) ? trimmed : null;
+};
 
 /** Phrase for the activity line. `tick` rotates multi-phrase kinds. */
 export function activityPhrase(live: LiveState, rows: Row[], tick: number): string {
@@ -33,12 +36,24 @@ export function activityPhrase(live: LiveState, rows: Row[], tick: number): stri
   if (!a) return live.awaiting ? 'Needs your input' : 'Working on it';
   const kind = a.kind as ActivityKind;
   if (kind === 'messaging_named') {
-    const running = [...rows].reverse().find((r) => r.body.type === 'tool-call' && r.body.status === 'running');
-    const args = running?.body.type === 'tool-call' ? (running.body.args as Record<string, unknown> | undefined) : undefined;
-    const name = typeof args?.bot_name === 'string' ? args.bot_name : nice(a.detail) ? a.detail : null;
+    let botName: string | null = null;
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const body = rows[i].body;
+      if (body.type !== 'tool-call' || body.status !== 'running') continue;
+      const args = body.args as Record<string, unknown> | undefined;
+      if (typeof args?.bot_name === 'string' && args.bot_name.trim()) {
+        botName = args.bot_name.trim();
+        break;
+      }
+    }
+    const name = botName ?? nice(a.detail);
     return name ? `Checking with ${name}` : 'Checking with another Bot';
   }
-  if (kind === 'connecting_service') return nice(a.detail) ? `Working in ${a.detail}` : 'Working in a connected app';
+  if (kind === 'connecting_service') {
+    const service = nice(a.detail);
+    return service ? `Working in ${service}` : 'Working in a connected app';
+  }
   const list = Object.hasOwn(PHRASES, kind) ? PHRASES[kind] : PHRASES.working;
-  return list[Math.max(0, tick) % list.length];
+  const idx = Number.isFinite(tick) ? Math.max(0, Math.trunc(tick)) % list.length : 0;
+  return list[idx];
 }
