@@ -85,8 +85,12 @@ there, and keep the base color dark so chat text stays readable:
     col += vec3(0.5, 0.1, 0.02) * heat * 0.85;
     col += vec3(0.85, 0.32, 0.04) * pow(heat, 2.0) * 0.7;
     col += vec3(1.0, 0.72, 0.3) * spark * 0.9;
-  }
 ```
+
+There is no closing `}` on the new branch — the existing `} else {`
+(grid) closes it, exactly like every sibling branch above it. A trailing
+`}` here would leave the `else` with nothing to attach to and break the
+whole shader (all six modes fail to compile).
 
 How it works: `q` domain-warps the coal field, `heat` picks out the glowing
 patches, and the sparks are a scrolling cell grid — `sp.y` grows with `t`,
