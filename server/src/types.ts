@@ -246,6 +246,27 @@ export interface ModelInfo {
   badge?: string;
 }
 
+export interface OperatorTemplateSkill {
+  name: string;
+  description?: string;
+  body: string;
+}
+
+export interface OperatorTemplate {
+  schema: 'tidebot.operator.v1';
+  name: string;
+  label?: string;
+  description?: string;
+  instructions?: string;
+  model?: string;
+  mode?: 'personal' | 'teammate';
+  effort?: 'low' | 'medium' | 'high' | 'xhigh';
+  avatarShape?: AvatarShape;
+  avatarColor?: AvatarColor;
+  tools?: OperatorTemplateSkill[];
+  memorySeed?: string[];
+}
+
 /** Server-sent events on GET /api/events */
 export type ServerEvent =
   | { type: 'hello'; serverTime: number }
