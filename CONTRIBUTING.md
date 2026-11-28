@@ -54,3 +54,7 @@ Open a GitHub issue and include: TideBot version (or commit), OS, what you expec
 ## License
 
 By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE) that covers the project.
+
+## Governance
+
+Who merges, how contested changes are decided, and how merge rights are earned: see [GOVERNANCE.md](GOVERNANCE.md).
