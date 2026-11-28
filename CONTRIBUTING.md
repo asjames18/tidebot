@@ -40,6 +40,15 @@ npm test            # node --test suites
 
 If you touched the desktop app: build it locally (`npm run build` inside `desktop/`) and launch the packaged app at least once.
 
+### Known local-only test skips
+
+Two tests skip cleanly in environments where they cannot pass, by design — do not chase them as failures:
+
+- `tests/env-persist.test.mjs` skips its read-only-directory test when run as root (the `isRoot` check): root bypasses read-only directory permissions, so the failure the test guards against cannot reproduce there.
+- `tests/desktop-git-review.test.mjs` skips its content-filter test when the sandbox's git wrapper (`hatch-git`) is on `PATH`: the wrapper strips filter config before git reads it, so a filter set in a fixture can never be observed by the guard under test.
+
+Both skips are detected at runtime; the rest of each file still runs. If you see either skip in a local run, that is expected — not a regression.
+
 ## Pull requests
 
 1. Fill in the PR template (what changed, why, how to verify).
