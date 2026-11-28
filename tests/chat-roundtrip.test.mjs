@@ -163,6 +163,26 @@ test('chat, routines, approvals, research, and project context work through the 
   const wrongCitation=await api(path+'/research',plan);
   await until(async()=>(await api(path+'/runs/'+wrongCitation.runId)).run.state==='failed');
   assert.ok(!(await api(path+'/runs/'+wrongCitation.runId)).rows.some(row=>row.body.artifactPath));
+
+  // Excerpt truncation must not split a 4-byte UTF-8 sequence at 16,000 bytes (U+FFFD)
+  // or a UTF-16 surrogate pair at 8,000 code units (lone high surrogate).
+  await api(path+'/files',{path:'utf8-boundary.md',content:'x'+'😀'.repeat(4000)});
+  await api(path+'/files',{path:'surrogate-boundary.md',content:'b'.repeat(7999)+'😀tail'});
+  researchReply='  Both boundary notes parsed cleanly [1][2].  ';
+  const boundaryRun=await api(path+'/research',{question:'Check boundary excerpts',outline:'Verify clean text.',links:[],files:['utf8-boundary.md','surrogate-boundary.md']});
+  const boundaryDone=await until(async()=>{
+    const r=await api(path+'/runs/'+boundaryRun.runId);
+    return r.run.state==='completed' && r;
+  });
+  const boundaryExcerpts=JSON.parse(requests.at(-1).messages.at(-1).content).excerpts;
+  assert.equal(boundaryExcerpts[0].text,'x'+'😀'.repeat(3999));
+  assert.ok(!boundaryExcerpts[0].text.includes('\uFFFD'));
+  assert.equal(boundaryExcerpts[1].text,'b'.repeat(7999));
+  assert.equal(boundaryExcerpts[1].text.isWellFormed(),true);
+  const boundaryArtifact=boundaryDone.rows.find(row=>row.body.artifactPath);
+  assert.ok(boundaryArtifact);
+  assert.match(boundaryArtifact.body.text,/# Check boundary excerpts\n\nBoth boundary notes parsed cleanly \[1\]\[2\]\.\n\n## Sources/);
+
   await stop();
   await start();
   assert.equal((await api(path+'/runs/'+runId)).run.state,'completed');

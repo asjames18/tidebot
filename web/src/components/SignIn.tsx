@@ -1,6 +1,15 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BotAvatar } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
+import {
+  initialSignInError,
+  MAX_NEW_PASSWORD_LEN,
+  MAX_SIGNIN_PASSWORD_LEN,
+  MIN_NEW_PASSWORD_LEN,
+  shouldAdvanceSignInFocus,
+  validateSignInDraft,
+  type SignInMode,
+} from '../lib/signInForm';
 import { useStore } from '../store';
 import { ShaderCanvas } from './ShaderCanvas';
 import { TrafficLights } from './Sidebar';
@@ -10,7 +19,7 @@ export function SignIn() {
   const googleLogin = useStore((s) => s.googleLogin);
   const localSignup = useStore((s) => s.localSignup);
   const [email, setEmail] = useState('');
-  const [mode, setMode] = useState<'signin' | 'invite' | 'local'>('signin');
+  const [mode, setMode] = useState<SignInMode>('signin');
   const inviteMode = mode === 'invite';
   const creating = mode !== 'signin';
   const [invite, setInvite] = useState('');
@@ -18,38 +27,43 @@ export function SignIn() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
+  const mountedRef = useRef(true);
   const nameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string | null>(() =>
-    new URLSearchParams(location.search).get('login') === 'failed' ? 'Sign-in didn’t finish. Try again.' : null,
-  );
+  const [error, setError] = useState<string | null>(() => initialSignInError(location.search));
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
-    if (!inviteMode && !email.includes('@')) {
-      setError('Enter an email address');
-      return;
-    }
-    if (!password) {
-      setError('Enter your password');
+    const checked = validateSignInDraft({ mode, email, invite, name, password });
+    if (!checked.ok) {
+      setError(checked.error);
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      if (inviteMode) await api.acceptInvite(invite.trim(), password, name.trim() || undefined);
-      else if (mode === 'local') await api.createLocalAccount(email.trim(), password, name.trim() || undefined);
-      else await api.passwordLogin(email.trim(), password, name.trim() || undefined);
+      if (inviteMode) await api.acceptInvite(checked.invite, checked.password, checked.name);
+      else if (mode === 'local') await api.createLocalAccount(checked.email, checked.password, checked.name);
+      else await api.passwordLogin(checked.email, checked.password, checked.name);
       if (!await checkAuth()) throw new Error('TideBot could not load your session. Try signing in again.');
     } catch (err) {
-      setError((err as Error).message);
-      setBusy(false);
+      if (mountedRef.current) {
+        setError((err as Error).message);
+        setBusy(false);
+      }
     }
   };
-  const changeMode = (next: typeof mode) => {
+  const changeMode = (next: SignInMode) => {
+    if (busy) return;
     setMode(next);
+    setInvite('');
     setPassword('');
     setShowPassword(false);
     setError(null);
@@ -81,8 +95,23 @@ export function SignIn() {
         </a>}
         <form className="signin__dev" onSubmit={submit}>
           <div className="signin__divider"><span>{mode === 'local' ? 'Create a local account' : inviteMode ? 'Create your account' : 'Sign in to your studio'}</span></div>
-          {inviteMode ? <input className="text-input" aria-label="Invite code" placeholder="Invite code" required
-            value={invite} onChange={(e) => setInvite(e.target.value)} autoComplete="off" /> : <input
+          {inviteMode ? <input
+            className="text-input"
+            aria-label="Invite code"
+            placeholder="Invite code"
+            enterKeyHint="next"
+            required
+            disabled={busy}
+            value={invite}
+            onChange={(e) => { setInvite(e.target.value); if (error) setError(null); }}
+            onKeyDown={(e) => {
+              if (shouldAdvanceSignInFocus({ key: e.key, isComposing: e.nativeEvent.isComposing, keyCode: e.keyCode }, Boolean(password))) {
+                e.preventDefault();
+                nameRef.current?.focus();
+              }
+            }}
+            autoComplete="off"
+          /> : <input
             className="text-input"
             type="email"
             inputMode="email"
@@ -90,11 +119,12 @@ export function SignIn() {
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="next"
+            disabled={busy}
             placeholder="Email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !password) {
+              if (shouldAdvanceSignInFocus({ key: e.key, isComposing: e.nativeEvent.isComposing, keyCode: e.keyCode }, Boolean(password))) {
                 e.preventDefault();
                 nameRef.current?.focus();
               }
@@ -107,11 +137,12 @@ export function SignIn() {
             className="text-input"
             autoCapitalize="words"
             enterKeyHint="next"
+            disabled={busy}
             placeholder="Name (optional, first sign-in)"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !password) {
+              if (shouldAdvanceSignInFocus({ key: e.key, isComposing: e.nativeEvent.isComposing, keyCode: e.keyCode }, Boolean(password))) {
                 e.preventDefault();
                 passwordRef.current?.focus();
               }
@@ -128,9 +159,10 @@ export function SignIn() {
               autoCorrect="off"
               spellCheck={false}
               enterKeyHint="go"
-              placeholder={creating ? 'Choose a password (12 characters or more)' : 'Password'}
-              minLength={creating ? 12 : undefined}
-              maxLength={creating ? 256 : 1024}
+              disabled={busy}
+              placeholder={creating ? `Choose a password (${MIN_NEW_PASSWORD_LEN} characters or more)` : 'Password'}
+              minLength={creating ? MIN_NEW_PASSWORD_LEN : undefined}
+              maxLength={creating ? MAX_NEW_PASSWORD_LEN : MAX_SIGNIN_PASSWORD_LEN}
               value={password}
               onChange={(e) => { setPassword(e.target.value); if (error) setError(null); }}
               aria-label="Password"

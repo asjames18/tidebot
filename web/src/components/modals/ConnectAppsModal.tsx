@@ -2,29 +2,34 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Toolkit } from '@shared/types';
 import { BotAvatarFor } from '../../avatar/BotAvatar';
 import { api, openPopup, type AppsResponse } from '../../lib/api';
+import {
+  APP_CATEGORY_PILLS,
+  categoryPillLabel,
+  getMoreCategories,
+  isPrimaryAppCategory,
+  mergeConnectedToolkits,
+  partitionConnectedSlugs,
+  shouldBlurAppSearchOnEnter,
+  titleCaseCategory,
+} from '../../lib/connectApps';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
 import { Menu } from '../Menu';
 import { ToolkitLogo } from '../ToolkitLogo';
 import { Modal } from './Modal';
 
-/** Design pill → backend (Composio) category. */
-const PILLS: { label: string; category: string }[] = [
-  { label: 'Password Managers', category: 'security & identity tools' },
-  { label: 'Productivity', category: 'productivity' },
-  { label: 'Communication', category: 'communication' },
-  { label: 'Design', category: 'images & design' },
-  { label: 'Code', category: 'developer tools' },
-];
-const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\bAi\b/g, 'AI').replace(/\bCrm\b/g, 'CRM').replace(/\bSeo\b/g, 'SEO').replace(/\bIt\b/g, 'IT').replace(/\bHr\b/g, 'HR').replace(/\bSms\b/g, 'SMS').replace(/\bUrl\b/g, 'URL').replace(/\bOcr\b/g, 'OCR');
-const pillLabel = (cat: string) => PILLS.find((p) => p.category === cat)?.label ?? titleCase(cat);
-
 type View = { kind: 'all' } | { kind: 'category'; category: string } | { kind: 'connected' };
 
 function AppRow({ app, onChanged }: { app: Toolkit; onChanged: () => void }) {
   const [state, setState] = useState<'idle' | 'busy' | 'waiting' | 'confirm'>('idle');
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { setState('idle'); }, [app.connected]);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+  useEffect(() => { setState('idle'); setError(null); }, [app.connected]);
   useEffect(() => {
     if (state !== 'confirm') return;
     const t = setTimeout(() => setState('idle'), 3500);
@@ -32,29 +37,45 @@ function AppRow({ app, onChanged }: { app: Toolkit; onChanged: () => void }) {
   }, [state]);
 
   const connect = async () => {
+    if (state === 'busy') return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
     setState('busy'); setError(null);
     const popup = openPopup('about:blank');
     try {
       const { redirectUrl } = await api.connect(app.slug);
+      if (!mountedRef.current) {
+        popup?.close();
+        return;
+      }
       if (popup && !popup.closed) popup.location.href = redirectUrl;
       else window.open(redirectUrl, '_blank', 'noopener,noreferrer');
       setState('waiting');
     } catch (e) {
       popup?.close();
-      setError((e as Error).message || 'Couldn’t start the connection');
-      setState('idle');
+      if (mountedRef.current) {
+        setError((e as Error).message || 'Couldn’t start the connection');
+        setState('idle');
+      }
     }
   };
   const disconnect = async () => {
+    if (state === 'busy') return;
     if (state !== 'confirm') {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
       setState('confirm');
       return;
     }
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
-    setState('busy');
-    try { await api.disconnect(app.slug); onChanged(); } catch (e) { setError((e as Error).message); setState('idle'); }
+    setState('busy'); setError(null);
+    try {
+      await api.disconnect(app.slug);
+      if (mountedRef.current) onChanged();
+    } catch (e) {
+      if (mountedRef.current) {
+        setError((e as Error).message);
+        setState('idle');
+      }
+    }
   };
 
   return (
@@ -150,14 +171,24 @@ export function ConnectAppsModal() {
     return () => { alive = false; };
   }, [debounced, view, connectionsVersion, bump]);
 
-  // Connected list (for the header chip and the Connected view): resolve the connected slugs to full entries.
+  // Connected list (for the header chip and the Connected view): resolve only missing slugs and keep fallbacks disconnectable.
   useEffect(() => {
     if (!data) return;
-    const missing = data.connected.filter((s) => !data.apps.some((a) => a.slug === s));
-    if (!missing.length) { setConnectedApps(data.apps.filter((a) => a.connected)); return; }
+    const { resolved, missing } = partitionConnectedSlugs(data.connected, data.apps);
+    if (!missing.length) {
+      setConnectedApps(mergeConnectedToolkits(data.connected, resolved));
+      return;
+    }
     let alive = true;
-    Promise.all(data.connected.map((s) => api.apps(s).then((r) => r.apps.find((a) => a.slug === s)).catch(() => undefined)))
-      .then((list) => { if (alive) setConnectedApps(list.filter((a): a is Toolkit => !!a)); });
+    Promise.all(missing.map((s) => api.apps(s).then((r) => [s, r.apps.find((a) => a.slug === s)] as const).catch(() => [s, undefined] as const)))
+      .then((entries) => {
+        if (!alive) return;
+        const merged = new Map(resolved);
+        for (const [slug, app] of entries) {
+          if (app) merged.set(slug, app);
+        }
+        setConnectedApps(mergeConnectedToolkits(data.connected, merged));
+      });
     return () => { alive = false; };
   }, [data]);
 
@@ -170,9 +201,9 @@ export function ConnectAppsModal() {
 
   const apps = data?.apps ?? [];
   const searching = debounced.length > 0;
-  const moreCategories = useMemo(() => (data?.categories ?? []).filter((c) => !PILLS.some((p) => p.category === c)), [data?.categories]);
+  const moreCategories = useMemo(() => getMoreCategories(data?.categories ?? []), [data?.categories]);
   const activeCategory = view.kind === 'category' ? view.category : null;
-  const moreActive = activeCategory !== null && !PILLS.some((p) => p.category === activeCategory);
+  const moreActive = activeCategory !== null && !isPrimaryAppCategory(activeCategory);
 
   let body: React.ReactNode;
   if (error) {
@@ -196,16 +227,17 @@ export function ConnectAppsModal() {
   else if (view.kind === 'connected') body = connectedApps.length ? <Section title="Connected" apps={connectedApps} onChanged={refresh} /> : <div className="apps-empty">No apps connected yet.</div>;
   else if (searching || view.kind === 'category') {
     body = apps.length ? (
-      <Section title={searching ? `Results${activeCategory ? ` in ${pillLabel(activeCategory)}` : ''}` : pillLabel(activeCategory!)} apps={apps} onChanged={refresh} />
+      <Section title={searching ? `Results${activeCategory ? ` in ${categoryPillLabel(activeCategory)}` : ''}` : categoryPillLabel(activeCategory!)} apps={apps} onChanged={refresh} />
     ) : (
       <div className="apps-empty" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-        <span>{searching ? `No apps match “${debounced}”.` : `No apps in ${pillLabel(activeCategory!)}.`}</span>
+        <span>{searching ? `No apps match “${debounced}”.` : `No apps in ${categoryPillLabel(activeCategory!)}.`}</span>
         <button
           type="button"
           className="cfg-btn cfg-btn--secondary"
           onClick={() => {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
             setSearch('');
+            setDebounced('');
             setView({ kind: 'all' });
           }}
         >
@@ -217,7 +249,7 @@ export function ConnectAppsModal() {
     body = (
       <>
         <Section title="Picked for you" apps={apps.slice(0, 6)} onChanged={refresh} />
-        {PILLS.map((p) => {
+        {APP_CATEGORY_PILLS.map((p) => {
           const list = apps.filter((a) => a.categories.some((c) => c.toLowerCase() === p.category.toLowerCase()));
           return <Section key={p.category} title={p.label} apps={list.slice(0, 4)} onViewAll={list.length > 2 ? () => setView({ kind: 'category', category: p.category }) : undefined} onChanged={refresh} />;
         })}
@@ -276,7 +308,7 @@ export function ConnectAppsModal() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && window.innerWidth <= 900) {
+                  if (shouldBlurAppSearchOnEnter({ key: e.key, isComposing: e.nativeEvent.isComposing, keyCode: e.keyCode }, window.innerWidth)) {
                     e.preventDefault();
                     searchInputRef.current?.blur();
                   }
@@ -291,6 +323,7 @@ export function ConnectAppsModal() {
                     e.preventDefault();
                     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
                     setSearch('');
+                    setDebounced('');
                     searchInputRef.current?.focus();
                   }}
                   aria-label="Clear app search"
@@ -328,12 +361,12 @@ export function ConnectAppsModal() {
             >
               All
             </button>
-            {PILLS.map((p) => (
+            {APP_CATEGORY_PILLS.map((p) => (
               <button
                 key={p.category}
                 type="button"
-                className={`cat-pill${activeCategory === p.category ? ' is-active' : ''}`}
-                aria-pressed={activeCategory === p.category}
+                className={`cat-pill${activeCategory?.toLowerCase() === p.category ? ' is-active' : ''}`}
+                aria-pressed={activeCategory?.toLowerCase() === p.category}
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
                   if (window.innerWidth <= 900) searchInputRef.current?.blur();
@@ -355,14 +388,14 @@ export function ConnectAppsModal() {
                   }}
                   aria-expanded={more}
                 >
-                  {moreActive ? pillLabel(activeCategory!) : 'More'}
+                  {moreActive ? categoryPillLabel(activeCategory!) : 'More'}
                   <Icon name="chev_down" size={10} opacity={0.66} />
                 </button>
                 {more && (
                   <Menu
                     onClose={() => setMore(false)}
                     items={moreCategories.map((c) => ({
-                      label: titleCase(c),
+                      label: titleCaseCategory(c),
                       onSelect: () => setView({ kind: 'category', category: c }),
                     }))}
                   />
@@ -375,11 +408,15 @@ export function ConnectAppsModal() {
       <div
         ref={bodyRef}
         className={`apps-modal__body${loading ? ' is-loading' : ''}`}
-        onTouchStart={(e) => { bodyTouchStartYRef.current = e.touches[0]?.clientY ?? null; }}
+        onTouchStart={(e) => { bodyTouchStartYRef.current = e.touches.length === 1 ? (e.touches[0]?.clientY ?? null) : null; }}
         onTouchMove={(e) => {
           if (bodyTouchStartYRef.current === null || window.innerWidth > 900) return;
-          const y = e.touches[0]?.clientY;
-          if (y !== undefined && Math.abs(y - bodyTouchStartYRef.current) > 14) {
+          if (e.touches.length !== 1 || !e.touches[0]) {
+            bodyTouchStartYRef.current = null;
+            return;
+          }
+          const y = e.touches[0].clientY;
+          if (Math.abs(y - bodyTouchStartYRef.current) > 14) {
             bodyTouchStartYRef.current = null;
             if (document.activeElement === searchInputRef.current) searchInputRef.current?.blur();
           }

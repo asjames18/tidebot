@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Bot, LibraryFile } from '@shared/types';
 import { configApi, type LibraryListing } from '../../lib/configApi';
 import { copyText } from '../../lib/clipboard';
+import { RequestGate, isMarkdownFilename, joinLibraryPath, sanitizeLibraryFilename } from '../../lib/libraryPath';
 import { relativeShort } from '../../lib/time';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
@@ -12,7 +13,13 @@ import { ConfirmButton, formatBytes } from './ui';
 /** Files the bot saved under its workspace or /root/grokbot/files/<botId>. */
 export function LibraryTab({ bot }: { bot: Bot }) {
   const awake = useStore((s) => s.computer?.status === 'running');
-  const [path, setPath] = useState('');
+  // Scope folder path to bot.id so switching bots immediately resolves to '' on the first render.
+  const [loc, setLoc] = useState<{ botId: string; path: string }>({ botId: bot.id, path: '' });
+  const path = loc.botId === bot.id ? loc.path : '';
+  const setPath = (next: string) => {
+    fileGateRef.current.invalidate();
+    setLoc({ botId: bot.id, path: next });
+  };
   const [list, setList] = useState<LibraryListing | null>(null);
   const [loading, setLoading] = useState(false);
   const [busyFile, setBusyFile] = useState<string | null>(null);
@@ -25,46 +32,75 @@ export function LibraryTab({ bot }: { bot: Bot }) {
   const [newContent, setNewContent] = useState('');
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<number | null>(null);
-  useEffect(() => () => { if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current); }, []);
+  const listGateRef = useRef(new RequestGate());
+  const fileGateRef = useRef(new RequestGate());
+  useEffect(() => () => {
+    listGateRef.current.invalidate();
+    fileGateRef.current.invalidate();
+    if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+  }, []);
   useEffect(() => {
     setCopied(false);
     if (copyTimerRef.current) { window.clearTimeout(copyTimerRef.current); copyTimerRef.current = null; }
   }, [preview?.rel]);
 
   const load = useCallback(async (wake = false) => {
+    const reqId = listGateRef.current.next();
     setLoading(true); setError(null);
-    try { setList(await configApi.files(bot.id, path, wake)); }
-    catch (e) { setError((e as Error).message); }
-    finally { setLoading(false); }
+    try {
+      const next = await configApi.files(bot.id, path, wake);
+      if (listGateRef.current.isCurrent(reqId)) setList(next);
+    } catch (e) {
+      if (listGateRef.current.isCurrent(reqId)) setError((e as Error).message);
+    } finally {
+      if (listGateRef.current.isCurrent(reqId)) setLoading(false);
+    }
   }, [bot.id, path]);
 
-  useEffect(() => { setPath(''); setList(null); setPreview(null); setCreating(false); }, [bot.id]);
+  useEffect(() => {
+    listGateRef.current.invalidate();
+    fileGateRef.current.invalidate();
+    setLoc({ botId: bot.id, path: '' });
+    setList(null);
+    setPreview(null);
+    setCreating(false);
+    setBusyFile(null);
+    setError(null);
+  }, [bot.id]);
   useEffect(() => { load(); }, [load, awake]);
 
   const download = async (f: LibraryFile) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-    const rel = path ? `${path}/${f.name}` : f.name;
+    const reqId = fileGateRef.current.next();
+    const rel = joinLibraryPath(path, f.name);
     setBusyFile(f.name); setError(null);
     try {
       const { url } = await configApi.downloadFile(bot.id, rel);
+      if (!fileGateRef.current.isCurrent(reqId)) return;
       const a = document.createElement('a');
       a.href = url; a.download = f.name; a.rel = 'noopener';
       document.body.appendChild(a); a.click(); a.remove();
-    } catch (e) { setError(`Couldn’t download ${f.name}: ${(e as Error).message}`); }
-    finally { setBusyFile(null); }
+    } catch (e) {
+      if (fileGateRef.current.isCurrent(reqId)) setError(`Couldn’t download ${f.name}: ${(e as Error).message}`);
+    } finally {
+      if (fileGateRef.current.isCurrent(reqId)) setBusyFile(null);
+    }
   };
 
   const openFile = async (f: LibraryFile) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-    const rel = path ? `${path}/${f.name}` : f.name;
+    const reqId = fileGateRef.current.next();
+    const rel = joinLibraryPath(path, f.name);
     setBusyFile(f.name); setError(null);
     try {
       const res = await configApi.fileContent(bot.id, rel);
+      if (!fileGateRef.current.isCurrent(reqId)) return;
       setPreview({ name: f.name, rel, content: res.content, editing: false });
     } catch {
+      if (!fileGateRef.current.isCurrent(reqId)) return;
       await download(f);
     } finally {
-      setBusyFile(null);
+      if (fileGateRef.current.isCurrent(reqId)) setBusyFile(null);
     }
   };
 
@@ -78,50 +114,58 @@ export function LibraryTab({ bot }: { bot: Bot }) {
   const savePreviewEdit = async () => {
     if (!preview || busyFile === preview.name) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
-    setBusyFile(preview.name);
+    const reqId = fileGateRef.current.next();
+    const snapshot = preview;
+    setBusyFile(snapshot.name);
     try {
-      await configApi.saveFile(bot.id, preview.rel, preview.content);
+      await configApi.saveFile(bot.id, snapshot.rel, snapshot.content);
+      if (!fileGateRef.current.isCurrent(reqId)) return;
       blurActiveOnMobile();
-      setPreview({ ...preview, editing: false });
+      setPreview({ ...snapshot, editing: false });
       await load();
     } catch (e) {
-      setError((e as Error).message);
+      if (fileGateRef.current.isCurrent(reqId)) setError((e as Error).message);
     } finally {
-      setBusyFile(null);
+      if (fileGateRef.current.isCurrent(reqId)) setBusyFile(null);
     }
   };
 
   const createNewFile = async () => {
-    const clean = newFilename.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+    const clean = sanitizeLibraryFilename(newFilename);
     if (!clean || loading) return;
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
-    const rel = path ? `${path}/${clean}` : clean;
+    const reqId = fileGateRef.current.next();
+    const rel = joinLibraryPath(path, clean);
     setLoading(true);
     try {
       await configApi.saveFile(bot.id, rel, newContent);
+      if (!fileGateRef.current.isCurrent(reqId)) return;
       blurActiveOnMobile();
       setCreating(false);
       setNewFilename('notes.md');
       setNewContent('');
       await load();
     } catch (e) {
-      setError((e as Error).message);
+      if (fileGateRef.current.isCurrent(reqId)) setError((e as Error).message);
     } finally {
-      setLoading(false);
+      if (fileGateRef.current.isCurrent(reqId)) setLoading(false);
     }
   };
 
   const removeFile = async (rel: string) => {
+    const reqId = fileGateRef.current.next();
     try {
       await configApi.deleteFile(bot.id, rel);
+      if (!fileGateRef.current.isCurrent(reqId)) return;
       if (preview?.rel === rel) setPreview(null);
       await load();
     } catch (e) {
-      setError((e as Error).message);
+      if (fileGateRef.current.isCurrent(reqId)) setError((e as Error).message);
     }
   };
 
   const crumbs = path ? path.split('/') : [];
+  const validNewFilename = Boolean(sanitizeLibraryFilename(newFilename));
 
   return (
     <div className="details__sections">
@@ -224,7 +268,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
               <button
                 type="button"
                 className="cfg-btn cfg-btn--primary"
-                disabled={loading || !newFilename.trim()}
+                disabled={loading || !validNewFilename}
                 onClick={() => void createNewFile()}
               >
                 {loading ? 'Saving…' : 'Save File'}
@@ -301,7 +345,7 @@ export function LibraryTab({ bot }: { bot: Bot }) {
                   </button>
                 </div>
               </>
-            ) : preview.name.endsWith('.md') ? (
+            ) : isMarkdownFilename(preview.name) ? (
               <div
                 className="lib-preview__content"
                 style={{ fontSize: 12.5, maxHeight: 260, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '6px 4px', borderTop: '1px solid var(--color-border-tertiary)' }}

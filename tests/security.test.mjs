@@ -10,7 +10,7 @@ import https from 'node:https';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
 import { isPrivateIp, isLoopbackHost, assertUrlHostAllowedSync, assertPublicUrl, safeFetch } from '../server/dist/lib/ssrf.js';
-import { resolveWithinWorkspace, writeWorkspaceFile } from '../server/dist/lib/files.js';
+import { listWorkspaceDirectory, resolveWithinWorkspace, resolveWorkspaceEntryForDelete, writeWorkspaceFile } from '../server/dist/lib/files.js';
 
 const fixtures = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-security-'));
 process.env.DB_PATH = path.join(fixtures, 'test.db');
@@ -22,7 +22,7 @@ after(() => {
 const { validateRoutineSchedule } = await import('../server/dist/routines.js');
 const { encryptSecret, decryptSecret } = await import('../server/dist/lib/secrets.js');
 const { runShell } = await import('../server/dist/lib/sandbox.js');
-const { withRetry } = await import('../server/dist/lib/retry.js');
+const { parseRetryAfterMs, withRetry } = await import('../server/dist/lib/retry.js');
 const { userFromCookieHeader } = await import('../server/dist/lib/auth.js');
 
 test('only the verified studio administrator can save shared provider settings', async () => {
@@ -155,6 +155,61 @@ test('invalid session cookie encoding is treated as signed out', () => {
   assert.equal(userFromCookieHeader('grokbot_session=%'), null);
 });
 
+test('rateLimit ignores spoofed X-Forwarded-For by default and returns Retry-After on 429', async () => {
+  const { Hono } = await import('hono');
+  const { rateLimit, resolveClientIp, parseTrustProxyHops } = await import('../server/dist/lib/rateLimit.js');
+
+  // Unit checks for TRUST_PROXY parsing and right-to-left hop selection.
+  assert.equal(parseTrustProxyHops(undefined), 0);
+  assert.equal(parseTrustProxyHops('0'), 0);
+  assert.equal(parseTrustProxyHops('false'), 0);
+  assert.equal(parseTrustProxyHops('true'), 1);
+  assert.equal(parseTrustProxyHops('1'), 1);
+  assert.equal(parseTrustProxyHops('2'), 2);
+  assert.equal(parseTrustProxyHops('garbage'), 0);
+
+  assert.equal(resolveClientIp({ forwardedFor: '1.2.3.4', remoteAddress: '198.51.100.7', trustProxyHops: 0 }), '198.51.100.7');
+  assert.equal(resolveClientIp({ forwardedFor: '1.1.1.1, 203.0.113.10', remoteAddress: '127.0.0.1', trustProxyHops: 1 }), '203.0.113.10');
+  assert.equal(resolveClientIp({ forwardedFor: '1.1.1.1, 203.0.113.10, 172.18.0.2', remoteAddress: '127.0.0.1', trustProxyHops: 2 }), '203.0.113.10');
+
+  // Default mode: rotating X-Forwarded-For cannot bypass the rate limit.
+  const app = new Hono();
+  app.use('/api/auth/*', rateLimit({ limit: 2, windowMs: 60_000, trustProxy: false }));
+  app.post('/api/auth/login', (c) => c.json({ ok: true }));
+
+  assert.equal((await app.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': '1.1.1.1' } })).status, 200);
+  assert.equal((await app.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': '2.2.2.2' } })).status, 200);
+  const blocked = await app.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': '3.3.3.3' } });
+  assert.equal(blocked.status, 429);
+  const retryAfter = Number(blocked.headers.get('retry-after'));
+  assert.ok(Number.isInteger(retryAfter) && retryAfter >= 1 && retryAfter <= 60, `unexpected Retry-After: ${retryAfter}`);
+
+  // Trusted 1-hop proxy mode: client-prepended spoof cannot bypass, distinct real clients get separate buckets.
+  const proxied = new Hono();
+  proxied.use('/api/auth/*', rateLimit({ limit: 1, windowMs: 60_000, trustProxy: 1 }));
+  proxied.post('/api/auth/login', (c) => c.json({ ok: true }));
+
+  assert.equal((await proxied.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': 'spoof-1, 203.0.113.5' } })).status, 200);
+  assert.equal((await proxied.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': 'spoof-2, 203.0.113.5' } })).status, 429);
+  assert.equal((await proxied.request('/api/auth/login', { method: 'POST', headers: { 'x-forwarded-for': '203.0.113.6' } })).status, 200);
+});
+
+test('rateLimit prunes expired buckets before evicting active callers', async () => {
+  const { Hono } = await import('hono');
+  const { rateLimit } = await import('../server/dist/lib/rateLimit.js');
+  const app = new Hono();
+  app.use('/api/*', rateLimit({ limit: 1, windowMs: 40, trustProxy: 1, maxEntries: 2 }));
+  app.post('/api/ping', (c) => c.json({ ok: true }));
+
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.1' } })).status, 200);
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.2' } })).status, 200);
+  await new Promise((r) => setTimeout(r, 55));
+  // Active caller enters right after the first two expired; adding one more key triggers expired-first pruning.
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.3' } })).status, 200);
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.4' } })).status, 200);
+  assert.equal((await app.request('/api/ping', { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.3' } })).status, 429);
+});
+
 test('workspace writes create and replace regular files', () => {
   const root = fs.mkdtempSync(path.join(fixtures, 'write-'));
   const target = writeWorkspaceFile(root, 'nested/notes.txt', 'first');
@@ -280,10 +335,125 @@ test('provider retry recovers from 429 but not from 400', async () => {
   assert.equal(attempts400, 1);
 });
 
+test('provider retry aborts promptly during backoff sleep when AbortSignal fires', async () => {
+  const ac = new AbortController();
+  let attempts = 0;
+  const started = Date.now();
+  setTimeout(() => ac.abort(new Error('stopped by user')), 25);
+  await assert.rejects(() => withRetry(async () => {
+    attempts++;
+    const e = new Error('rate limited');
+    e.status = 429;
+    throw e;
+  }, ac.signal, [30_000]));
+  const elapsed = Date.now() - started;
+  assert.equal(attempts, 1);
+  assert.ok(elapsed < 1000, `expected prompt abort during backoff, waited ${elapsed}ms`);
+
+  // Already-aborted signal must reject without invoking fn.
+  let invoked = 0;
+  await assert.rejects(() => withRetry(async () => { invoked++; return 'ok'; }, ac.signal, [1]));
+  assert.equal(invoked, 0);
+});
+
+test('provider retry does not retry AbortError or APIUserAbortError', async () => {
+  for (const name of ['AbortError', 'APIUserAbortError']) {
+    let attempts = 0;
+    await assert.rejects(() => withRetry(async () => {
+      attempts++;
+      const e = new Error('aborted');
+      e.name = name;
+      throw e;
+    }, undefined, [1, 1]));
+    assert.equal(attempts, 1, `${name} must not be retried`);
+  }
+});
+
+test('parseRetryAfterMs handles Fetch Headers, case-insensitive maps, HTTP-dates, and 30s cap', () => {
+  const base = Date.parse('2026-11-26T23:00:00Z');
+  assert.equal(parseRetryAfterMs({ headers: new Headers({ 'Retry-After': '4' }) }, base), 4000);
+  assert.equal(parseRetryAfterMs({ headers: { 'Retry-After': '120' } }, base), 30_000);
+  assert.equal(parseRetryAfterMs({ response: { headers: new Headers({ 'retry-after': 'Thu, 26 Nov 2026 23:00:12 GMT' }) } }, base), 12_000);
+  assert.equal(parseRetryAfterMs({ headers: { 'retry-after': 'Thu, 26 Nov 2026 22:59:00 GMT' } }, base), null);
+  assert.equal(parseRetryAfterMs({ headers: { 'retry-after': '0' } }, base), null);
+  assert.equal(parseRetryAfterMs({ headers: { 'retry-after': 'garbage' } }, base), null);
+  assert.equal(parseRetryAfterMs(new Error('plain')), null);
+});
+
 test('web fetch check blocks loopback and metadata hosts', async () => {
   assert.equal(isLoopbackHost('localhost'), true);
   await assert.rejects(() => assertPublicUrl('http://localhost:8787/api/health'), /Loopback/);
   await assert.rejects(() => assertPublicUrl('http://169.254.169.254/'), /Private/);
+});
+
+test('web-source decodes HTML entities in a single pass and handles case-insensitive MIME types', async () => {
+  const { decodeHtmlEntities, parseWebResponse } = await import('../server/dist/lib/web-source.js');
+
+  // Single-pass decoding: &amp;lt; must NOT double-unescape into <.
+  assert.equal(decodeHtmlEntities('&amp;lt;script&amp;gt;'), '&lt;script&gt;');
+  assert.equal(decodeHtmlEntities('Don&#39;t &mdash; Q&amp;A &#x1F30A;'), 'Don\'t — Q&A 🌊');
+  assert.equal(decodeHtmlEntities('&#0; &#xd800; &#x999999;'), '&#0; &#xd800; &#x999999;');
+
+  // Case-insensitive MIME and structured +json / +xml suffixes.
+  assert.equal(parseWebResponse('https://a.test/api', 'Application/VND.API+JSON; charset=utf-8', '{"ok":true}').format, 'json');
+  assert.equal(parseWebResponse('https://a.test/note', 'Text/Plain; charset=utf-8', '  hello  ').content, 'hello');
+  assert.equal(parseWebResponse('https://a.test/feed', 'application/rss+xml', '<rss/>').format, 'text');
+  assert.throws(() => parseWebResponse('https://a.test/doc.pdf', 'application/pdf', '%PDF'), /not a readable/);
+
+  // HTML comments with '>', SVG/template bloat, and encoded <title> entities.
+  const html = '<html><head><title>Q&amp;A &mdash; Don&#39;t Panic</title></head><body><!-- a > b --><svg><path d="M0 0"/></svg><template>hidden</template><p>Hello &amp;lt;world&amp;gt;!</p></body></html>';
+  const parsed = parseWebResponse('https://a.test/page', 'TEXT/HTML; charset=utf-8', html);
+  assert.equal(parsed.title, "Q&A — Don't Panic");
+  assert.equal(parsed.content, 'Hello &lt;world&gt;!');
+});
+
+test('safeFetch strips Authorization/Cookie on cross-origin redirects and destroys oversized streams', async (t) => {
+  const addresses = [{ address: '1.1.1.1', family: 4 }];
+  t.mock.method(dns, 'lookup', async () => addresses);
+  const seen = [];
+  t.mock.method(https, 'request', (url, options, onResponse) => {
+    seen.push({ origin: url.origin, path: url.pathname, headers: options.headers });
+    const req = new EventEmitter();
+    if (url.origin === 'https://a.example.test' && url.pathname === '/start') {
+      req.end = () => onResponse(Object.assign(Readable.from([]), {
+        statusCode: 302, headers: { location: '/same' },
+      }));
+    } else if (url.origin === 'https://a.example.test' && url.pathname === '/same') {
+      req.end = () => onResponse(Object.assign(Readable.from([]), {
+        statusCode: 302, headers: { location: 'https://b.example.test/final' },
+      }));
+    } else {
+      req.end = () => onResponse(Object.assign(Readable.from([Buffer.from('ok')]), {
+        statusCode: 200, headers: { 'content-type': 'text/plain' },
+      }));
+    }
+    return req;
+  });
+
+  const res = await safeFetch('https://a.example.test/start', {
+    headers: { Authorization: 'Bearer secret', Cookie: 'sid=1', 'X-Custom': 'keep' },
+  });
+  assert.equal(res.text, 'ok');
+  assert.equal(seen.length, 3);
+  assert.equal(seen[1].headers.Authorization, 'Bearer secret', 'same-origin redirect keeps auth');
+  assert.equal(seen[2].headers.Authorization, undefined, 'cross-origin redirect strips Authorization');
+  assert.equal(seen[2].headers.Cookie, undefined, 'cross-origin redirect strips Cookie');
+  assert.equal(seen[2].headers['X-Custom'], 'keep');
+
+  // Oversized response must destroy the incoming stream immediately.
+  let destroyed = false;
+  t.mock.method(https, 'request', (_url, _options, onResponse) => {
+    const req = new EventEmitter();
+    const stream = Readable.from([Buffer.alloc(100), Buffer.alloc(100)]);
+    const origDestroy = stream.destroy.bind(stream);
+    stream.destroy = (...args) => { destroyed = true; return origDestroy(...args); };
+    req.end = () => onResponse(Object.assign(stream, {
+      statusCode: 200, headers: { 'content-type': 'text/plain' },
+    }));
+    return req;
+  });
+  await assert.rejects(() => safeFetch('https://a.example.test/big', { maxBytes: 50 }), /Response too large/);
+  assert.equal(destroyed, true, 'oversized stream must be destroyed');
 });
 
 test('web fetch preserves the HTTPS hostname while connecting to validated addresses', async (t) => {
@@ -305,4 +475,131 @@ test('web fetch preserves the HTTPS hostname while connecting to validated addre
     status: 200, contentType: 'text/plain', text: 'fixture',
   });
   assert.equal(resolve.mock.callCount(), 1);
+});
+
+test('workspace resolution rejects dangling symlinks, symlinked parents, loops, and absolute paths', () => {
+  const root = fs.mkdtempSync(path.join(fixtures, 'ws-dangling-'));
+  const outside = fs.mkdtempSync(path.join(fixtures, 'out-dangling-'));
+  fs.mkdirSync(path.join(root, 'sub'));
+  fs.writeFileSync(path.join(root, 'sub', 'inside.txt'), 'inside');
+  fs.symlinkSync(path.join(outside, 'not-yet-created.txt'), path.join(root, 'dangling-file.txt'));
+  fs.symlinkSync(path.join(outside, 'not-yet-created-dir'), path.join(root, 'dangling-dir'));
+  fs.symlinkSync(outside, path.join(root, 'escaped-dir'));
+  fs.symlinkSync('loop-a', path.join(root, 'loop-a'));
+  fs.symlinkSync(path.join(root, 'sub'), path.join(root, 'internal-link'));
+
+  assert.equal(resolveWithinWorkspace(root, 'dangling-file.txt'), null);
+  assert.equal(resolveWithinWorkspace(root, 'dangling-dir/nested/file.txt'), null);
+  assert.equal(resolveWithinWorkspace(root, 'escaped-dir/new.txt'), null);
+  assert.equal(resolveWithinWorkspace(root, 'loop-a'), null);
+  assert.equal(resolveWithinWorkspace(root, '/etc/passwd'), null);
+  assert.equal(resolveWithinWorkspace(root, 'sub/inside.txt/child'), null);
+  assert.equal(resolveWithinWorkspace(root, 'internal-link/inside.txt'), path.join(fs.realpathSync(root), 'sub', 'inside.txt'));
+});
+
+test('workspace delete resolution blocks parent-symlink escapes and allows unlinking dangling leaf symlinks', () => {
+  const root = fs.mkdtempSync(path.join(fixtures, 'ws-del-'));
+  const outside = fs.mkdtempSync(path.join(fixtures, 'out-del-'));
+  fs.writeFileSync(path.join(outside, 'victim.txt'), 'keep');
+  fs.symlinkSync(path.join(outside, 'victim.txt'), path.join(outside, 'nested-link'));
+  fs.symlinkSync(outside, path.join(root, 'escaped-dir'));
+  fs.symlinkSync(path.join(outside, 'missing-target'), path.join(root, 'dangling-leaf'));
+  fs.symlinkSync(path.join(outside, 'victim.txt'), path.join(root, 'escape-leaf'));
+
+  // Refuses workspace root and any path traversing a symlinked parent outside root.
+  assert.equal(resolveWorkspaceEntryForDelete(root, '.'), null);
+  assert.equal(resolveWorkspaceEntryForDelete(root, ''), null);
+  assert.equal(resolveWorkspaceEntryForDelete(root, 'escaped-dir/victim.txt'), null);
+  assert.equal(resolveWorkspaceEntryForDelete(root, 'escaped-dir/nested-link'), null);
+
+  // Allows removing dangling or escaping symlinks sitting directly in the workspace without following them.
+  const dangling = resolveWorkspaceEntryForDelete(root, 'dangling-leaf');
+  assert.equal(dangling, path.join(fs.realpathSync(root), 'dangling-leaf'));
+  fs.rmSync(dangling, { recursive: true, force: true });
+  assert.throws(() => fs.lstatSync(path.join(root, 'dangling-leaf')), { code: 'ENOENT' });
+
+  const escapeLeaf = resolveWorkspaceEntryForDelete(root, 'escape-leaf');
+  assert.equal(escapeLeaf, path.join(fs.realpathSync(root), 'escape-leaf'));
+  fs.rmSync(escapeLeaf, { recursive: true, force: true });
+  assert.equal(fs.readFileSync(path.join(outside, 'victim.txt'), 'utf8'), 'keep');
+});
+
+test('workspace listing skips broken and escaping symlinks without hiding valid files', () => {
+  const root = fs.mkdtempSync(path.join(fixtures, 'ws-list-'));
+  const outside = fs.mkdtempSync(path.join(fixtures, 'out-list-'));
+  fs.writeFileSync(path.join(outside, 'secret.txt'), 'secret');
+  fs.mkdirSync(path.join(root, 'real-dir'));
+  fs.writeFileSync(path.join(root, 'a-before.txt'), 'before');
+  fs.symlinkSync(path.join(outside, 'does-not-exist'), path.join(root, 'b-broken'));
+  fs.symlinkSync(path.join(outside, 'secret.txt'), path.join(root, 'c-escape'));
+  fs.symlinkSync(path.join(root, 'real-dir'), path.join(root, 'd-internal-dir'));
+  fs.writeFileSync(path.join(root, 'z-after.txt'), 'after');
+
+  const entries = listWorkspaceDirectory(root);
+  assert.ok(Array.isArray(entries));
+  const names = entries.map((e) => e.name).sort();
+  assert.deepEqual(names, ['a-before.txt', 'd-internal-dir', 'real-dir', 'z-after.txt']);
+  assert.equal(entries.find((e) => e.name === 'd-internal-dir')?.isDir, true);
+  assert.equal(listWorkspaceDirectory(root, 'b-broken'), null);
+});
+
+test('files API handles broken symlinks safely on list and blocks parent-symlink escapes on delete', async () => {
+  fs.writeFileSync(process.env.ENV_PATH, [
+    'DEV_LOGIN=1',
+    'STUDIO_EMAIL=owner@example.test',
+    'STUDIO_PASSWORD=' + 'test-password',
+  ].join('\n'));
+  const { Hono } = await import('hono');
+  const { api } = await import('../server/dist/routes.js');
+  const { configApi } = await import('../server/dist/routes-config.js');
+  const { localWorkspaceDir } = await import('../server/dist/agent/tools.js');
+  const app = new Hono();
+  app.route('/api', api);
+  app.route('/api', configApi);
+
+  const login = await app.request('/api/auth/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'owner@example.test', password: 'test-password' }),
+  });
+  assert.equal(login.status, 200);
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  const botsRes = await app.request('/api/bots', { headers: { cookie } });
+  const { bots } = await botsRes.json();
+  const botId = bots[0].id;
+
+  const ws = localWorkspaceDir(botId);
+  const outside = fs.mkdtempSync(path.join(fixtures, 'out-api-'));
+  fs.writeFileSync(path.join(outside, 'keep.txt'), 'keep');
+  fs.symlinkSync(path.join(outside, 'keep.txt'), path.join(outside, 'target-link'));
+  fs.writeFileSync(path.join(ws, 'good.txt'), 'ok');
+  fs.symlinkSync(path.join(outside, 'missing'), path.join(ws, 'dangling'));
+  fs.symlinkSync(outside, path.join(ws, 'escaped-dir'));
+
+  // Listing still returns good.txt even with a broken symlink present, and does not create dirs on GET.
+  const listed = await app.request(`/api/bots/${botId}/files?local=1`, { headers: { cookie } });
+  assert.equal(listed.status, 200);
+  const { files } = await listed.json();
+  assert.ok(files.some((f) => f.name === 'good.txt'));
+  assert.ok(!files.some((f) => f.name === 'dangling'));
+  assert.ok(!files.some((f) => f.name === 'escaped-dir'));
+
+  const missingDir = await app.request(`/api/bots/${botId}/files?local=1&path=does-not-exist`, { headers: { cookie } });
+  assert.equal(missingDir.status, 200);
+  assert.equal(fs.existsSync(path.join(ws, 'does-not-exist')), false);
+
+  // Deleting through a symlinked parent directory must NOT touch files/symlinks outside the workspace.
+  const badDel = await app.request(`/api/bots/${botId}/files?path=escaped-dir/target-link`, {
+    method: 'DELETE', headers: { cookie },
+  });
+  assert.equal(badDel.status, 200);
+  assert.ok(fs.lstatSync(path.join(outside, 'target-link')).isSymbolicLink());
+  assert.equal(fs.readFileSync(path.join(outside, 'keep.txt'), 'utf8'), 'keep');
+
+  // Deleting a dangling leaf symlink directly in the workspace succeeds cleanly.
+  const delDangling = await app.request(`/api/bots/${botId}/files?path=dangling`, {
+    method: 'DELETE', headers: { cookie },
+  });
+  assert.equal(delDangling.status, 200);
+  assert.throws(() => fs.lstatSync(path.join(ws, 'dangling')), { code: 'ENOENT' });
 });

@@ -1,12 +1,21 @@
 const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const validDate = (ts: number): Date | null => {
+  if (!Number.isFinite(ts)) return null;
+  const d = new Date(ts);
+  return Number.isFinite(d.getTime()) ? d : null;
+};
 
-export const clock = (ts: number) => new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+export const clock = (ts: number) => {
+  const d = validDate(ts);
+  return d ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+};
 
 /** "Fri, Nov 6 3:56 PM" / "Yesterday 11:24 PM" / "Today 9:02 AM" dividers, like screen 01. */
 export function dividerLabel(ts: number, now = Date.now()): string {
-  const d = new Date(ts);
-  const today = new Date(now);
-  const y = new Date(now);
+  const d = validDate(ts);
+  const today = validDate(now);
+  if (!d || !today) return '';
+  const y = new Date(today.getTime());
   y.setDate(y.getDate() - 1);
   if (sameDay(d, today)) return `Today ${clock(ts)}`;
   if (sameDay(d, y)) return `Yesterday ${clock(ts)}`;
@@ -17,6 +26,7 @@ export function dividerLabel(ts: number, now = Date.now()): string {
 
 /** Compact elapsed: "12s", "3m", "1h 4m". */
 export function elapsed(ms: number): string {
+  if (!Number.isFinite(ms)) return '0s';
   const s = Math.max(0, Math.floor(ms / 1000));
   if (s < 60) return `${s}s`;
   const m = Math.floor(s / 60);
@@ -25,13 +35,16 @@ export function elapsed(ms: number): string {
 }
 
 export function relativeShort(ts: number, now = Date.now()): string {
-  const s = (now - ts) / 1000;
+  const d = validDate(ts);
+  const n = validDate(now);
+  if (!d || !n) return '';
+  const s = (n.getTime() - d.getTime()) / 1000;
   if (s < 60) return 'now';
   if (s < 3600) return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   // Compare local calendar dates without counting DST-shortened or extended days.
-  const dayNumber = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
-  const days = dayNumber(new Date(now)) - dayNumber(new Date(ts));
-  if (!days) return `${Math.floor(s / 3600)}h`;
+  const dayNumber = (x: Date) => Date.UTC(x.getFullYear(), x.getMonth(), x.getDate()) / 86400000;
+  const days = dayNumber(n) - dayNumber(d);
+  if (days <= 0) return `${Math.floor(s / 3600)}h`;
   return days === 1 ? 'Yesterday' : `${days}d`;
 }

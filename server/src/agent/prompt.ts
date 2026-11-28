@@ -5,8 +5,9 @@ import { memoriesForPrompt } from './memory.js';
 
 export async function systemPrompt(userId: string, botId: string): Promise<string> {
   const bot = getBotRow(botId);
+  if (!bot) throw new Error(`Bot not found: ${botId}`);
   const user = db.prepare('SELECT * FROM users WHERE id=?').get(userId) as any;
-  const team = (db.prepare('SELECT name, label, is_primary FROM bots WHERE user_id=? AND id<>? AND COALESCE(hidden,0)=0').all(userId, botId) as any[])
+  const team = (db.prepare("SELECT name, label, is_primary FROM bots WHERE user_id=? AND id<>? AND COALESCE(kind,'agent')<>'room' AND COALESCE(hidden,0)=0").all(userId, botId) as any[])
     .map((b) => `- ${b.name}${b.label ? ` (${b.label})` : ''}${b.is_primary ? ' [primary Bot]' : ''}`)
     .join('\n');
   // Bounded: most relevant to the last few user messages, then most recent, within a character budget.

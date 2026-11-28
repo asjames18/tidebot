@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Bot } from '@shared/types';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { api, type RoomMember } from '../lib/api';
+import {
+  addRoomMemberIds,
+  eligibleRoomCandidates,
+  MIN_ROOM_MEMBERS,
+  removeRoomMemberIds,
+  RoomMembersGate,
+} from '../lib/roomMembers';
 import { useStore } from '../store';
 import { Icon } from './Icon';
 
@@ -13,6 +20,16 @@ export function MembersCard({ room }: { room: Bot }) {
   const [saving, setSaving] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const gateRef = useRef(new RoomMembersGate());
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      gateRef.current.invalidate();
+    };
+  }, []);
 
   useEffect(() => {
     if (!confirmRemoveId) return;
@@ -20,35 +37,57 @@ export function MembersCard({ room }: { room: Bot }) {
     return () => clearTimeout(t);
   }, [confirmRemoveId]);
 
-  const load = useCallback(() => {
+  const loadMembers = useCallback(async (roomId: string) => {
+    const token = gateRef.current.beginLoad(roomId);
+    if (!token) return;
     setError(null);
-    return api.roomMembers(room.id)
-      .then((r) => setMembers(r.members))
-      .catch((e) => setError((e as Error).message));
-  }, [room.id]);
+    try {
+      const r = await api.roomMembers(roomId);
+      if (mountedRef.current && gateRef.current.isLoadCurrent(token)) {
+        setMembers(r.members);
+      }
+    } catch (e) {
+      if (mountedRef.current && gateRef.current.isLoadCurrent(token)) {
+        setError((e as Error).message);
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    let alive = true;
+    gateRef.current.selectRoom(room.id);
     setMembers(null);
     setAdding(false);
+    setSaving(false);
     setConfirmRemoveId(null);
     setError(null);
-    api.roomMembers(room.id)
-      .then((r) => { if (alive) setMembers(r.members); })
-      .catch((e) => { if (alive) setError((e as Error).message); });
-    return () => { alive = false; };
-  }, [room.id]);
+    void loadMembers(room.id);
+    return () => { gateRef.current.invalidate(); };
+  }, [room.id, loadMembers]);
 
-  const save = async (ids: string[]) => {
-    if (saving) return;
+  const save = async (nextIds: string[] | null) => {
+    if (saving || !nextIds) return;
+    const roomId = room.id;
+    const token = gateRef.current.beginSave(roomId);
+    if (!token) return;
     setSaving(true);
     setError(null);
-    try { await api.setRoomMembers(room.id, ids); load(); } catch (e) { setError((e as Error).message); }
-    finally { setSaving(false); }
+    try {
+      await api.setRoomMembers(roomId, nextIds);
+      if (!mountedRef.current || !gateRef.current.isSaveCurrent(token)) return;
+      await loadMembers(roomId);
+    } catch (e) {
+      if (mountedRef.current && gateRef.current.isSaveCurrent(token)) {
+        setError((e as Error).message);
+      }
+    } finally {
+      if (mountedRef.current && gateRef.current.isSaveCurrent(token)) {
+        setSaving(false);
+      }
+    }
   };
 
-  const ids = members?.map((m) => m.id) ?? [];
-  const candidates = bots.filter((b) => b.kind !== 'room' && !ids.includes(b.id));
+  const uniqueMemberCount = members ? new Set(members.map((m) => m.id)).size : 0;
+  const candidates = eligibleRoomCandidates(bots, members);
 
   return (
     <div className="panel-card members">
@@ -61,7 +100,7 @@ export function MembersCard({ room }: { room: Bot }) {
               className="cfg-btn cfg-btn--secondary"
               onClick={() => {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                void load();
+                void loadMembers(room.id);
               }}
             >
               Retry
@@ -96,16 +135,16 @@ export function MembersCard({ room }: { room: Bot }) {
                   try { navigator.vibrate(12); } catch {}
                 }
                 setConfirmRemoveId(null);
-                save(ids.filter((x) => x !== m.id));
+                void save(removeRoomMemberIds(members, m.id));
               }}
-              disabled={saving || ids.length <= 2}
+              disabled={saving || uniqueMemberCount <= MIN_ROOM_MEMBERS}
             >
               {confirmRemoveId === m.id ? 'Remove?' : <Icon name="close" size={10} opacity={0.56} />}
             </button>
           </div>
         );
       })}
-      {adding ? (
+      {adding && members !== null ? (
         <div className="members__add">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px' }}>
             <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-tertiary)' }}>Choose an Operator</span>
@@ -131,7 +170,7 @@ export function MembersCard({ room }: { room: Bot }) {
                   try { navigator.vibrate(10); } catch {}
                 }
                 setAdding(false);
-                save([...ids, b.id]);
+                void save(addRoomMemberIds(members, b.id));
               }}
             >
               <BotAvatarFor bot={b} size={20} />
@@ -143,7 +182,7 @@ export function MembersCard({ room }: { room: Bot }) {
         <button
           type="button"
           className="panel-row panel-row--action"
-          disabled={saving}
+          disabled={saving || members === null}
           onClick={() => {
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
               try { navigator.vibrate(8); } catch {}
