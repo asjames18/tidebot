@@ -84,14 +84,14 @@ export function AppSettings() {
 
   useEffect(() => {
     if (!section) return;
-    const k = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !document.querySelector('.modal-root')) {
-        e.preventDefault();
-        close();
-      }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
+      if (document.querySelector('.modal-root')) return;
+      event.preventDefault();
+      close();
     };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [section, close]);
 
   const onTouchStart = (e: React.TouchEvent) => {
