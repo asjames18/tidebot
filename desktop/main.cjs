@@ -286,13 +286,18 @@ function setupAutoUpdater() {
   });
 
   if (!canAutoInstall) return;
-  setTimeout(() => {
-    autoUpdater.checkForUpdates().catch(() => {});
-  }, 5_000);
+  setTimeout(checkForDesktopUpdate, 5_000);
+  updateTimer = setInterval(checkForDesktopUpdate, 2 * 60 * 60 * 1000);
+}
 
-  updateTimer = setInterval(() => {
-    autoUpdater.checkForUpdates().catch(() => {});
-  }, 2 * 60 * 60 * 1000);
+async function checkForDesktopUpdate() {
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    // Downloads have a separate promise. The updater's error event handles their feedback.
+    void result?.downloadPromise?.catch(() => {});
+  } catch {
+    // The updater reports check failures through the same error event.
+  }
 }
 
 async function triggerUpdateCheck() {
@@ -310,7 +315,7 @@ async function triggerUpdateCheck() {
   }
   manualCheck = true;
   autoUpdater.allowPrerelease = settings.devUpdates;
-  await autoUpdater.checkForUpdates().catch(() => { /* The updater reports failures through its error event. */ });
+  await checkForDesktopUpdate();
 }
 
 function buildMenu() {
