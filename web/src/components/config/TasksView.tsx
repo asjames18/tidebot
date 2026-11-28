@@ -29,6 +29,7 @@ function refreshTaskViews(botId: string) {
 function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState<'toggle' | 'run' | 'delete' | null>(null);
+  const TaskText = bot ? 'button' : 'span';
   useEffect(() => {
     if (!confirmDelete) return;
     const timer = setTimeout(() => setConfirmDelete(false), 3500);
@@ -108,13 +109,10 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
       >
         {t.state === 'done' ? <Glyph name="check_circle" size={18} /> : <span className="task-row__ring" />}
       </button>
-      <span
+      <TaskText
         className="task-row__text"
-        onClick={open}
-        role={bot ? 'button' : undefined}
-        tabIndex={bot ? 0 : undefined}
-        onKeyDown={(e) => { if (e.key === 'Enter') open(); }}
-        style={{ cursor: bot ? 'pointer' : 'default' }}
+        type={bot ? 'button' : undefined}
+        onClick={bot ? open : undefined}
         title={bot ? `Open ${bot.name}` : undefined}
       >
         <span className="task-row__title">{t.title}</span>
@@ -123,7 +121,7 @@ function TaskRow({ t, bot, showBot }: { t: Task; bot?: Bot; showBot: boolean }) 
           {showBot && bot && <><BotAvatarFor bot={bot} size={14} /><span>{bot.name}</span><span aria-hidden>·</span></>}
           <span>{when(t)}</span>
         </span>
-      </span>
+      </TaskText>
       {t.state !== 'done' && bot && (
         <button
           type="button"
