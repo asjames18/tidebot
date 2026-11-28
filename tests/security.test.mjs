@@ -134,10 +134,12 @@ test('admin-gated Composio/Orgo routes return 403 for a verified non-admin', asy
 
   // A verified non-admin is stopped by the gate on every admin route.
   assert.equal((await app.request('/api/llm/config?scope=studio', { headers: { cookie: memberCookie } })).status, 403);
+  assert.equal((await send('/api/llm/config', 'PUT', {}, memberCookie)).status, 403);
   assert.equal((await send('/api/llm/test-composio', 'POST', {}, memberCookie)).status, 403);
   assert.equal((await send('/api/llm/connect-orgo', 'POST', { apiKey: 'orgo-key-no-whitespace' }, memberCookie)).status, 403);
   // Unauthenticated is 401, not 403.
   assert.equal((await app.request('/api/llm/config?scope=studio')).status, 401);
+  assert.equal((await send('/api/llm/config', 'PUT', {})).status, 401);
 
   // The admin passes the gate on all three — without any external call:
   // studio config reads 200; test-composio reports "not configured" (no
