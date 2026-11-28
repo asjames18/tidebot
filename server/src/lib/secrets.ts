@@ -23,13 +23,29 @@ function warnCorrupt(dir: string, file: string, detail: string): void {
   );
 }
 
+function parseKeyFile(dir: string, file: string, raw: string): Buffer {
+  const trimmed = raw.trim();
+  const key = Buffer.from(trimmed, 'base64url');
+  // Require canonical base64url (with optional single '=' pad) so non-base64url
+  // garbage that happens to decode to 32 bytes is rejected as corrupt.
+  if (key.length === 32 && (key.toString('base64url') === trimmed || `${key.toString('base64url')}=` === trimmed)) {
+    return key;
+  }
+  warnCorrupt(dir, file, 'not a valid 32-byte base64url key');
+  throw new Error(
+    `TideBot encryption key file is corrupt: ${file}. ` +
+      'Previously encrypted keys cannot be decrypted until this is fixed, and no new keys will be encrypted. ' +
+      'Stop the server, delete or repair the file (deleting generates a fresh key — previously stored encrypted keys will then be unrecoverable), and restart.',
+  );
+}
+
 /** Encryption key stored beside the DB (0600). Protects against DB-only exfiltration. */
 function getKey(dir: string): Buffer {
   if (cachedKey?.dir === dir) return cachedKey.key;
   const file = path.join(dir, '.secret-key');
   let raw: string | null = null;
   try {
-    raw = fs.readFileSync(file, 'utf8').trim();
+    raw = fs.readFileSync(file, 'utf8');
   } catch (err) {
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       // The file exists but cannot be read: never silently fall back to a
@@ -44,19 +60,41 @@ function getKey(dir: string): Buffer {
     // ENOENT: no key file yet — create one below.
   }
   if (raw !== null) {
-    const key = Buffer.from(raw, 'base64url');
-    if (key.length === 32) { cachedKey = { dir, key }; return key; }
-    // Invalid content: same rule as unreadable — fail loudly, keep the file.
-    warnCorrupt(dir, file, 'not a valid 32-byte base64url key');
-    throw new Error(
-      `TideBot encryption key file is corrupt: ${file}. ` +
-        'Previously encrypted keys cannot be decrypted until this is fixed, and no new keys will be encrypted. ' +
-        'Stop the server, delete or repair the file (deleting generates a fresh key — previously stored encrypted keys will then be unrecoverable), and restart.',
-    );
+    const key = parseKeyFile(dir, file, raw);
+    cachedKey = { dir, key };
+    return key;
   }
   const key = crypto.randomBytes(32);
-  try { fs.writeFileSync(file, key.toString('base64url'), { encoding: 'utf8', mode: 0o600, flag: 'wx' }); }
-  catch { /* raced or read-only: fall through and re-read */ }
+  try {
+    fs.writeFileSync(file, key.toString('base64url'), { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === 'EEXIST') {
+      // Another process created .secret-key concurrently — re-read and validate
+      // theirs instead of encrypting under our unpersisted key.
+      let racedRaw: string;
+      try {
+        racedRaw = fs.readFileSync(file, 'utf8');
+      } catch {
+        warnCorrupt(dir, file, 'unreadable');
+        throw new Error(
+          `TideBot encryption key file is unreadable: ${file}. ` +
+            'Previously encrypted keys cannot be decrypted until this is fixed. ' +
+            'Stop the server, delete or repair the file, and restart.',
+        );
+      }
+      const racedKey = parseKeyFile(dir, file, racedRaw);
+      cachedKey = { dir, key: racedKey };
+      return racedKey;
+    }
+    // Never fall back to an ephemeral in-memory key when persistence fails
+    // (read-only/missing dir, disk full) — secrets encrypted under it would be
+    // permanently unrecoverable after the next restart.
+    warnCorrupt(dir, file, 'unwritable (could not be created)');
+    throw new Error(
+      `TideBot encryption key file could not be created: ${file}. ` +
+        'Ensure the data directory exists and is writable so encrypted keys can be recovered after restart.',
+    );
+  }
   try { fs.chmodSync(file, 0o600); } catch { /* best effort */ }
   cachedKey = { dir, key };
   return key;
@@ -81,9 +119,14 @@ export function encryptSecret(dir: string, plain: string): string {
 export function decryptSecret(dir: string, stored: string): string {
   if (!stored || !stored.startsWith(PREFIX)) return stored;
   try {
-    const [ivB, tagB, ctB] = stored.slice(PREFIX.length).split('.');
-    const decipher = crypto.createDecipheriv('aes-256-gcm', getKey(dir), Buffer.from(ivB, 'base64url'));
-    decipher.setAuthTag(Buffer.from(tagB, 'base64url'));
+    const parts = stored.slice(PREFIX.length).split('.');
+    if (parts.length !== 3) return '';
+    const [ivB, tagB, ctB] = parts;
+    const iv = Buffer.from(ivB, 'base64url');
+    const tag = Buffer.from(tagB, 'base64url');
+    if (iv.length !== 12 || tag.length !== 16) return '';
+    const decipher = crypto.createDecipheriv('aes-256-gcm', getKey(dir), iv, { authTagLength: 16 });
+    decipher.setAuthTag(tag);
     return Buffer.concat([decipher.update(Buffer.from(ctB, 'base64url')), decipher.final()]).toString('utf8');
   } catch {
     return '';

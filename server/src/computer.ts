@@ -1,6 +1,7 @@
 import { db, now } from './db.js';
 import { env } from './env.js';
 import { hub } from './lib/hub.js';
+import { redactSecrets } from './lib/redact.js';
 import { orgo, OrgoError } from './orgo.js';
 import { getLive } from './store.js';
 import type { ComputerState } from './types.js';
@@ -13,6 +14,19 @@ import type { ComputerState } from './types.js';
 
 const MAX_SCREENS = 4;
 const inflight = new Map<string, Promise<string>>();
+
+/** Extract a numeric X11 display number from an Orgo screen ID, rejecting non-numeric strings. */
+export function parseScreenDisplayNumber(screenId: string): string | null {
+  const m = /^(?:screen-)?(\d+)$/.exec(String(screenId ?? '').trim());
+  return m ? m[1] : null;
+}
+
+/** Redact secrets and cap length before persisting a computer error in SQLite or emitting over SSE. */
+export function formatComputerError(e: unknown, maxLen = 300): string {
+  const raw = e instanceof Error ? e.message : String(e ?? '');
+  const clean = redactSecrets(raw).replace(/\s+/g, ' ').trim();
+  return clean.length > maxLen ? `${clean.slice(0, maxLen - 1)}…` : clean;
+}
 
 function rowFor(userId: string) {
   let r = db.prepare('SELECT * FROM computers WHERE user_id=?').get(userId) as any;
@@ -34,14 +48,13 @@ export function computerState(userId: string): ComputerState {
   return { status: r.status, orgoId: r.orgo_id, error: r.error, screens };
 }
 
-let workspaceId = env.orgoWorkspaceId;
 async function ensureWorkspace(): Promise<void> {
   const ws = await orgo.workspaces();
   const list = Array.isArray(ws) ? ws : ws.workspaces ?? ws.projects ?? [];
   if (!list.length) throw new Error('No Orgo workspace available for this key');
-  const chosen = (workspaceId && list.find((w: any) => w.id === workspaceId)) || list[0];
-  workspaceId = chosen.id;
-  env.orgoWorkspaceId = workspaceId;
+  const currentId = env.orgoWorkspaceId;
+  const chosen = (currentId && list.find((w: any) => w.id === currentId)) || list[0];
+  env.orgoWorkspaceId = chosen.id;
 }
 
 function mapStatus(s: string): ComputerState['status'] {
@@ -103,7 +116,7 @@ export function ensureComputer(userId: string): Promise<string> {
         db.prepare("UPDATE computers SET orgo_id=NULL, status='absent' WHERE user_id=?").run(userId);
         db.prepare('DELETE FROM screens WHERE user_id=?').run(userId);
       }
-      setStatus(userId, 'error', { error: String(e?.message ?? e) });
+      setStatus(userId, 'error', { error: formatComputerError(e) });
       throw e;
     } finally {
       inflight.delete(userId);
@@ -118,6 +131,7 @@ async function waitRunning(id: string, timeoutMs = 240_000) {
   while (Date.now() - t0 < timeoutMs) {
     const c = await orgo.getComputer(id);
     if (c.status === 'running') return;
+    if (c.status === 'error') throw new Error('The computer entered an error state while starting.');
     await new Promise((r) => setTimeout(r, 3000));
   }
   throw new Error('Timed out waiting for the computer to start');
@@ -158,9 +172,15 @@ export async function screenFor(userId: string, botId: string): Promise<{ comput
       // Evict the least-recently-used idle bot's lease (never one mid-turn), and close its browser
       // so the next bot doesn't inherit another bot's windows. Its Chrome profile stays on disk.
       const victim = leased.find((l) => !getLive(l.bot_id).isRunning && l.screen_id !== 'default') ?? leased.find((l) => l.screen_id !== 'default') ?? leased[0];
-      db.prepare('DELETE FROM screens WHERE bot_id=?').run(victim.bot_id);
-      screenId = victim.screen_id;
-      try { await orgo.bash(computerId, screenId!, `pkill -f "user-data-dir=/root/grokbot/profiles/${victim.bot_id}" || true`, 20); } catch { /* best effort */ }
+      if (victim) {
+        db.prepare('DELETE FROM screens WHERE bot_id=?').run(victim.bot_id);
+        screenId = victim.screen_id;
+        if (/^[\w-]+$/.test(String(victim.bot_id))) {
+          try { await orgo.bash(computerId, screenId!, `pkill -f 'user-data-dir=/root/grokbot/profiles/${victim.bot_id}' || true`, 20); } catch { /* best effort */ }
+        }
+      } else {
+        screenId = existing[0]?.id ?? 'default';
+      }
     }
   }
   db.prepare('INSERT OR REPLACE INTO screens(bot_id,user_id,screen_id,last_used_at) VALUES (?,?,?,?)').run(botId, userId, screenId, now());
@@ -171,16 +191,18 @@ export async function screenFor(userId: string, botId: string): Promise<{ comput
 
 /** Orgo's extra screens start as a bare X display (black); give them the normal desktop and wallpaper. */
 async function prepareScreen(computerId: string, screenId: string) {
+  const num = parseScreenDisplayNumber(screenId);
+  if (!num) return;
   try {
-    const display = `:${screenId.replace('screen-', '')}`;
+    const display = `:${num}`;
     // xfwm4's compositor paints over the root window, so run a desktop (wallpaper) on this display.
     // xfdesktop is single-instance per D-Bus session, hence a private session per screen.
-    const pid = `/tmp/grokbot-desktop-${display.slice(1)}.pid`;
+    const pid = `/tmp/grokbot-desktop-${num}.pid`;
     await orgo.bash(
       computerId,
       screenId,
       `export DISPLAY=${display}; if [ -f ${pid} ] && kill -0 $(cat ${pid}) 2>/dev/null; then echo running; else ` +
-        `(setsid nohup dbus-run-session -- xfdesktop --disable-wm-check >/tmp/grokbot-desktop-${display.slice(1)}.log 2>&1 < /dev/null & echo $! > ${pid}); sleep 2; echo started; fi`,
+        `(setsid nohup dbus-run-session -- xfdesktop --disable-wm-check >/tmp/grokbot-desktop-${num}.log 2>&1 < /dev/null & echo $! > ${pid}); sleep 2; echo started; fi`,
       30,
     );
   } catch { /* cosmetic; ignore */ }
@@ -201,7 +223,7 @@ export function suspendComputer(userId: string, reason = 'manual'): Promise<void
       setStatus(userId, 'suspended');
       console.log(`[computer] suspended user=${userId}`);
     } catch (e: any) {
-      const msg = String(e?.message ?? e);
+      const msg = formatComputerError(e);
       if (/billed by the hour|stop it/i.test(msg)) {
         try {
           await orgo.stop(r.orgo_id);
@@ -209,7 +231,7 @@ export function suspendComputer(userId: string, reason = 'manual'): Promise<void
           console.log(`[computer] stopped (hourly tier fallback) user=${userId}`);
           return;
         } catch (stopErr: any) {
-          console.warn(`[computer] stop fallback failed user=${userId}: ${stopErr?.message ?? stopErr}`);
+          console.warn(`[computer] stop fallback failed user=${userId}: ${formatComputerError(stopErr)}`);
         }
       }
       console.warn(`[computer] suspend failed user=${userId}: ${msg}`);

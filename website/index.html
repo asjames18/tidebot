@@ -30,7 +30,7 @@
     "license": "https://github.com/asjames18/tidebot/blob/main/LICENSE",
     "url": "https://tidebot.melanatedintech.com/",
     "author": { "@type": "Organization", "name": "Melanated in Tech", "url": "https://melanatedintech.com" },
-    "softwareVersion": "1.0.0-dev.170",
+    "softwareVersion": "1.0.0-dev.173",
     "description": "TideBot is an open-source autonomous multi-agent studio you self-host. Bring your own model (OpenRouter, Ollama, vLLM), connect 1,500+ apps via Composio, and run agents in a local sandbox or cloud Linux desktops."
   }
   </script>
@@ -280,6 +280,8 @@
     .wl-status.ok { color: var(--emerald); }
     .wl-status.err { color: #f87171; }
     .wl-privacy { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+    .skip-link { position: absolute; left: 12px; top: -48px; z-index: 100; background: var(--teal); color: #05070B; padding: 8px 14px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+    .skip-link:focus { top: 12px; }
     .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 
     /* ---------- screenshots ---------- */
@@ -325,7 +327,8 @@
     <div class="orb orb-3"></div>
   </div>
 
-  <nav>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <nav aria-label="Primary">
     <div class="wrap nav-inner">
       <a class="logo" href="#top"><img class="logo-mark" src="favicon.png" alt="TideBot logo" /> TideBot</a>
       <div class="nav-links">
@@ -339,6 +342,7 @@
     </div>
   </nav>
 
+  <main id="main">
   <header class="hero" id="top">
     <div class="wrap">
       <span class="eyebrow"><span class="dot"></span> <span id="hero-version">v1.0.0-dev</span> · open source · self-hosted</span>
@@ -441,21 +445,21 @@ npm run dev <span class="cm"># studio at http://localhost:5173</span></pre>
         <p>Native desktop apps with automatic updates. Prefer source? One <code style="font-family:'JetBrains Mono',monospace;font-size:.85em">git clone</code> away.</p>
       </div>
       <div class="dl-grid">
-        <div class="dl-card reveal"><span class="os">🪟</span><h3>Windows</h3><p class="arch">Windows 10 / 11</p><a class="dl-btn" data-dl="win" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.170/TideBot.Setup.1.0.0-dev.170.exe">Download .exe</a><p class="dl-size"><span data-size="win">106.9 MB</span></p></div>
+        <div class="dl-card reveal"><span class="os">🪟</span><h3>Windows</h3><p class="arch">Windows 10 / 11</p><a class="dl-btn" data-dl="win" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.173/TideBot.Setup.1.0.0-dev.173.exe">Download .exe</a><p class="dl-size"><span data-size="win">106.9 MB</span></p></div>
         <div class="dl-card reveal">
           <span class="os">🍎</span>
           <h3>macOS</h3>
           <p class="arch">Check your chip in  → About This Mac.</p>
           <div class="dl-options">
-            <a class="dl-btn" data-dl="mac-arm" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.170/TideBot-1.0.0-dev.170-arm64.dmg">Download for Apple Silicon</a>
+            <a class="dl-btn" data-dl="mac-arm" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.173/TideBot-1.0.0-dev.173-arm64.dmg">Download for Apple Silicon</a>
             <span class="dl-size" data-size="mac-arm">124.1 MB</span>
-            <a class="dl-btn" data-dl="mac-intel" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.170/TideBot-1.0.0-dev.170.dmg">Download for Intel Mac</a>
+            <a class="dl-btn" data-dl="mac-intel" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.173/TideBot-1.0.0-dev.173.dmg">Download for Intel Mac</a>
             <span class="dl-size" data-size="mac-intel">128.3 MB</span>
           </div>
         </div>
-        <div class="dl-card reveal"><span class="os">🐧</span><h3>Linux</h3><p class="arch">AppImage &amp; <a data-dl="linux-deb" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.170/tidebot-desktop_1.0.0-dev.170_amd64.deb" style="color:var(--text);text-decoration:underline">.deb</a> (<span data-size="linux-deb">99.5 MB</span>)</p><a class="dl-btn" data-dl="linux-appimage" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.170/TideBot-1.0.0-dev.170.AppImage">Download</a><p class="dl-size"><span data-size="linux-appimage">130.5 MB</span></p></div>
+        <div class="dl-card reveal"><span class="os">🐧</span><h3>Linux</h3><p class="arch">AppImage &amp; <a data-dl="linux-deb" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.173/tidebot-desktop_1.0.0-dev.173_amd64.deb" style="color:var(--text);text-decoration:underline">.deb</a> (<span data-size="linux-deb">99.5 MB</span>)</p><a class="dl-btn" data-dl="linux-appimage" href="https://github.com/asjames18/tidebot/releases/download/v1.0.0-dev.173/TideBot-1.0.0-dev.173.AppImage">Download</a><p class="dl-size"><span data-size="linux-appimage">130.6 MB</span></p></div>
       </div>
-      <p class="dl-note reveal">Latest build: <b id="dl-tag">v1.0.0-dev.170</b> · released <span id="dl-date">Nov 27, 2026</span> · <a href="https://github.com/asjames18/tidebot/releases" style="color:#93c5fd">all builds &amp; changelogs</a></p>
+      <p class="dl-note reveal">Latest build: <b id="dl-tag">v1.0.0-dev.173</b> · released <span id="dl-date">Nov 27, 2026</span> · <a href="https://github.com/asjames18/tidebot/releases" style="color:#93c5fd">all builds &amp; changelogs</a></p>
       <p class="dl-note reveal">Early releases are not code-signed yet — see the README for the one-step <code>SmartScreen</code> / <code>Gatekeeper</code> bypass. Or build from source with <code>npm install && npm start</code>.</p>
     </div>
   </section>
@@ -496,6 +500,7 @@ npm run dev <span class="cm"># studio at http://localhost:5173</span></pre>
       </div>
     </div>
   </section>
+  </main>
 
   <footer>
     <div class="wrap foot">

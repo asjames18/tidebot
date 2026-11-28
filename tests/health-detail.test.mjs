@@ -6,7 +6,9 @@ import path from 'node:path';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import Database from 'better-sqlite3';
 import { buildHealthDetail, checkDatabaseFile, checkSandbox } from '../server/src/lib/health.ts';
+import { formatStartupBanner } from '../server/src/lib/startup.ts';
 
 function tmpDir(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-health-'));
@@ -136,4 +138,105 @@ test('doctor times out when the health response body stalls', async (t) => {
   const { code, stderr } = await runDoctor({ PORT: String(server.address().port) });
   assert.equal(code, 1);
   assert.match(stderr, /^doctor: .*timed out[^\n]*\n$/);
+});
+
+test('formatStartupBanner reports active provider and model and matches desktop smoke regex', () => {
+  const openrouter = formatStartupBanner(
+    { address: '127.0.0.1', port: 8787 },
+    { provider: 'openrouter', defaultModel: 'openrouter/free' },
+  );
+  assert.equal(openrouter, '[grokbot] server on http://127.0.0.1:8787 (provider openrouter, model openrouter/free)');
+  // desktop/scripts/smoke-packaged.mjs extracts the bound URL with this regex.
+  assert.equal(openrouter.match(/server on (http:\/\/127\.0\.0\.1:\d+)/)?.[1], 'http://127.0.0.1:8787');
+
+  const ipv6 = formatStartupBanner(
+    { address: '::1', port: 9000 },
+    { provider: 'custom', defaultModel: 'llama3.2' },
+  );
+  assert.equal(ipv6, '[grokbot] server on http://[::1]:9000 (provider custom, model llama3.2)');
+
+  const fallback = formatStartupBanner(
+    { address: '127.0.0.1', port: 8787 },
+    { provider: '', defaultModel: '' },
+  );
+  assert.equal(fallback, '[grokbot] server on http://127.0.0.1:8787 (provider openrouter, model unset)');
+});
+
+async function captureStartupBanner({ dbPath, envPath }) {
+  const entry = fileURLToPath(new URL('../server/dist/index.js', import.meta.url));
+  const cleanEnv = { ...process.env };
+  for (const key of [
+    'LLM_PROVIDER', 'OPENROUTER_API_KEY', 'OPENROUTER_MODEL',
+    'LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL',
+    'XAI_API_KEY', 'XAI_MODEL', 'TIDEBOT_DESKTOP_SIGNUP_ORIGIN',
+  ]) {
+    delete cleanEnv[key];
+  }
+  const child = spawn(process.execPath, [entry], {
+    env: {
+      ...cleanEnv,
+      HOST: '127.0.0.1',
+      PORT: '0',
+      DB_PATH: dbPath,
+      ENV_PATH: envPath,
+      GROKBOT_NO_SCHEDULER: '1',
+    },
+  });
+  let stdout = '';
+  let stderr = '';
+  child.stderr.on('data', (d) => { stderr += d; });
+  try {
+    const line = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`Server did not print startup banner.\nstdout:\n${stdout}\nstderr:\n${stderr}`)), 15_000);
+      child.once('error', (err) => { clearTimeout(timer); reject(err); });
+      child.once('exit', (code) => { clearTimeout(timer); reject(new Error(`Server exited (${code}) before printing banner.\nstderr:\n${stderr}`)); });
+      child.stdout.on('data', (d) => {
+        stdout += d;
+        const m = stdout.match(/\[grokbot\] server on [^\n]+/);
+        if (m) { clearTimeout(timer); resolve(m[0]); }
+      });
+    });
+    return line;
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) {
+      const closed = new Promise((resolve) => child.once('close', resolve));
+      child.kill('SIGTERM');
+      await closed;
+    }
+  }
+}
+
+test('server startup banner logs active OpenRouter default rather than hardcoded xaiModel', async (t) => {
+  const dir = tmpDir(t);
+  const dbPath = path.join(dir, 'openrouter.db');
+  const envPath = path.join(dir, '.env');
+  fs.writeFileSync(envPath, 'LLM_PROVIDER=openrouter\nOPENROUTER_MODEL=openrouter/free\n');
+
+  const banner = await captureStartupBanner({ dbPath, envPath });
+  assert.match(banner, /^\[grokbot\] server on http:\/\/127\.0\.0\.1:\d+ \(provider openrouter, model openrouter\/free\)$/);
+  assert.doesNotMatch(banner, /grok-4\.7/);
+});
+
+test('server startup banner reflects custom provider env and SQLite llm_settings overrides', async (t) => {
+  const dir = tmpDir(t);
+  const dbPath = path.join(dir, 'custom.db');
+  const envPath = path.join(dir, '.env');
+  fs.writeFileSync(envPath, 'LLM_PROVIDER=custom\nLLM_BASE_URL=http://127.0.0.1:11434/v1\nLLM_MODEL=llama3.2\n');
+
+  const customBanner = await captureStartupBanner({ dbPath, envPath });
+  assert.match(customBanner, /^\[grokbot\] server on http:\/\/127\.0\.0\.1:\d+ \(provider custom, model llama3\.2\)$/);
+
+  const db = new Database(dbPath);
+  try {
+    db.prepare(`
+      INSERT INTO llm_settings (id, provider, default_model, updated_at)
+      VALUES (1, 'openrouter', 'anthropic/claude-3.7-sonnet', ?)
+      ON CONFLICT(id) DO UPDATE SET provider = excluded.provider, default_model = excluded.default_model
+    `).run(Date.now());
+  } finally {
+    db.close();
+  }
+
+  const dbBanner = await captureStartupBanner({ dbPath, envPath });
+  assert.match(dbBanner, /^\[grokbot\] server on http:\/\/127\.0\.0\.1:\d+ \(provider openrouter, model anthropic\/claude-3\.7-sonnet\)$/);
 });
