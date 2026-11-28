@@ -276,6 +276,16 @@ export interface LlmConfigPublic {
   isConfigured: boolean;
 }
 
+/** First-run wizard resume state (plan §2.2), served by GET /api/setup/status. */
+export interface SetupStatus {
+  modelConfigured: boolean;
+  provider: LlmProvider;
+  defaultModel: string;
+  hasOperator: boolean;
+  hasCompletedRun: boolean;
+  setupComplete: boolean;
+}
+
 export interface ModelInfo {
   id: string;
   name: string;
