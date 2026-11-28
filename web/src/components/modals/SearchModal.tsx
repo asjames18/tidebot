@@ -27,6 +27,8 @@ export function SearchModal() {
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const setLlmConfig = useConfigUI((s) => s.setLlmConfig);
   const [q, setQ] = useState('');
+  const [confirmChatBotId, setConfirmChatBotId] = useState<string | null>(null);
+  const confirmingNewChat = confirmChatBotId === selectedBot?.id;
   const [remote, setRemote] = useState<SearchResults | null>(null);
   const [searchingRemote, setSearchingRemote] = useState(false);
   const [active, setActive] = useState(0);
@@ -39,6 +41,11 @@ export function SearchModal() {
     }
     setModal(null);
   }, [setModal]);
+
+  const updateQuery = (query: string) => {
+    setConfirmChatBotId(null);
+    setQ(query);
+  };
 
   useEffect(() => {
     if (!curatedModels.length) void loadModels();
@@ -200,10 +207,14 @@ export function SearchModal() {
       ...(selectedBot && selectedBot.kind !== 'room' ? [
         {
           id: 'new-chat',
-          title: `Start new chat with ${selectedBot.name}`,
+          title: `${confirmingNewChat ? 'Confirm' : 'Start'} new chat with ${selectedBot.name}`,
           sub: 'Clear this conversation thread while keeping memories, skills, and routines',
-          keywords: 'new chat fresh reset clear thread conversation',
+          keywords: `start new chat with ${selectedBot.name} fresh reset clear thread conversation`,
           run: () => {
+            if (!confirmingNewChat) {
+              setConfirmChatBotId(selectedBot.id);
+              return;
+            }
             close();
             api.fresh(selectedBot.id)
               .then(() => {
@@ -283,7 +294,7 @@ export function SearchModal() {
       }
     }
     return out;
-  }, [bots, byId, q, remote, openBot, close, setModal, selectedBot, curatedModels, llmConfig, setLlmConfig]);
+  }, [bots, byId, q, remote, openBot, close, setModal, selectedBot, curatedModels, llmConfig, setLlmConfig, confirmingNewChat]);
 
   useEffect(() => setActive(0), [q, remote]);
   useEffect(() => {
@@ -304,13 +315,14 @@ export function SearchModal() {
           autoCorrect="off"
           spellCheck={false}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => updateQuery(e.target.value)}
           placeholder={typeof window !== 'undefined' && window.innerWidth <= 640 ? "Search Operators, models, commands…" : "Search Operators, switch models (claude, gemini, deepseek…), or run commands…"}
           aria-label="Command and search palette"
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, Math.max(0, items.length - 1))); }
             else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
             else if (e.key === 'Enter') {
+              if (e.repeat || e.nativeEvent.isComposing) return;
               e.preventDefault();
               if (items[active]) {
                 if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
@@ -327,7 +339,7 @@ export function SearchModal() {
             className="search-modal__clear"
             onClick={() => {
               if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-              setQ('');
+              updateQuery('');
               inputRef.current?.focus();
             }}
             aria-label="Clear search input"
@@ -379,7 +391,11 @@ export function SearchModal() {
                 data-idx={i}
                 className={`search-row${i === active ? ' is-active' : ''}`}
                 onMouseMove={() => setActive(i)}
-                onClick={() => {
+                onKeyDown={(e) => {
+                  if (item.key === 'act:new-chat' && e.key === 'Enter' && e.repeat) e.preventDefault();
+                }}
+                onClick={(e) => {
+                  if (item.key === 'act:new-chat' && e.detail > 1) return;
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(10); } catch {} }
                   item.run();
                 }}
@@ -398,7 +414,7 @@ export function SearchModal() {
                 className="cfg-btn cfg-btn--secondary"
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
-                  setQ('');
+                  updateQuery('');
                   inputRef.current?.focus();
                 }}
               >
