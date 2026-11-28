@@ -81,9 +81,9 @@ jobs:
             const fs = require('node:fs');
             const p = './desktop/package.json';
             const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
-            pkg.version = '${VER}';
+            pkg.version = process.argv[1];
             fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + '\n');
-          "
+          " -- "$VER"
           echo "Building TideBot Desktop v${VER} (${RELEASE_TYPE})"
 
       - name: Stage server, web, and native addons for Electron
