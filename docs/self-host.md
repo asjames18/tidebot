@@ -30,7 +30,7 @@ TideBot keeps everything on your own machine — there is no cloud copy. The dat
 | Source checkout | `<checkout>/data/grokbot.db` | `<checkout>/data/workspaces/<botId>/` | `<checkout>/.env` |
 | Docker Compose | `tidebot-data` volume, `/data/grokbot.db` | `tidebot-data` volume, `/data/workspaces/<botId>/` | `tidebot-data` volume, `/data/studio.env` |
 
-The desktop data folder is `~/Library/Application Support/TideBot` on macOS, `%APPDATA%\TideBot` on Windows, and `~/.config/TideBot` on Linux. In the desktop app, open it from the **TideBot menu → Open Data Folder**. Changes saved in TideBot's Settings take precedence over the corresponding values in `.env`. Keep `.env` (or `studio.env`) private — it holds your provider keys.
+The desktop data folder is `~/Library/Application Support/TideBot` on macOS, `%APPDATA%\TideBot` on Windows, and `~/.config/TideBot` on Linux. In the desktop app, open it from the **TideBot menu (macOS) or File menu (Windows/Linux) → Open Data Folder**. Changes saved in TideBot's Settings take precedence over the corresponding values in `.env`. Keep `.env` (or `studio.env`) private — it holds your provider keys.
 
 ### Back up and restore
 
