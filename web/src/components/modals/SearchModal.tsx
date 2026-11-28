@@ -318,6 +318,7 @@ export function SearchModal() {
           placeholder={typeof window !== 'undefined' && window.innerWidth <= 640 ? "Search Operators, models, commands…" : "Search Operators, switch models (claude, gemini, deepseek…), or run commands…"}
           aria-label="Command and search palette"
           onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
             if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, Math.max(0, items.length - 1))); }
             else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
             else if (e.key === 'Enter') {
