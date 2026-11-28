@@ -376,8 +376,6 @@ export function BotTasks({ bot }: { bot: Bot }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const sorted = useMemo(() => sortTasks(tasks ?? []), [tasks]);
 
-  useEffect(() => { setNewTitle(''); }, [bot.id]);
-
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     const title = newTitle.trim();

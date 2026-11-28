@@ -505,7 +505,7 @@ export function DetailsPanel() {
               </>
             )}
           </div>
-        ) : tab === 'tasks' ? <BotTasks bot={bot} />
+        ) : tab === 'tasks' ? <BotTasks key={bot.id} bot={bot} />
           : tab === 'runs' && bot.kind !== 'room' ? <RunHistory key={bot.id} botId={bot.id} openLibrary={() => setTab('library')} />
           : <LibraryTab bot={bot} />}
       </div>
