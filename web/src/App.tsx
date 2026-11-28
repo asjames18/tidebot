@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { useStore } from './store';
 import { SignIn } from './components/SignIn';
+import { SetupWizard } from './components/SetupWizard';
 
 const Shell = lazy(() => import('./components/Shell').then((m) => ({ default: m.Shell })));
 
@@ -32,5 +33,5 @@ export function App() {
     };
   }, []);
   if (!authChecked) return <div className="boot" />;
-  return user ? <Suspense fallback={<div className="boot" />}><Shell /></Suspense> : <SignIn />;
+  return user ? <Suspense fallback={<div className="boot" />}><Shell /><SetupWizard /></Suspense> : <SignIn />;
 }
