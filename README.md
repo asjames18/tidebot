@@ -27,6 +27,10 @@
   <a href="AGENTS.md">AGENTS.md</a>
 </p>
 
+<p align="center">
+  Built by <a href="https://melanatedintech.com">Melanated in Tech</a>
+</p>
+
 ---
 
 ## ✨ Key Features
