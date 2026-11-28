@@ -5,7 +5,7 @@ document: update it when a phase closes, not when work merely starts. The
 detailed plan behind it lives with the maintainers; this file is the version
 contributors plan around.
 
-**Last updated:** November 27, 2026. Development builds are prereleases
+**Last updated:** November 28, 2026. Development builds are prereleases
 (`v1.0.0-dev.*`); there is no stable 1.0 yet.
 
 ## How to read this
@@ -59,15 +59,13 @@ Windows and macOS builds are signed; branch protection and CI are enforced on
 
 **Status: in progress.** Two install paths work today: the desktop app
 (one download, one install) and building from source (Node.js 22.22.3+).
-The third path, containers, is planned.
+The third path, containers, exists: a maintained `Dockerfile` + `compose.yml`, documented in [Self-host TideBot](docs/self-host.md) — cold-testing, a published image per release, and a "Run with Docker" README section are still to do.
 
 - **Install paths** — desktop path: one download, one install, first launch
   opens the guided setup; test the full flow cold on Windows, macOS (both
   chips), and Linux, and time it. Target: under 10 minutes to first Operator.
   Source path: verify the README Quick Start verbatim on a clean machine and
-  fix every step that needs tribal knowledge. Docker path (not started): a
-  maintained Dockerfile + `docker-compose.yml`, an image published per
-  release, and a "Run with Docker" README section. Document minimum and
+  fix every step that needs tribal knowledge. Docker path (in progress): a maintained Dockerfile + `compose.yml` are on main with docs/self-host.md; still to do: cold-test on a clean machine, an image published per release, and a "Run with Docker" README section. Document minimum and
   recommended system requirements in the README and on the landing-page
   download section. Add a one-line health check reporting Node version,
   database writability, sandbox status, and which provider keys are
