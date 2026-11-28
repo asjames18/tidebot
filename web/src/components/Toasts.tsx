@@ -114,7 +114,7 @@ export function Toasts() {
     return () => window.clearTimeout(t);
   }, [sseConnected]);
 
-  const showNetBanner = !online || reconnecting;
+  const showNetBanner = !sseConnected && (!online || reconnecting);
   if (!toasts.length && !showNetBanner) return null;
   const dismiss = (id: number) => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
