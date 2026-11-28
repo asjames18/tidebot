@@ -6,6 +6,7 @@ import nodePath from 'node:path';
 import { localWorkspaceDir } from './agent/tools.js';
 import { pendingApprovalCounts } from './lib/approvals.js';
 import { resolveWithinWorkspace } from './lib/files.js';
+import { summarizeBotUsage } from './lib/usage.js';
 import { db, now } from './db.js';
 import './db-config.js';
 import { env } from './env.js';
@@ -542,6 +543,13 @@ api.get('/bots/:id/runs', (c) => {
   if (!bot) return c.json({ error: 'not found' }, 404);
   c.header('Cache-Control', 'no-store');
   return c.json({ runs: listRuns(bot.id) });
+});
+
+api.get('/bots/:id/usage', (c) => {
+  const bot = ownBot(c.get('user').id, c.req.param('id'));
+  if (!bot) return c.json({ error: 'not found' }, 404);
+  c.header('Cache-Control', 'no-store');
+  return c.json(summarizeBotUsage(db, bot.id));
 });
 
 api.post('/bots/:id/research', bodyLimit({ maxSize: 128 * 1024, onError: (c) => c.json({ error: 'Research plan is too large.' }, 413) }), async (c) => {

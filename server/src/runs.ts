@@ -2,7 +2,8 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { db, now } from './db.js';
 import { hub } from './lib/hub.js';
 import { newId } from './lib/ids.js';
-import type { AgentRun, AgentRunState } from './types.js';
+import { emptyUsageSummary, summarizeRunUsage, summarizeRunsUsage } from './lib/usage.js';
+import type { AgentRun, AgentRunState, UsageSummary } from './types.js';
 
 type RunLink = { id: string; botId: string };
 export const runContext = new AsyncLocalStorage<RunLink>();
@@ -59,16 +60,19 @@ export function recoverInterruptedRuns() {
 
 type RunRecord = { id: string; source: AgentRun['source']; title: string; routine_id: string | null; state: AgentRunState;
   created_at: number; started_at: number | null; finished_at: number | null; summary: string | null };
-const toRun = (r: RunRecord): AgentRun => ({
+const toRun = (r: RunRecord, usage?: UsageSummary): AgentRun => ({
   id: r.id, source: r.source, title: r.title, routineId: r.routine_id, state: r.state,
   createdAt: r.created_at, startedAt: r.started_at, finishedAt: r.finished_at, summary: r.summary,
+  ...(usage ? { usage } : {}),
 });
 
 export function listRuns(botId: string) {
-  return (db.prepare('SELECT * FROM agent_runs WHERE bot_id=? ORDER BY rowid DESC LIMIT 50').all(botId) as RunRecord[]).map(toRun);
+  const rows = db.prepare('SELECT * FROM agent_runs WHERE bot_id=? ORDER BY rowid DESC LIMIT 50').all(botId) as RunRecord[];
+  const byRun = summarizeRunsUsage(db, botId, rows.map((r) => r.id));
+  return rows.map((r) => toRun(r, byRun.get(r.id) ?? emptyUsageSummary()));
 }
 
 export function getRun(botId: string, runId: string) {
   const r = db.prepare('SELECT * FROM agent_runs WHERE bot_id=? AND id=?').get(botId, runId) as RunRecord | undefined;
-  return r && toRun(r);
+  return r && toRun(r, summarizeRunUsage(db, botId, r.id));
 }
