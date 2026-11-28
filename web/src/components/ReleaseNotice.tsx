@@ -5,7 +5,7 @@ import { DesktopUpdateButton } from './DesktopUpdateButton';
 const DISMISS_KEY = 'tidebot-release-dismissed-tag';
 
 // Dismissible "what's new" notice for self-hosters, fed by the server's
-// cached check of the public GitHub Releases API (RAK-41). Shown only when
+// cached check of published GitHub releases (RAK-41). Shown only when
 // the running install is behind the newest published release; dismissal is
 // remembered per release tag so the next release resurfaces it.
 export function ReleaseNotice() {

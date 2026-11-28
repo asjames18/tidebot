@@ -44,10 +44,9 @@ test('packaged desktop version suppresses a notice for the installed release', a
     else process.env.TIDEBOT_DESKTOP_VERSION = previous;
   });
   process.env.TIDEBOT_DESKTOP_VERSION = '1.0.0-dev.42';
-  t.mock.method(globalThis, 'fetch', async () => ({
-    ok: true,
-    json: async () => [{ tag_name: 'v1.0.0-dev.42', name: 'Current release' }],
-  }));
+  t.mock.method(globalThis, 'fetch', async (url) => url.endsWith('.atom')
+    ? new Response(null, { status: 503 })
+    : Response.json([{ tag_name: 'v1.0.0-dev.42', name: 'Current release' }]));
   const { releaseStatus: desktopReleaseStatus } = await import('../server/dist/releases.js?desktop');
   const status = await desktopReleaseStatus();
   assert.equal(status.current, '1.0.0-dev.42');
@@ -59,7 +58,9 @@ test('releaseStatus flags update only when the fetched release is newer', async 
   const { resetReleaseCacheForTest } = await import('../server/dist/releases.js');
   const realFetch = globalThis.fetch;
   const rel = (tag) => ({ tag_name: tag, name: tag, html_url: 'https://example.com/r', published_at: null, body: '' });
-  const stub = (body) => t.mock.fn(async () => ({ ok: true, json: async () => [body] }));
+  const stub = (body) => t.mock.fn(async (url) => url.endsWith('.atom')
+    ? new Response(null, { status: 503 })
+    : Response.json([body]));
 
   // Newer dev release than the running install -> update available.
   globalThis.fetch = stub(rel('v1.0.0-dev.9'));
@@ -85,4 +86,26 @@ test('releaseStatus flags update only when the fetched release is newer', async 
 
   globalThis.fetch = realFetch;
   resetReleaseCacheForTest();
+});
+
+test('release notices prefer the published feed when the release list starts with an older tag', async (t) => {
+  const { resetReleaseCacheForTest } = await import('../server/dist/releases.js');
+  resetReleaseCacheForTest();
+  t.after(resetReleaseCacheForTest);
+  const restTag = 'https://api.github.com/repos/asjames18/tidebot/releases/tags/v1.0.0-dev.126';
+  const atom = 'https://github.com/asjames18/tidebot/releases.atom';
+  const fetchRelease = t.mock.method(globalThis, 'fetch', async (url) => {
+    if (url === atom) return new Response(`
+      <feed xmlns="http://www.w3.org/2005/Atom">
+        <link href="https://github.com/asjames18/tidebot/releases"/>
+        <entry><link rel="alternate" href="https://github.com/asjames18/tidebot/releases/tag/v1.0.0-dev.126"/></entry>
+        <entry><link rel="alternate" href="https://github.com/asjames18/tidebot/releases/tag/v1.0.0-dev.99"/></entry>
+      </feed>`);
+    if (url === restTag) return Response.json({ tag_name: 'v1.0.0-dev.126', name: 'Desktop release', body: 'Release notes' });
+    return Response.json([{ tag_name: 'v1.0.0-dev.99' }]);
+  });
+  const { release } = await releaseStatus();
+  assert.equal(release?.tag, 'v1.0.0-dev.126');
+  assert.equal(release?.notes, 'Release notes');
+  assert.deepEqual(fetchRelease.mock.calls.map((call) => call.arguments[0]), [atom, restTag]);
 });
