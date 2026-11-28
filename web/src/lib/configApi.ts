@@ -1,4 +1,4 @@
-import type { AgentRun, BotUsageResponse, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
+import type { AgentRun, BotUsageResponse, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, RoutineDryRunResult, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
 import { ApiError } from './api';
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -68,7 +68,9 @@ export const configApi = {
   createRoutine: (botId: string, r: { name: string; prompt: string; schedule: string; timezone?: string }) => req<{ routine: Routine }>('POST', `/bots/${botId}/routines`, r),
   updateRoutine: (id: string, r: Partial<{ name: string; prompt: string; schedule: string; timezone: string; enabled: boolean }>) => req<{ routine: Routine }>('PATCH', `/routines/${id}`, r),
   setRoutine: (id: string, enabled: boolean) => req<{ routine: Routine }>('PATCH', `/routines/${id}`, { enabled }),
-  runRoutine: (id: string) => req<{ ok: true }>('POST', `/routines/${id}/run`),
+  runRoutine: (id: string) => req<{ ok: true; runId?: string }>('POST', `/routines/${id}/run`),
+  dryRunRoutine: (id: string) => req<RoutineDryRunResult>('POST', `/routines/${id}/dry-run`),
+  routineRuns: (id: string, limit = 15) => req<{ runs: AgentRun[] }>('GET', `/routines/${id}/runs?limit=${limit}`),
   deleteRoutine: (id: string) => req<{ ok: true }>('DELETE', `/routines/${id}`),
 
   projects: () => req<{ projects: Project[] }>('GET', '/projects'),
