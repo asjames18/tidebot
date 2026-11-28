@@ -829,7 +829,7 @@ function ModelsSection() {
         </div>
       </section>
 
-      <section className="cfg-section">
+      {provider === 'openrouter' && <section className="cfg-section">
         <div className="cfg-section__label-row">
           <span className="cfg-section__label">3. OpenRouter Model Catalog ({totalCount || curatedModels.length + remoteModels.length} available)</span>
           <input
@@ -979,7 +979,7 @@ function ModelsSection() {
             );
           })}
         </div>
-      </section>
+      </section>}
     </>
   );
 }
