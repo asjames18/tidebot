@@ -71,3 +71,21 @@ Uninstalling the desktop app removes the app but leaves your data behind. To sta
 Restart the server after installing — the server checks for Bubblewrap once when it starts, so an install after startup is not picked up until then. Then verify: `bwrap --version` should print a version, and `npm run doctor` should report `sandbox: bubblewrap installed (<path>)`. The real check is asking a bot to run any shell command — if it returns output instead of the refusal above, the fix worked.
 
 **Still refused after installing?** The binary is found, but the isolation probe (`server/src/lib/sandbox.ts`, `probeBwrap`) also has to pass — it needs unprivileged user namespaces to work on your system. If your distro restricts them, the refusal stays until that is allowed; check your distro's documentation for unprivileged user namespaces.
+
+### The installer warns about an unknown publisher (SmartScreen / Gatekeeper)
+
+**Symptom:** on Windows, SmartScreen shows a one-time *unknown publisher* warning for the installer; on macOS, Gatekeeper refuses to open the app on first launch.
+
+**Fix:** the installers are not yet code-signed, so this warning is expected until signing lands. On Windows, click **More info → Run anyway**. On macOS, right-click the app and choose **Open** the first time. Prefer building from source instead? Follow the Quick Start in the README.
+
+### A model call fails: invalid key, 401, or connection refused
+
+**Symptom:** creating an Operator or running a task fails with an invalid-key or connection error instead of a reply. TideBot's setup-path errors name the provider, the likely cause, and the next step — read that message first, not the raw error.
+
+**Fix:** open Settings → Models and check the key for that provider. OpenRouter keys look like `sk-or-v1-…` (64 hex characters); re-paste the key if it was copied with a stray space, then use **Test connection**. For a custom OpenAI-compatible endpoint (Ollama, LM Studio, vLLM), check the base URL is reachable from the machine running the server and the model name is exact: for Ollama that is the base URL `http://127.0.0.1:11434/v1` with the installed model name including its tag (see `docs/local-model.md`). A "connection refused" from a container means the backend cannot reach the address — loopback inside a container is not the host's loopback.
+
+### A connected app fails: "this app needs reconnecting" / expired account
+
+**Symptom:** a tool call to a connected app (Gmail, Slack, GitHub, …) fails inside a run, or the app stops showing as Connected. The usual cause is an expired or revoked authorization — Google, for example, generally expires authorizations after seven days.
+
+**Fix:** there is no automatic reconnect yet, so reconnect by hand: Settings → Connected apps → **Browse & Connect Apps**, **Disconnect** the app (this also deletes the Composio connected account), then connect it again — the fresh OAuth grant is the reconnect. If the app no longer shows as Connected at all, just connect it again. See `docs/composio-playbook-google-calendar.md` (Reconnect) for the worked example.
