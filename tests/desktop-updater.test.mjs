@@ -9,7 +9,7 @@ import { runInNewContext } from 'node:vm';
 const main = new URL('../desktop/main.cjs', import.meta.url);
 const source = readFileSync(main, 'utf8');
 
-function updaterFixture(signature) {
+function updaterFixture(signature, manual = true) {
   const app = Object.assign(new EventEmitter(), {
     isPackaged: true,
     requestSingleInstanceLock: () => true,
@@ -21,6 +21,7 @@ function updaterFixture(signature) {
   autoUpdater.quitAndInstall = () => { installs++; };
   const dialogs = [];
   const opened = [];
+  const scheduledChecks = [];
   const require = createRequire(main);
   const context = {
     require(name) {
@@ -41,16 +42,17 @@ function updaterFixture(signature) {
     process: { platform: 'darwin', execPath: '/Applications/TideBot.app/Contents/MacOS/TideBot' },
     console: { error() {} },
     __dirname: fileURLToPath(new URL('.', main)),
-    setTimeout() {},
-    setInterval() {},
+    setTimeout(check) { scheduledChecks.push(check); },
+    setInterval(check) { scheduledChecks.push(check); },
     stopChild: () => { stops++; },
   };
-  runInNewContext(source + `
+  const checkManually = runInNewContext(source + `
     serverProc = { exitCode: null, kill: stopChild };
     setupAutoUpdater();
-    manualCheck = true;
+    manualCheck = ${manual};
+    triggerUpdateCheck;
   `, context);
-  return { app, autoUpdater, dialogs, opened, installs: () => installs, stops: () => stops };
+  return { app, autoUpdater, checkManually, scheduledChecks, dialogs, opened, installs: () => installs, stops: () => stops };
 }
 
 test('unsigned Mac builds offer the release download without stopping the server', async () => {
@@ -78,4 +80,28 @@ test('a signed Mac update keeps the server running until Electron quits', async 
   assert.equal(fixture.stops(), 0);
   fixture.app.emit('before-quit');
   assert.equal(fixture.stops(), 1);
+});
+
+test('a download rejection is handled for scheduled and manual update checks', async () => {
+  const fixture = updaterFixture({ status: 0, stderr: 'Authority=Developer ID Application: TideBot (TEST)\n' }, false);
+  const failure = new Error('Download interrupted');
+  fixture.autoUpdater.checkForUpdates = async () => ({
+    downloadPromise: new Promise((_, reject) => setImmediate(() => {
+      fixture.autoUpdater.emit('error', failure);
+      reject(failure);
+    })),
+  });
+
+  assert.equal(fixture.scheduledChecks.length, 2);
+  for (const check of fixture.scheduledChecks) {
+    check();
+    await new Promise(setImmediate);
+  }
+  assert.equal(fixture.dialogs.length, 0);
+
+  await fixture.checkManually();
+  await new Promise(setImmediate);
+  assert.equal(fixture.dialogs.length, 1);
+  assert.match(fixture.dialogs[0].detail, /Download interrupted/);
+  assert.equal(fixture.stops(), 0);
 });
