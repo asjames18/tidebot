@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { configApi } from '../lib/configApi';
 import { wizardSteps } from '../lib/setupWizard';
 import { useConfigUI } from '../configStore';
 import { useStore } from '../store';
 import { Modal } from './modals/Modal';
-import type { SetupStatus } from '@shared/types';
+import type { ServerEvent, SetupStatus } from '@shared/types';
 
 const DISMISS_KEY = 'tidebot.setup-wizard-dismissed';
 
@@ -22,16 +22,31 @@ export function SetupWizard() {
   const [dismissed, setDismissed] = useState<boolean>(() => {
     try { return localStorage.getItem(DISMISS_KEY) === '1'; } catch { return false; }
   });
+  const refreshId = useRef(0);
+  const watchRuns = Boolean(status && !status.setupComplete && !dismissed);
 
   const refresh = useCallback(() => {
     if (!userId) return;
+    const id = ++refreshId.current;
     setFailed(false);
     configApi.setupStatus()
-      .then((value) => setStatus(value))
-      .catch(() => setFailed(true));
+      .then((value) => { if (id === refreshId.current) setStatus(value); })
+      .catch(() => { if (id === refreshId.current) setFailed(true); });
   }, [userId]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+    return () => { refreshId.current++; };
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!watchRuns) return;
+    const onEvent = (event: Event) => {
+      if ((event as CustomEvent<ServerEvent>).detail.type === 'runs') refresh();
+    };
+    window.addEventListener('grokbot:event', onEvent);
+    return () => window.removeEventListener('grokbot:event', onEvent);
+  }, [watchRuns, refresh]);
 
   const dismiss = useCallback(() => {
     setOpen(false);
