@@ -57,6 +57,25 @@ jobs:
           docker compose restart
           docker compose up --wait --wait-timeout 120
           curl -fsS -b "$jar" "$base/api/bots" | jq -e --arg bot "$bot" '.bots[0].id == $bot'
+      - name: Verify image health on a custom port
+        run: |
+          image=$(docker inspect --format '{{.Image}}' "$(docker compose ps -q tidebot)")
+          container=$(docker run --detach --env PORT=8789 --health-interval=2s \
+            --health-start-period=0s --health-retries=15 "$image")
+          trap 'docker rm -f "$container" >/dev/null' EXIT
+          for attempt in {1..30}; do
+            status=$(docker inspect --format '{{.State.Health.Status}}' "$container")
+            if [ "$status" = healthy ]; then
+              exit 0
+            fi
+            if [ "$status" = unhealthy ]; then
+              break
+            fi
+            sleep 2
+          done
+          docker logs "$container"
+          docker inspect --format '{{json .State.Health}}' "$container"
+          exit 1
       - name: Show service logs on failure
         if: failure()
         run: docker compose logs tidebot
