@@ -991,11 +991,25 @@ const screenLabel = (id: string) => (id === 'default' ? 'Main screen' : `Screen 
 function ComputerSection() {
   const computer = useStore((s) => s.computer);
   const bots = useStore((s) => s.bots);
+  const hasOrgoKey = useConfigUI((s) => s.llmConfig?.hasOrgoKey);
   const [details, setDetails] = useState<ComputerDetails | null>(null);
   const [busy, setBusy] = useState<'wake' | 'sleep' | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const load = useCallback(() => { configApi.computerDetails().then(setDetails).catch(() => {}); }, []);
-  useEffect(() => { load(); }, [load, computer?.status, computer?.screens.length]);
+  useEffect(() => {
+    if (hasOrgoKey !== false) load();
+  }, [load, hasOrgoKey, computer?.status, computer?.screens.length]);
+
+  if (hasOrgoKey === false) {
+    return <>
+      <PageHead title="Computer" sub="The cloud desktop is optional and requires an Orgo API key." />
+      <section className="cfg-section">
+        <button type="button" className="cfg-btn cfg-btn--secondary" onClick={() => useConfigUI.getState().openAppSettings('setup')}>
+          Open Setup
+        </button>
+      </section>
+    </>;
+  }
 
   const status = computer?.status ?? details?.computer.status;
   const running = status === 'running';
