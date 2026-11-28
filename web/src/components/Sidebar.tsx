@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useConfigUI } from '../configStore';
 import { TasksIsland } from './config/TasksView';
 import type { Bot } from '@shared/types';
@@ -78,9 +78,21 @@ export function Sidebar() {
   const { primary, others } = partitionSidebarBots(bots);
 
   const swipeRef = useRef<DrawerSwipeState>(IDLE_DRAWER_SWIPE);
+  const sidebarRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
+
+  useLayoutEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+    // Match the breakpoint that turns the sidebar into a drawer in mobile.css.
+    const mobile = window.matchMedia('(max-width: 900px)');
+    const syncDrawer = () => { sidebar.inert = mobile.matches && !mobileOpen; };
+    syncDrawer();
+    mobile.addEventListener('change', syncDrawer);
+    return () => mobile.removeEventListener('change', syncDrawer);
+  }, [mobileOpen]);
 
   useEffect(() => {
     if (!mobileOpen) {
@@ -140,6 +152,7 @@ export function Sidebar() {
 
   return (
     <aside
+      ref={sidebarRef}
       className={`sidebar${collapsed ? ' is-collapsed' : ''}${mobileOpen ? ' is-mobile-open' : ''}`}
       aria-label="Operators navigation"
       onTouchStart={onTouchStart}
