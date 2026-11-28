@@ -32,6 +32,17 @@ test('stable releases rank above dev prereleases and older bases', () => {
   assert.equal(isNewerVersion('v1.0.0', 'v1.0.0'), false);
 });
 
+test('multi-digit major, minor and patch versions compare numerically', () => {
+  for (const [newer, older] of [
+    ['v10.0.0', 'v9.0.0'],
+    ['v1.10.0', 'v1.9.0'],
+    ['v1.0.10-dev.1', 'v1.0.9-dev.99'],
+  ]) {
+    assert.equal(isNewerVersion(newer, older), true, `${newer} is newer than ${older}`);
+    assert.equal(isNewerVersion(older, newer), false, `${older} is older than ${newer}`);
+  }
+});
+
 test('malformed versions never claim an update', () => {
   assert.equal(isNewerVersion('garbage', APP_VERSION), false);
   assert.equal(isNewerVersion('v1.0.0-dev.8', 'garbage'), false);
