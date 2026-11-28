@@ -9,6 +9,10 @@
 /** Quote one argument for cmd.exe, escaping embedded quotes and trailing slashes. */
 export function quoteForCmd(arg) {
   const value = String(arg);
+  // cmd.exe treats CR/LF as command separators even inside double quotes.
+  if (/[\r\n\0]/.test(value)) {
+    throw new Error('cmd.exe arguments must not contain CR, LF, or NUL bytes');
+  }
   if (value === '') return '""';
   if (!/[\s"&|<>^()%!,;]/.test(value)) return value;
   const escaped = value
@@ -18,6 +22,8 @@ export function quoteForCmd(arg) {
 }
 
 /** Build a single cmd.exe command line for `cmd` plus `args`. */
-export function buildWindowsCommand(cmd, args) {
-  return [cmd, ...args.map(quoteForCmd)].join(' ');
+export function buildWindowsCommand(cmd, args = []) {
+  const exe = String(cmd ?? '');
+  if (!exe.trim()) throw new Error('cmd.exe command must be non-empty');
+  return [quoteForCmd(exe), ...args.map(quoteForCmd)].join(' ');
 }

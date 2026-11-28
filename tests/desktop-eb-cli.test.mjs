@@ -20,16 +20,18 @@ function fixture(withCli) {
   return dir;
 }
 
-test('resolves the electron-builder CLI entry point', () => {
+test('resolves the electron-builder CLI entry point', (t) => {
   const dir = fixture(true);
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.equal(
     resolveElectronBuilderCli(dir),
     path.join(dir, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js'),
   );
 });
 
-test('throws a helpful error when dependencies are not installed', () => {
+test('throws a helpful error when dependencies are not installed', (t) => {
   const dir = fixture(false);
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.throws(() => resolveElectronBuilderCli(dir), /run npm install/);
 });
 
@@ -59,6 +61,14 @@ test('prefers an explicit argument over the environment value', () => {
   ]);
 });
 
+test('rejects missing or invalid --release-type values early', () => {
+  assert.throws(() => buildElectronBuilderArgs(['--win', '--release-type']), /requires a value/);
+  assert.throws(() => buildElectronBuilderArgs(['--release-type', '--publish', 'always']), /requires a value/);
+  assert.throws(() => buildElectronBuilderArgs(['--release-type=']), /requires a value/);
+  assert.throws(() => buildElectronBuilderArgs(['--release-type', 'nightly']), /Invalid release type/);
+  assert.throws(() => buildElectronBuilderArgs(['--win'], 'bogus'), /Invalid release type/);
+});
+
 test('writes one Mac update manifest with verified assets for both architectures', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-mac-update-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -68,7 +78,7 @@ test('writes one Mac update manifest with verified assets for both architectures
   fs.mkdirSync(apple);
   const version = '1.0.0-dev.1';
   const prefix = `TideBot-${version}`;
-  const manifestPath = path.join(root, 'latest-mac.yml');
+  const manifestPath = path.join(root, 'nested', 'latest-mac.yml');
   const assets = [
     [intel, `${prefix}-mac.zip`], [apple, `${prefix}-arm64-mac.zip`],
     [intel, `${prefix}.dmg`], [apple, `${prefix}-arm64.dmg`],
@@ -85,15 +95,23 @@ test('writes one Mac update manifest with verified assets for both architectures
   assert.equal(manifest.path, expected[0].url);
   assert.equal(manifest.sha512, expected[0].sha512);
   assert.deepEqual(manifest.files, expected);
+  assert.equal(fs.readdirSync(path.dirname(manifestPath)).filter((f) => f.includes('.tmp-')).length, 0);
+
+  // Path-traversal / malformed versions are rejected before reading assets.
+  assert.throws(
+    () => execFileSync(process.execPath, [manifestScript, '../evil', intel, apple, manifestPath], { stdio: 'pipe' }),
+    /Invalid release version/,
+  );
 
   fs.unlinkSync(path.join(...assets[1]));
   assert.throws(() => execFileSync(process.execPath, args, { stdio: 'pipe' }), /ENOENT/);
 });
 
-test('forwards the built flag to the CLI as a single argv entry', () => {
+test('forwards the built flag to the CLI as a single argv entry', (t) => {
   // End-to-end through a real child process: proves the release-type flag
   // reaches electron-builder unsplit, without relying on shell quoting.
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tidebot-eb-run-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const scripts = path.join(root, 'desktop', 'scripts');
   const cliDir = path.join(root, 'desktop', 'node_modules', 'electron-builder', 'out', 'cli');
   fs.mkdirSync(scripts, { recursive: true });

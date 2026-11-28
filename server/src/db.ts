@@ -161,6 +161,7 @@ CREATE TABLE IF NOT EXISTS agent_runs (
   summary TEXT
 );
 CREATE INDEX IF NOT EXISTS agent_runs_bot ON agent_runs(bot_id);
+CREATE INDEX IF NOT EXISTS agent_runs_routine ON agent_runs(routine_id);
 `);
 addColumn('rows', 'run_id', 'TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS rows_run ON rows(bot_id, run_id, seq) WHERE run_id IS NOT NULL');
@@ -236,6 +237,21 @@ CREATE TABLE IF NOT EXISTS llm_settings (
   shader_style TEXT NOT NULL DEFAULT 'aurora',
   updated_at INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS usage_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  bot_id TEXT NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
+  run_id TEXT,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  total_tokens INTEGER,
+  cost_usd REAL,
+  reported INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS usage_events_bot ON usage_events(bot_id);
+CREATE INDEX IF NOT EXISTS usage_events_run ON usage_events(run_id);
 `);
 
 export const now = () => Date.now();

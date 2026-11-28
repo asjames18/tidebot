@@ -1,11 +1,14 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { mkdir, rename, unlink, writeFile } from 'node:fs/promises';
+import { basename, dirname, join } from 'node:path';
 
 const [version, intel, apple, output] = process.argv.slice(2);
 if (!version || !intel || !apple || !output) {
   throw new Error('Usage: mac-update-manifest.mjs <version> <intel directory> <Apple Silicon directory> <output>');
+}
+if (!/^[0-9A-Za-z][0-9A-Za-z.+_-]*$/.test(version) || version.includes('..')) {
+  throw new Error(`Invalid release version: ${version}`);
 }
 
 const prefix = `TideBot-${version}`;
@@ -27,6 +30,14 @@ const files = await Promise.all(assets.map(async (file) => {
 }));
 
 // JSON is valid YAML and keeps this release step free of parser dependencies.
-await writeFile(output, JSON.stringify({
-  version, files, path: files[0].url, sha512: files[0].sha512, releaseDate: new Date().toISOString(),
-}, null, 2) + '\n');
+await mkdir(dirname(output), { recursive: true });
+const tmp = `${output}.tmp-${process.pid}-${randomBytes(6).toString('hex')}`;
+try {
+  await writeFile(tmp, JSON.stringify({
+    version, files, path: files[0].url, sha512: files[0].sha512, releaseDate: new Date().toISOString(),
+  }, null, 2) + '\n');
+  await rename(tmp, output);
+} catch (err) {
+  await unlink(tmp).catch(() => {});
+  throw err;
+}

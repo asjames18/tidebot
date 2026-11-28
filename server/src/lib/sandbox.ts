@@ -1,8 +1,35 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
+const DEFAULT_TIMEOUT_SEC = 30;
+const MIN_TIMEOUT_SEC = 0.1;
+const MAX_TIMEOUT_SEC = 600;
+
+/** Clamp shell timeout to a positive finite range so `0`/`NaN`/negative values never disable Node's execFile timeout. */
+export function clampTimeoutSec(timeoutSec: number): number {
+  if (!Number.isFinite(timeoutSec) || timeoutSec <= 0) return DEFAULT_TIMEOUT_SEC;
+  return Math.min(MAX_TIMEOUT_SEC, Math.max(MIN_TIMEOUT_SEC, timeoutSec));
+}
+
+/** Format execFile failures clearly without leaking host `bwrap` arguments/paths. */
+export function formatShellError(err: any, timeoutSec: number): { code: number; output: string } {
+  const code = typeof err?.code === 'number' ? err.code : 1;
+  const parts: string[] = [];
+  if (err?.stdout) parts.push(String(err.stdout));
+  if (err?.stderr) parts.push(String(err.stderr));
+  if (err?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') {
+    parts.push('Command output exceeded the 2 MiB limit.');
+  } else if (err?.killed && err?.signal) {
+    parts.push(`Command timed out after ${timeoutSec}s (${err.signal}).`);
+  } else if (!parts.length && err?.message) {
+    const msg = String(err.message);
+    parts.push(msg.startsWith('Command failed:') ? 'Command failed.' : msg);
+  }
+  return { code, output: parts.join('\n') };
+}
 
 /** Environment for agent shell commands: allowlist only, never the server's secrets. */
 export function shellEnv(workspace: string): NodeJS.ProcessEnv {
@@ -36,7 +63,7 @@ let usable: boolean | undefined;
 async function probeBwrap(bwrap: string): Promise<boolean> {
   if (usable !== undefined) return usable;
   try {
-    await execFileAsync(bwrap, [...isolationFlags, ...runtimeMounts(), '/bin/true'], { timeout: 5_000 });
+    await execFileAsync(bwrap, [...isolationFlags, ...runtimeMounts(), '--', '/bin/true'], { timeout: 5_000 });
     return usable = true;
   } catch {
     return usable = false;
@@ -61,17 +88,18 @@ export async function runShell(command: string, workspace: string, timeoutSec: n
   if (!bwrap || !await (deps.probeBwrap ?? probeBwrap)(bwrap)) {
     return { code: 1, output: 'Shell disabled: Bubblewrap isolation is unavailable. Command was not run.', sandboxed: false };
   }
-  const timeout = timeoutSec * 1000;
+  const safeTimeoutSec = clampTimeoutSec(timeoutSec);
+  const timeout = Math.round(safeTimeoutSec * 1000);
   const maxBuffer = 2 * 1024 * 1024;
   const args: string[] = [...isolationFlags, '--die-with-parent', ...runtimeMounts(), '--tmpfs', '/tmp',
-    '--bind', workspace, '/workspace'];
+    '--bind', path.resolve(workspace), '/workspace'];
   args.push('--clearenv');
   for (const [k, v] of Object.entries(shellEnv('/workspace'))) if (v) args.push('--setenv', k, v);
-  args.push('--chdir', '/workspace', '/bin/bash', '-c', command);
+  args.push('--chdir', '/workspace', '--', '/bin/bash', '-c', command);
   try {
     const { stdout, stderr } = await execFileAsync(bwrap, args, { timeout, maxBuffer });
     return { code: 0, output: `${stdout ?? ''}${stderr ? `\n${stderr}` : ''}`, sandboxed: true };
   } catch (e: any) {
-    return { code: typeof e?.code === 'number' ? e.code : 1, output: `${e?.stdout ?? ''}\n${e?.stderr ?? e?.message ?? ''}`, sandboxed: true };
+    return { ...formatShellError(e, safeTimeoutSec), sandboxed: true };
   }
 }

@@ -199,7 +199,7 @@ function describeEventSlug(schedule: string) {
   return `When ${app.charAt(0) + app.slice(1).toLowerCase()}: ${words.join(' ').toLowerCase()}`;
 }
 
-export function toRoutine(r: any): Routine {
+export function toRoutine(r: any, latestRun?: { id: string; state: Routine['lastRunState']; summary: string | null }): Routine {
   let nextRunAt: number | null = null;
   try {
     nextRunAt = r.enabled ? new Cron(r.schedule, { timezone: r.timezone, paused: true }).nextRun()?.getTime() ?? null : null;
@@ -207,10 +207,27 @@ export function toRoutine(r: any): Routine {
   return {
     id: r.id, botId: r.bot_id, name: r.name, prompt: r.prompt, schedule: r.schedule, timezone: r.timezone,
     enabled: !!r.enabled, nextRunAt, lastRunAt: r.last_run_at, description: r.schedule.startsWith('event:') ? describeEventSlug(r.schedule) : describeCron(r.schedule),
+    lastRunState: latestRun?.state ?? null,
+    lastRunSummary: latestRun?.summary ?? null,
+    lastRunId: latestRun?.id ?? null,
   };
 }
 
-export const listRoutines = (botId: string) => (db.prepare('SELECT * FROM routines WHERE bot_id=? ORDER BY created_at').all(botId) as any[]).map(toRoutine);
+export const listRoutines = (botId: string) => {
+  const routines = db.prepare('SELECT * FROM routines WHERE bot_id=? ORDER BY created_at').all(botId) as any[];
+  const latestRows = db.prepare(`
+    SELECT a.id, a.routine_id, a.state, a.summary
+    FROM agent_runs a
+    INNER JOIN (
+      SELECT routine_id, MAX(rowid) AS max_rowid
+      FROM agent_runs
+      WHERE bot_id=? AND routine_id IS NOT NULL
+      GROUP BY routine_id
+    ) latest ON a.rowid = latest.max_rowid
+  `).all(botId) as Array<{ id: string; routine_id: string; state: Routine['lastRunState']; summary: string | null }>;
+  const byRoutine = new Map(latestRows.map((row) => [row.routine_id, row]));
+  return routines.map((r) => toRoutine(r, byRoutine.get(r.id)));
+};
 
 export const toTask = (r: any): Task => ({ id: r.id, botId: r.bot_id, title: r.title, state: r.state, note: r.note, updatedAt: r.updated_at });
 export const listTasks = (botId: string) => (db.prepare('SELECT * FROM tasks WHERE bot_id=? ORDER BY updated_at DESC').all(botId) as any[]).map(toTask);

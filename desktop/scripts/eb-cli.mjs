@@ -31,6 +31,8 @@ export function resolveElectronBuilderCli(dir) {
   throw new Error(`electron-builder CLI not found under ${dir}; run npm install there first.`);
 }
 
+const VALID_RELEASE_TYPES = new Set(['draft', 'prerelease', 'release']);
+
 /**
  * Translate wrapper arguments into electron-builder arguments.
  * `--release-type <value>` (or RELEASE_TYPE in the environment) becomes
@@ -42,17 +44,30 @@ export function buildElectronBuilderArgs(argv, releaseTypeFromEnv = '') {
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--release-type') {
-      releaseType = (argv[i + 1] || '').trim();
+      const next = (argv[i + 1] ?? '').trim();
+      if (!next || next.startsWith('-')) {
+        throw new Error('--release-type requires a value (draft, prerelease, or release).');
+      }
+      releaseType = next;
       i++;
       continue;
     }
     if (arg.startsWith('--release-type=')) {
-      releaseType = arg.slice('--release-type='.length).trim();
+      const value = arg.slice('--release-type='.length).trim();
+      if (!value) {
+        throw new Error('--release-type= requires a value (draft, prerelease, or release).');
+      }
+      releaseType = value;
       continue;
     }
     forwarded.push(arg);
   }
-  if (releaseType) forwarded.push(`-c.publish.releaseType=${releaseType}`);
+  if (releaseType) {
+    if (!VALID_RELEASE_TYPES.has(releaseType)) {
+      throw new Error(`Invalid release type "${releaseType}" (expected draft, prerelease, or release).`);
+    }
+    forwarded.push(`-c.publish.releaseType=${releaseType}`);
+  }
   return forwarded;
 }
 

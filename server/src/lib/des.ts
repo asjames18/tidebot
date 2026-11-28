@@ -56,6 +56,9 @@ function block(input: Uint8Array, keys: number[][]): Uint8Array {
 
 /** VNC auth response: DES-encrypt the 16-byte challenge with the password (bit-reversed bytes, padded to 8). */
 export function vncAuthResponse(password: string, challenge: Uint8Array): Buffer {
+  if (!(challenge instanceof Uint8Array) || challenge.length !== 16) {
+    throw new RangeError(`VNC auth challenge must be exactly 16 bytes (got ${challenge?.length ?? 0})`);
+  }
   const key = new Uint8Array(8);
   const pw = Buffer.from(password, 'latin1');
   for (let i = 0; i < 8; i++) {

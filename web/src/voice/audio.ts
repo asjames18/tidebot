@@ -3,13 +3,19 @@
 export const RATE = 24000;
 
 // The worklet code lives in web/public/pcm-worklet.js (served same-origin).
-const loadedContexts = new WeakSet<BaseAudioContext>();
+const workletLoads = new WeakMap<BaseAudioContext, Promise<void>>();
 
 async function ensureWorklet(ctx: AudioContext) {
-  if (loadedContexts.has(ctx)) return;
-  // Served as a real same-origin file (web/public/pcm-worklet.js) — blob: worklets are CSP-fragile.
-  await ctx.audioWorklet.addModule('/pcm-worklet.js');
-  loadedContexts.add(ctx);
+  let pending = workletLoads.get(ctx);
+  if (!pending) {
+    // Served as a real same-origin file (web/public/pcm-worklet.js) — blob: worklets are CSP-fragile.
+    pending = ctx.audioWorklet.addModule('/pcm-worklet.js').catch((err) => {
+      workletLoads.delete(ctx);
+      throw err;
+    });
+    workletLoads.set(ctx, pending);
+  }
+  await pending;
 }
 
 /** Create (and resume) an AudioContext. Call this synchronously inside a click handler so autoplay rules allow it. */
@@ -25,7 +31,7 @@ export function micErrorMessage(e: unknown): string {
   if (name === 'NotAllowedError' || name === 'SecurityError') return 'Microphone access was blocked. Allow it in your browser’s site settings.';
   if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'No microphone found.';
   if (name === 'NotReadableError') return 'Your microphone is in use by another app.';
-  if (!navigator.mediaDevices?.getUserMedia) return 'This browser can’t use the microphone here (it needs HTTPS or localhost).';
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'This browser can’t use the microphone here (it needs HTTPS or localhost).';
   return (e as Error)?.message || 'Could not open the microphone.';
 }
 
@@ -40,12 +46,15 @@ export class MicCapture {
   private source: MediaStreamAudioSourceNode | null = null;
   private node: AudioWorkletNode | null = null;
   private sink: GainNode | null = null;
+  private stopped = false;
   level = 0;
 
   constructor(private ctx: AudioContext, private stream: MediaStream, private onFrame: (pcm: Int16Array) => void) {}
 
   async start() {
+    if (this.stopped) return;
     await ensureWorklet(this.ctx);
+    if (this.stopped) return;
     this.source = this.ctx.createMediaStreamSource(this.stream);
     this.node = new AudioWorkletNode(this.ctx, 'pcm16-capture', { processorOptions: { rate: RATE }, numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1, channelCountMode: 'explicit' });
     this.node.port.onmessage = (e: MessageEvent<{ pcm: ArrayBuffer; level: number }>) => {
@@ -64,6 +73,7 @@ export class MicCapture {
   }
 
   stop() {
+    this.stopped = true;
     try { this.source?.disconnect(); this.node?.disconnect(); this.sink?.disconnect(); } catch { /* already gone */ }
     if (this.node) this.node.port.onmessage = null;
     for (const t of this.stream.getTracks()) t.stop();
@@ -93,7 +103,7 @@ export class PcmPlayer {
   get playing() { return this.sources.size > 0; }
 
   push(pcm: Int16Array, rate = RATE) {
-    if (!pcm.length) return;
+    if (!pcm.length || !Number.isFinite(rate) || rate <= 0) return;
     if (this.ctx.state === 'suspended') void this.ctx.resume().catch(() => {});
     const buf = this.ctx.createBuffer(1, pcm.length, rate);
     const ch = buf.getChannelData(0);
@@ -126,9 +136,19 @@ export class PcmPlayer {
 
   whenIdle(maxMs = 15000): Promise<void> {
     if (!this.sources.size) return Promise.resolve();
+    const waitMs = Number.isFinite(maxMs) ? Math.max(0, maxMs) : 15000;
     return new Promise((resolve) => {
-      const t = setTimeout(resolve, maxMs);
-      this.idleWaiters.push(() => { clearTimeout(t); resolve(); });
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(t);
+        const idx = this.idleWaiters.indexOf(done);
+        if (idx !== -1) this.idleWaiters.splice(idx, 1);
+        resolve();
+      };
+      const t = setTimeout(done, waitMs);
+      this.idleWaiters.push(done);
     });
   }
 

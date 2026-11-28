@@ -216,7 +216,7 @@ export function SearchModal() {
         {
           id: 'clone-bot',
           title: `Clone ${selectedBot.name}`,
-          sub: 'Duplicate instructions, skills, and model configuration into a new Operator',
+          sub: 'Duplicate job, model, tools, and memory seed into a new Operator',
           keywords: 'clone duplicate copy operator',
           run: () => {
             close();
@@ -227,6 +227,16 @@ export function SearchModal() {
             }).catch(() => {
               useStore.getState().notify(`Could not clone ${selectedBot.name}`);
             });
+          },
+        },
+        {
+          id: 'export-bot-template',
+          title: `Export ${selectedBot.name} as Operator template (.json)`,
+          sub: 'Download shareable Operator template (job, model, tools, memory seed — no secrets)',
+          keywords: 'export download template json operator share',
+          run: () => {
+            close();
+            window.open(api.exportBotTemplateUrl(selectedBot.id), '_blank');
           },
         },
         {

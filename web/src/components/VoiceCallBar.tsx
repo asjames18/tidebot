@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { botVars } from '../lib/colors';
+import { deriveVoiceCallSummary, formatCallDuration } from '../lib/voiceCallBar';
 import { useStore } from '../store';
 import { callLevels, endCall, startCall, toggleMute, useVoice } from '../voice/call';
 
@@ -22,11 +23,6 @@ function HangUpGlyph() {
   );
 }
 
-const fmt = (ms: number) => {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-};
-
 /** In-call bar shown above the composer while a voice call is connecting, live, or just failed. */
 export function VoiceCallBar() {
   const v = useVoice();
@@ -35,7 +31,8 @@ export function VoiceCallBar() {
   const [expanded, setExpanded] = useState(false);
   const avatarRef = useRef<HTMLSpanElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
-  const active = v.status === 'connecting' || v.status === 'live';
+  const summary = deriveVoiceCallSummary(v);
+  const { active, working, statusText, taskText, shimmer, visibleCaptions: lines, recentCaptions: last } = summary;
 
   const blurMobileKeyboard = () => {
     if (typeof window !== 'undefined' && window.innerWidth <= 900) {
@@ -56,10 +53,24 @@ export function VoiceCallBar() {
     return () => clearInterval(t);
   }, [v.status]);
 
+  useEffect(() => {
+    setExpanded(false);
+  }, [v.botId]);
+
   // Drive the speaking animation from the output level without re-rendering React every frame.
   // Pause rAF while the tab is hidden to save mobile CPU/battery.
   useEffect(() => {
-    if (!active) return;
+    const clearLevels = () => {
+      const el = avatarRef.current;
+      if (el) {
+        el.style.removeProperty('--out');
+        el.style.removeProperty('--mic');
+      }
+    };
+    if (!active) {
+      clearLevels();
+      return;
+    }
     let raf = 0;
     let out = 0;
     let mic = 0;
@@ -85,6 +96,7 @@ export function VoiceCallBar() {
     return () => {
       if (raf) cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', syncVis);
+      clearLevels();
     };
   }, [active]);
 
@@ -94,23 +106,9 @@ export function VoiceCallBar() {
 
   if (v.status === 'idle' || v.status === 'ending' || !bot) return null;
 
-  const working = v.working.length > 0;
-  const status =
-    v.status === 'connecting' ? 'Connecting…'
-    : v.status === 'error' ? v.error ?? 'Call ended'
-    : v.speaking ? 'Speaking'
-    : v.listening ? 'Listening'
-    : working ? 'Working on it…'
-    : v.thinking ? 'Thinking…'
-    : v.muted ? 'Muted'
-    : 'Listening';
-  const lines = v.captions.filter((c) => c.text.trim());
-  const last = lines.slice(-2);
-  const task = working ? v.working[v.working.length - 1].request : '';
-
   return (
     <div
-      className={`vcall is-${v.status}${v.speaking ? ' is-speaking' : ''}${v.listening ? ' is-listening' : ''}${working ? ' is-working' : ''}`}
+      className={`vcall is-${v.status}${v.speaking ? ' is-speaking' : ''}${v.listening && !v.muted ? ' is-listening' : ''}${working ? ' is-working' : ''}`}
       style={botVars(bot.avatarColor)}
       role="region"
       aria-label={`Voice call with ${bot.name}`}
@@ -123,15 +121,17 @@ export function VoiceCallBar() {
         <div className="vcall__info">
           <div className="vcall__title">
             <span className="vcall__name">{bot.name}</span>
-            {v.status === 'live' && v.startedAt && <span className="vcall__time">{fmt(now - v.startedAt)}</span>}
+            {v.status === 'live' && v.startedAt !== null && Number.isFinite(v.startedAt) && (
+              <span className="vcall__time">{formatCallDuration(now - v.startedAt)}</span>
+            )}
           </div>
           <div
-            className={`vcall__status${working && !v.speaking && !v.listening ? ' vcall__shimmer' : ''}`}
+            className={`vcall__status${shimmer ? ' vcall__shimmer' : ''}`}
             role={v.status === 'error' ? 'alert' : undefined}
             aria-live={v.status === 'error' ? 'assertive' : 'polite'}
           >
-            {status}
-            {working && <span className="vcall__task" title={task}> · {task}</span>}
+            {statusText}
+            {taskText && <span className="vcall__task" title={taskText}> · {taskText}</span>}
           </div>
         </div>
         <div className="vcall__actions">
@@ -185,7 +185,19 @@ export function VoiceCallBar() {
                 onClick={() => {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
                   blurMobileKeyboard();
-                  useVoice.setState({ status: 'idle', botId: null, error: null });
+                  useVoice.setState({
+                    status: 'idle',
+                    botId: null,
+                    callId: null,
+                    muted: false,
+                    speaking: false,
+                    listening: false,
+                    thinking: false,
+                    working: [],
+                    captions: [],
+                    error: null,
+                    startedAt: null,
+                  });
                 }}
                 aria-label="Dismiss"
               >

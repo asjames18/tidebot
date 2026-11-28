@@ -125,6 +125,7 @@ class VoiceCall {
     try {
       this.mic = new MicCapture(this.ctx, stream, (pcm) => this.sendAudio(pcm));
       await this.mic.start();
+      if (this.ended) return;
       this.sess = await voiceApi.session(this.botId);
       if (this.ended) { void voiceApi.end(this.botId, this.sess.callId, [], 'Cancelled'); return; }
       setV({ callId: this.sess.callId });
