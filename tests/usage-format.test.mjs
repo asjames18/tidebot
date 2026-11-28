@@ -65,3 +65,34 @@ test('formatUsageSummary shows reported tokens, optional cost, and partial-repor
   assert.equal(tokensOnly.note, 'Reported for 2 of 3 calls');
   assert.equal(tokensOnly.inline, '1.0k tok · cost not reported');
 });
+
+test('formatUsageSummary shows reported cost even when token counts are missing', () => {
+  assert.deepEqual(formatUsageSummary({
+    calls: 2,
+    reportedCalls: 0,
+    costReportedCalls: 1,
+    inputTokens: null,
+    outputTokens: null,
+    totalTokens: null,
+    costUsd: 0,
+  }), {
+    tokens: 'Usage not reported by provider',
+    cost: '$0.00',
+    note: 'Cost reported for 1 of 2 calls',
+    inline: 'Tokens not reported · $0.00 (1 of 2 calls)',
+  });
+});
+
+test('formatUsageSummary distinguishes token and cost reporting coverage', () => {
+  const partial = formatUsageSummary({
+    calls: 3,
+    reportedCalls: 2,
+    costReportedCalls: 1,
+    inputTokens: 300,
+    outputTokens: 100,
+    totalTokens: 400,
+    costUsd: 0.02,
+  });
+  assert.equal(partial.note, 'Tokens reported for 2 of 3 calls · Cost reported for 1 of 3 calls');
+  assert.equal(partial.inline, '400 tok · $0.020 (1 of 3 calls)');
+});
