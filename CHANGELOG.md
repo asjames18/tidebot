@@ -16,7 +16,7 @@ behavior change. One line per change, grouped under `Added`, `Changed`,
 
 ### Added
 
-- Docker self-host path: `Dockerfile`, `docker-compose.yml`, and `.dockerignore`
+- Docker self-host path: `Dockerfile`, `compose.yml`, and `.dockerignore`
   with a persistent `tidebot-data` volume, plus `docs/self-host.md` (#3).
 - Desktop auto-update controls, with a manual-download fallback when a Mac
   build cannot install; the Mac updater no longer loops on "Reconnecting" (#7).
