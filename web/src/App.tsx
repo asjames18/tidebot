@@ -33,5 +33,10 @@ export function App() {
     };
   }, []);
   if (!authChecked) return <div className="boot" />;
-  return user ? <Suspense fallback={<div className="boot" />}><Shell /><SetupWizard /></Suspense> : <SignIn />;
+  return user ? (
+    <Suspense fallback={<div className="boot" />}>
+      <Shell />
+      <SetupWizard key={user.id} />
+    </Suspense>
+  ) : <SignIn />;
 }
