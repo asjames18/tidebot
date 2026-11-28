@@ -108,3 +108,37 @@ test('setup verifies a new OpenRouter key before storing it', async (t) => {
   assert.ok(!rejected.error.includes(rejectedKey));
   assert.equal(getLlmConfig(user.id).openrouterKey, sampleKey);
 });
+
+test('setup verifies a model change against the saved OpenRouter key', async (t) => {
+  const { getPersonalModel, savePersonalModel } = await import('../server/dist/agent/llm.js');
+  const { user } = await (await call('/auth/me')).json();
+  const key = 'sk-or-v1-' + 'c'.repeat(64);
+  const replacementKey = 'sk-or-v1-' + 'd'.repeat(64);
+  savePersonalModel(user.id, key, 'openrouter/free');
+  const requestProvider = t.mock.method(globalThis, 'fetch', async (input, options) => {
+    const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+    assert.equal(url.origin, 'https://openrouter.ai');
+    assert.equal(new Headers(options?.headers ?? input.headers).get('authorization'), 'Bearer ' + key);
+    const { model } = options?.body ? JSON.parse(options.body) : await input.clone().json();
+    if (model === 'fixture/unavailable') return Response.json({ error: { message: 'Model unavailable' } }, { status: 404 });
+    if (model === 'fixture/rotating') savePersonalModel(user.id, replacementKey, 'fixture/replacement');
+    else assert.equal(model, 'fixture/working');
+    return Response.json({ choices: [{ message: { content: 'Fixture reply.' } }] });
+  });
+  const connect = (defaultModel) => call('/llm/personal/connect', 'POST', { defaultModel });
+  const rejected = await connect('fixture/unavailable');
+  assert.equal(rejected.status, 200);
+  assert.equal((await rejected.json()).ok, false);
+  assert.deepEqual(getPersonalModel(user.id), { key, model: 'openrouter/free' });
+  const accepted = await connect('fixture/working');
+  assert.equal(accepted.status, 200);
+  assert.equal((await accepted.json()).ok, true);
+  assert.deepEqual(getPersonalModel(user.id), { key, model: 'fixture/working' });
+
+  assert.equal((await connect('fixture/rotating')).status, 409);
+  assert.deepEqual(getPersonalModel(user.id), { key: replacementKey, model: 'fixture/replacement' });
+
+  savePersonalModel(user.id, '', 'fixture/replacement');
+  assert.equal((await connect('fixture/working')).status, 400);
+  assert.equal(requestProvider.mock.callCount(), 3);
+});

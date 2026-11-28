@@ -16,6 +16,9 @@ export function SetupSection() {
   const [orgoBusy, setOrgoBusy] = useState(false);
   const [orgoResult, setOrgoResult] = useState<{ ok: boolean; message: string }>();
   const [result, setResult] = useState<{ ok: boolean; message: string }>();
+  const newKey = key.trim();
+  const selectedModel = model.trim();
+  const modelChanged = account && selectedModel !== account.defaultModel;
 
   useEffect(() => {
     let active = true;
@@ -30,14 +33,15 @@ export function SetupSection() {
     setBusy(true);
     setResult(undefined);
     try {
-      const response = key.trim()
-        ? await configApi.connectPersonalModel(key.trim(), model.trim())
+      const response = newKey || modelChanged
+        ? await configApi.connectPersonalModel(newKey || undefined, selectedModel)
         : await configApi.testPersonalModel();
       if (!response.ok) {
         setResult({ ok: false, message: response.error ?? 'OpenRouter did not respond. Check the key and model, then try again.' });
         return;
       }
       setKey('');
+      setModel(response.model);
       setResult({ ok: true, message: `Verified a reply using ${response.model}.` });
       await Promise.all([
         configApi.personalModel().then(setAccount),
@@ -63,16 +67,16 @@ export function SetupSection() {
         <label className="cfg-field" htmlFor="setup-openrouter">
           <span className="cfg-field__label">Your OpenRouter API key</span>
           <input id="setup-openrouter" className="text-input" type="password" autoComplete="off"
-            placeholder={account.hasKey ? 'Key already saved' : 'sk-or-v1-…'} value={key} onChange={(event) => setKey(event.target.value)} />
+            placeholder={account.hasKey ? 'Key already saved' : 'sk-or-v1-…'} value={key} onChange={(event) => setKey(event.target.value)} disabled={busy} />
         </label>
         <a className="cfg-field__hint" href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">Create a key at OpenRouter ↗</a>
         <label className="cfg-field" htmlFor="setup-model">
           <span className="cfg-field__label">Default model</span>
-          <input id="setup-model" className="text-input" value={model} onChange={(event) => setModel(event.target.value)} />
+          <input id="setup-model" className="text-input" value={model} onChange={(event) => setModel(event.target.value)} disabled={busy} />
         </label>
-        <p className="cfg-field__hint">TideBot sends a short test prompt and saves a new key only after a successful reply. OpenRouter may charge for model usage.</p>
-        <button className="cfg-btn cfg-btn--primary" type="submit" disabled={busy || (!key.trim() && !account.hasKey)}>
-          {busy ? 'Testing…' : account.hasKey && !key.trim() ? 'Test saved key' : 'Connect and test OpenRouter'}
+        <p className="cfg-field__hint">TideBot sends a short test prompt and saves your changes after a successful reply. OpenRouter may charge for model usage.</p>
+        <button className="cfg-btn cfg-btn--primary" type="submit" disabled={busy || (!newKey && !account.hasKey)}>
+          {busy ? 'Testing…' : newKey || !account.hasKey ? 'Connect and test OpenRouter' : modelChanged ? 'Test and save model' : 'Test saved key'}
         </button>
       </form>}
       {result && <p className={`byom-status ${result.ok ? 'is-ok' : 'is-err'}`} role={result.ok ? 'status' : 'alert'}>{result.message}</p>}

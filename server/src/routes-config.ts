@@ -14,7 +14,7 @@ import { checkComposioConnection } from './composio.js';
 import { runInBotQueue } from './agent/loop.js';
 import { localWorkspaceDir } from './agent/tools.js';
 import { consolidateBot, historySize, maybeCompact, memoryConfig } from './agent/memory.js';
-import { completeText, fetchModelsCatalog, getPublicLlmConfig, publicPersonalModel, saveLlmConfig, savePersonalModel, testLlmConnection, testOpenRouterKey } from './agent/llm.js';
+import { completeText, fetchModelsCatalog, getPersonalModel, getPublicLlmConfig, publicPersonalModel, saveLlmConfig, savePersonalModel, testLlmConnection, testOpenRouterKey } from './agent/llm.js';
 import { idleConfig, viewerCount } from './idle.js';
 import { assertPublicUrl } from './lib/ssrf.js';
 import { listWorkspaceDirectory, resolveWithinWorkspace, resolveWorkspaceEntryForDelete, writeWorkspaceFile } from './lib/files.js';
@@ -66,15 +66,23 @@ configApi.post('/llm/personal/test', async (c) => {
 configApi.post('/llm/personal/connect', async (c) => {
   if (!c.get('verifiedSession')) return c.json({ error: 'Sign in with your account to connect OpenRouter.' }, 403);
   const { openrouterKey, defaultModel } = (await c.req.json<{ openrouterKey?: unknown; defaultModel?: unknown }>().catch(() => null)) ?? {};
-  if (typeof openrouterKey !== 'string' || !/^sk-or-v1-[a-f0-9]{64}$/.test(openrouterKey)) {
+  if (openrouterKey !== undefined && (typeof openrouterKey !== 'string' || !/^sk-or-v1-[a-f0-9]{64}$/.test(openrouterKey))) {
     return c.json({ error: 'Enter a valid OpenRouter API key.' }, 400);
   }
   if (typeof defaultModel !== 'string' || defaultModel.length > 200 || /\s/.test(defaultModel)) {
     return c.json({ error: 'Enter a valid OpenRouter model ID.' }, 400);
   }
   const userId = c.get('user').id;
-  const result = await testOpenRouterKey(userId, openrouterKey, defaultModel);
-  if (result.ok) savePersonalModel(userId, openrouterKey, result.model);
+  const key = openrouterKey ?? getPersonalModel(userId)?.key;
+  if (!key) return c.json({ error: 'Enter an OpenRouter API key to connect this model.' }, 400);
+
+  const result = await testOpenRouterKey(userId, key, defaultModel);
+  if (result.ok) {
+    if (openrouterKey === undefined && getPersonalModel(userId)?.key !== key) {
+      return c.json({ error: 'Your saved OpenRouter key changed during the test. Try again.' }, 409);
+    }
+    savePersonalModel(userId, openrouterKey, result.model);
+  }
   c.header('Cache-Control', 'no-store');
   return c.json(result);
 });

@@ -38,7 +38,7 @@ export const configApi = {
   personalModel: () => req<{ active: boolean; hasKey: boolean; defaultModel: string; canInvite: boolean }>('GET', '/llm/personal'),
   savePersonalModel: (defaultModel: string, openrouterKey?: string) => req<{ active: boolean; hasKey: boolean; defaultModel: string; canInvite: boolean }>('PUT', '/llm/personal', { defaultModel, openrouterKey }),
   testPersonalModel: () => req<{ ok: boolean; model: string; error?: string }>('POST', '/llm/personal/test'),
-  connectPersonalModel: (openrouterKey: string, defaultModel: string) =>
+  connectPersonalModel: (openrouterKey: string | undefined, defaultModel: string) =>
     req<{ ok: boolean; model: string; error?: string }>('POST', '/llm/personal/connect', { openrouterKey, defaultModel }),
   connectOrgo: (apiKey: string) => req<{ ok: boolean }>('POST', '/llm/connect-orgo', { apiKey }),
   llmConfig: () => req<LlmConfigPublic>('GET', '/llm/config'),
