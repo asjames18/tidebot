@@ -315,6 +315,7 @@ Contributions are welcome — bug reports, docs, new Operator tools, provider in
 - 💬 Questions & ideas: [open a Discussion](https://github.com/asjames18/tidebot/discussions).
 - 📜 Community standards: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - 📦 Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — licenses for bundled work.
+- 🗺️ Roadmap: [ROADMAP.md](ROADMAP.md) — where TideBot is headed, phase by phase.
 
 ---
 
