@@ -54,6 +54,11 @@ export function SetupWizard() {
     useStore.getState().setModal('create');
   }, []);
 
+  const goChat = useCallback(() => {
+    setOpen(false);
+    useConfigUI.getState().setView('chat');
+  }, []);
+
   if (!userId || failed || !status || status.setupComplete || dismissed) return null;
   const steps = wizardSteps(status);
   const done = steps.filter((s) => s.done).length;
@@ -85,7 +90,7 @@ export function SetupWizard() {
                 <span>{step.detail}</span>
                 {!step.done && step.action === 'models' && <span><button type="button" className="cfg-btn" onClick={goModels}>Open model settings</button></span>}
                 {!step.done && step.action === 'create' && <span><button type="button" className="cfg-btn" onClick={goCreate}>Create an Operator</button></span>}
-                {!step.done && step.action === 'chat' && <span><button type="button" className="cfg-btn" onClick={() => setOpen(false)}>Start chatting</button></span>}
+                {!step.done && step.action === 'chat' && <span><button type="button" className="cfg-btn" onClick={goChat}>Start chatting</button></span>}
               </div>
             </li>
           ))}
