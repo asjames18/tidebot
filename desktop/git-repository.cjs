@@ -67,10 +67,19 @@ async function changes(repository) {
 }
 
 async function readNewFile(repository, name) {
-  const target = path.resolve(repository, name);
-  const file = await fs.lstat(target);
+  const canonicalRepo = await fs.realpath(repository);
+  const target = path.resolve(canonicalRepo, name);
+  let file;
+  try {
+    file = await fs.lstat(target);
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      return { text: '', note: 'This file is no longer on disk. Refresh to see current changes.' };
+    }
+    throw err;
+  }
   if (!file.isFile()) return { text: '', note: 'This new entry is not a regular file.' };
-  const relative = path.relative(repository, await fs.realpath(target));
+  const relative = path.relative(canonicalRepo, await fs.realpath(target));
   if (!relative || relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) {
     return { text: '', note: 'This file is outside the selected repository.' };
   }
@@ -79,9 +88,11 @@ async function readNewFile(repository, name) {
     if (!(await handle.stat()).isFile()) return { text: '', note: 'This new entry is not a regular file.' };
     const buffer = Buffer.alloc(MAX_NEW_FILE + 1);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+    const truncated = bytesRead > MAX_NEW_FILE;
     const bytes = buffer.subarray(0, Math.min(MAX_NEW_FILE, bytesRead));
     if (bytes.includes(0)) return { text: '', note: 'Binary file.' };
-    return { text: bytes.toString('utf8'), note: bytesRead > MAX_NEW_FILE ? 'Showing the first 64 KB.' : '' };
+    const text = new TextDecoder('utf-8').decode(bytes, { stream: truncated });
+    return { text, note: truncated ? 'Showing the first 64 KB.' : '' };
   } finally {
     await handle.close();
   }
@@ -103,21 +114,22 @@ async function diff(repository, name) {
 }
 
 async function createWorktree(repository, parent) {
+  const canonicalRepo = await fs.realpath(repository);
   const root = await fs.realpath(parent);
-  const relative = path.relative(repository, root);
+  const relative = path.relative(canonicalRepo, root);
   if (relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith('..' + path.sep))) {
     throw new Error('Choose a folder outside the source repository.');
   }
 
   // Checkout can run configured content filters. Leave those checkouts to the user's Git client.
-  if (await hasFilters(repository, 'clean|smudge|process')) {
+  if (await hasFilters(canonicalRepo, 'clean|smudge|process')) {
     throw new Error('This repository uses checkout filters. Create its worktree with Git and open it here.');
   }
-  const leaf = path.basename(repository).replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 40) || 'repository';
+  const leaf = path.basename(canonicalRepo).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'repository';
   const suffix = randomUUID().slice(0, 8);
   const branch = `tidebot/${leaf}-${suffix}`;
   const directory = path.join(root, `${leaf}-tidebot-${suffix}`);
-  await git(repository, ['worktree', 'add', '-b', branch, '--', directory, 'HEAD'], { timeout: 60000 });
+  await git(canonicalRepo, ['worktree', 'add', '-b', branch, '--', directory, 'HEAD'], { timeout: 60000 });
   return directory;
 }
 
