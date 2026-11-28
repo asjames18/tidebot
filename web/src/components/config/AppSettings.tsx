@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LlmProvider, ShaderStyle, Toolkit } from '@shared/types';
 import { BotAvatarFor } from '../../avatar/BotAvatar';
@@ -47,6 +47,22 @@ export function AppSettings() {
   const mainTouchStartYRef = useRef<number | null>(null);
   const swipeRef = useRef<{ x: number; y: number; locked: boolean | null } | null>(null);
   const [dragX, setDragX] = useState(0);
+
+  useLayoutEffect(() => {
+    const previous = document.activeElement;
+    const studio = document.getElementById('root');
+    const wasInert = studio?.inert ?? false;
+    if (studio) studio.inert = true;
+    if (!previous?.closest('.modal-root')) {
+      navRef.current?.querySelector<HTMLButtonElement>('.app-settings__back')?.focus({ preventScroll: true });
+    }
+    return () => {
+      if (studio) studio.inert = wasInert;
+      if (previous instanceof HTMLElement && previous.isConnected && !document.activeElement?.closest('.modal-root')) {
+        previous.focus({ preventScroll: true });
+      }
+    };
+  }, []);
 
   const blurActiveOnMobile = () => {
     if (typeof window !== 'undefined' && window.innerWidth <= 900) {
