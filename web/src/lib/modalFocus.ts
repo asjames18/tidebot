@@ -2,7 +2,7 @@
 export const MODAL_FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export const MODAL_AUTOFOCUS_SELECTOR = '[autofocus]:not([disabled]):not([type="hidden"])';
+export const MODAL_AUTOFOCUS_SELECTOR = ':is([autofocus], [data-modal-autofocus]):not([disabled]):not([type="hidden"])';
 
 export function initialModalControlSelector(mobile: boolean): string {
   return mobile

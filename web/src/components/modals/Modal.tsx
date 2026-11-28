@@ -10,6 +10,12 @@ import {
   shouldDismissOnEscape,
 } from '../../lib/modalFocus';
 
+function frontDialogRoot() {
+  // These portals share a z-index, so the last one in the body is in front.
+  const roots = document.body.querySelectorAll(':scope > .modal-root');
+  return roots[roots.length - 1];
+}
+
 /** 50% black scrim + centered dialog. Escape and scrim click close. Focus is trapped inside and restored on close. */
 export function Modal({ onClose, children, className, label, top }: { onClose: () => void; children: ReactNode; className?: string; label: string; top?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -111,9 +117,12 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
   };
 
   useEffect(() => {
+    const root = ref.current?.parentElement;
+    if (!root) return;
     const prev = document.activeElement as HTMLElement | null;
     const visible = (el: HTMLElement) => el.offsetParent !== null || el === document.activeElement;
     const k = (e: KeyboardEvent) => {
+      if (frontDialogRoot() !== root) return;
       if (shouldDismissOnEscape(e)) { e.preventDefault(); safeClose(); return; }
       if (e.key !== 'Tab' || !ref.current) return;
       const els = [...ref.current.querySelectorAll<HTMLElement>(MODAL_FOCUSABLE_SELECTOR)].filter(visible);
@@ -124,7 +133,7 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
     window.addEventListener('keydown', k);
     const t = setTimeout(() => {
       const dialog = ref.current;
-      if (!dialog) return;
+      if (!dialog || frontDialogRoot() !== root) return;
       if (document.activeElement && document.activeElement !== dialog && dialog.contains(document.activeElement)) return;
       const mobile = window.innerWidth <= 900;
       const isVisible = (el: HTMLElement) => el.offsetParent !== null;
@@ -137,7 +146,8 @@ export function Modal({ onClose, children, className, label, top }: { onClose: (
       window.removeEventListener('keydown', k);
       clearTimeout(t);
       const isMobileInput = window.innerWidth <= 900 && prev && (prev.tagName === 'INPUT' || prev.tagName === 'TEXTAREA' || prev.tagName === 'SELECT');
-      if (!isMobileInput && prev?.isConnected) prev.focus?.();
+      const front = frontDialogRoot();
+      if (!isMobileInput && prev?.isConnected && (!front || front === root || front.contains(prev))) prev.focus?.();
     };
   }, []);
   return createPortal(

@@ -308,7 +308,7 @@ export function SearchModal() {
         <span className="search-modal__icon"><Icon name="search" size={18} opacity={0.56} /></span>
         <input
           ref={inputRef}
-          autoFocus
+          data-modal-autofocus
           enterKeyHint="go"
           autoCapitalize="none"
           autoCorrect="off"
