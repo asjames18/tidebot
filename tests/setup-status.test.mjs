@@ -48,17 +48,21 @@ test('setupStatus flips hasOperator when the user creates an Operator', () => {
   assert.equal(s.setupComplete, false);
 });
 
-test('setupStatus counts only finished runs, and only for your own bots', () => {
-  // A still-running run does not count.
-  addRun.run('run_1', 'bot_1', 'chat', 'Hello', null, 'running', now, now, null, null);
+test('setupStatus counts successful runs from your visible Operators', () => {
+  addRun.run('run_running', 'bot_1', 'chat', 'Hello', null, 'running', now, now, null, null);
+  addRun.run('run_failed', 'bot_1', 'chat', 'Hello', null, 'failed', now, now, now, 'Could not run');
+  addRun.run('run_interrupted', 'bot_1', 'chat', 'Hello', null, 'interrupted', now, now, now, 'Interrupted');
+  addBot.run('bot_2', 'usr_2', 'Other', '', '', '', 'blob', 'blue', 'personal', '', 1, now, now);
+  addRun.run('run_other', 'bot_2', 'chat', 'Hello', null, 'completed', now, now, now, 'Finished');
+  addBot.run('bot_hidden', 'usr_1', 'Helper', '', '', '', 'blob', 'blue', 'personal', '', 0, now, now);
+  db.prepare('UPDATE bots SET hidden=1 WHERE id=?').run('bot_hidden');
+  addRun.run('run_hidden', 'bot_hidden', 'chat', 'Hello', null, 'completed', now, now, now, 'Finished');
   assert.equal(setupStatus('usr_1').hasCompletedRun, false);
-  // A finished run does.
-  addRun.run('run_2', 'bot_1', 'chat', 'Hello', null, 'done', now, now, now, 'did it');
+  assert.equal(setupStatus('usr_1').setupComplete, false);
+
+  addRun.run('run_completed', 'bot_1', 'chat', 'Hello', null, 'completed', now, now, now, 'Finished');
   assert.equal(setupStatus('usr_1').hasCompletedRun, true);
   assert.equal(setupStatus('usr_1').setupComplete, true);
-  // Another user's Operator and finished run do not leak into your status.
-  addBot.run('bot_2', 'usr_2', 'Other', '', '', '', 'blob', 'blue', 'personal', '', 1, now, now);
-  addRun.run('run_3', 'bot_2', 'chat', 'Hello', null, 'done', now, now, now, 'did it');
   assert.deepEqual(setupStatus('usr_2'), {
     modelConfigured: true,
     provider: 'openrouter',

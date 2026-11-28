@@ -14,8 +14,9 @@ export function setupStatus(userId: string): SetupStatus {
     count('SELECT COUNT(*) n FROM bots WHERE user_id=? AND COALESCE(hidden,0)=0') > 0;
   const hasCompletedRun =
     count(
-      'SELECT COUNT(*) n FROM agent_runs r JOIN bots b ON b.id=r.bot_id ' +
-        'WHERE b.user_id=? AND r.finished_at IS NOT NULL',
+      `SELECT EXISTS(SELECT 1 FROM agent_runs r JOIN bots b ON b.id=r.bot_id
+        WHERE b.user_id=? AND COALESCE(b.hidden,0)=0
+          AND r.state='completed' AND r.finished_at IS NOT NULL) AS n`,
     ) > 0;
   return {
     modelConfigured: cfg.isConfigured,
