@@ -1081,16 +1081,31 @@ function humanizeTool(slug: string): { app: string; action: string } {
 }
 
 function PermissionsSection() {
-  const [policies, setPolicies] = useState<{ tool: string; mode: string }[] | null>(null);
+  const [policies, setPolicies] = useState<{ tool: string; mode: string }[] | 'error' | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
-  const load = useCallback(() => { configApi.policies().then((r) => setPolicies(r.policies)).catch(() => setPolicies([])); }, []);
-  useEffect(() => { load(); }, [load]);
+  const loadId = useRef(0);
+  const load = useCallback(async () => {
+    const id = ++loadId.current;
+    setPolicies(null);
+    try {
+      const { policies } = await configApi.policies();
+      if (id === loadId.current) setPolicies(policies);
+    } catch {
+      if (id === loadId.current) setPolicies('error');
+    }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
   return (
     <>
       <PageHead title="Permissions" sub="Actions your Operators can take without asking first. Remove one and they’ll ask again next time." />
       <section className="cfg-section">
         <div className="cfg-card">
-          {policies === null ? <div className="cfg-empty cfg-empty--flat">Loading…</div> : policies.length === 0 ? (
+          {policies === 'error' ? (
+            <div className="cfg-empty cfg-empty--flat">
+              <p role="alert">Could not load permissions.</p>
+              <button type="button" className="cfg-btn cfg-btn--secondary" onClick={() => void load()}>Retry permissions</button>
+            </div>
+          ) : policies === null ? <div className="cfg-empty cfg-empty--flat" role="status">Loading…</div> : policies.length === 0 ? (
             <div className="cfg-empty cfg-empty--flat">Nothing here yet. When you choose “Always allow” on an approval, it shows up here.</div>
           ) : policies.map((p) => {
             const h = humanizeTool(p.tool);
