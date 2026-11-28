@@ -42,11 +42,18 @@ export function formatUsageSummary(usage: UsageSummary | undefined): FormattedUs
     };
   }
 
-  if (usage.reportedCalls === 0) {
+  const { calls, reportedCalls, costReportedCalls, costUsd } = usage;
+  const cost = costUsd === null ? 'Cost not reported' : formatCostUsd(costUsd);
+  const costCoverage = costUsd !== null && costReportedCalls < calls ? `${costReportedCalls} of ${calls} calls` : '';
+  const costNote = costCoverage ? `Cost reported for ${costCoverage}` : '';
+  const inlineCost = costCoverage ? `${cost} (${costCoverage})` : costUsd === null ? 'cost not reported' : cost;
+
+  if (reportedCalls === 0) {
     return {
       tokens: 'Usage not reported by provider',
-      cost: 'Cost not reported',
-      inline: 'Usage not reported by provider',
+      cost,
+      ...(costNote ? { note: costNote } : {}),
+      inline: costUsd === null ? 'Usage not reported by provider' : `Tokens not reported · ${inlineCost}`,
     };
   }
 
@@ -58,13 +65,11 @@ export function formatUsageSummary(usage: UsageSummary | undefined): FormattedUs
     ? `${formatTokenCount(total)} tokens (${breakdown.join(' · ')})`
     : `${formatTokenCount(total)} tokens`;
 
-  const cost = usage.costUsd !== null ? formatCostUsd(usage.costUsd) : 'Cost not reported';
-  const note = usage.reportedCalls < usage.calls
-    ? `Reported for ${usage.reportedCalls} of ${usage.calls} calls`
-    : undefined;
-  const inline = usage.costUsd !== null
-    ? `${formatTokenCount(total)} tok · ${cost}`
-    : `${formatTokenCount(total)} tok · cost not reported`;
+  const tokenNote = reportedCalls < calls
+    ? `${costUsd === null ? 'Reported' : 'Tokens reported'} for ${reportedCalls} of ${calls} calls`
+    : '';
+  const note = [tokenNote, costNote].filter(Boolean).join(' · ');
+  const inline = `${formatTokenCount(total)} tok · ${inlineCost}`;
 
   return { tokens, cost, ...(note ? { note } : {}), inline };
 }
