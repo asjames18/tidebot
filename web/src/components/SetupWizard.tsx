@@ -12,13 +12,7 @@ const DISMISS_KEY = 'tidebot.setup-wizard-dismissed';
  * First-run wizard (plan §2.2): a five-step checklist driven by
  * GET /api/setup/status. While setup is incomplete a floating "Finish setup"
  * pill opens it; Skip dismisses it for good. Skippable and resumable — the
- * status is re-read every time it opens. The status endpoint ships with
- * draft #184; until then the read fails and the wizard stays hidden.
- *
- * Known overlap to unify later: Shell already auto-opens Settings → "Connect
- * a model" on first login when no model is configured. Once this wizard and
- * #184 land, that auto-open could open the wizard instead — one-line
- * follow-up, maintainer's call.
+ * status is re-read every time it opens.
  */
 export function SetupWizard() {
   const userId = useStore((s) => s.user?.id);
@@ -31,6 +25,7 @@ export function SetupWizard() {
 
   const refresh = useCallback(() => {
     if (!userId) return;
+    setFailed(false);
     configApi.setupStatus()
       .then((value) => setStatus(value))
       .catch(() => setFailed(true));
@@ -54,7 +49,7 @@ export function SetupWizard() {
     useStore.getState().setModal('create');
   }, []);
 
-  if (!userId || failed || !status || status.setupComplete || dismissed) return null;
+  if (!userId || !status || status.setupComplete || dismissed) return null;
   const steps = wizardSteps(status);
   const done = steps.filter((s) => s.done).length;
 
@@ -76,6 +71,10 @@ export function SetupWizard() {
           <button type="button" className="modal__close" onClick={() => setOpen(false)} aria-label="Close">×</button>
         </div>
         <p style={{ margin: '0 0 12px' }}>Five quick steps to a working first Operator. You can skip any time — your progress is saved.</p>
+        {failed && <div className="cfg-error">
+          <p role="alert">Could not refresh setup progress.</p>
+          <button type="button" className="cfg-btn cfg-btn--secondary" onClick={refresh}>Retry setup progress</button>
+        </div>}
         <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
           {steps.map((step) => (
             <li key={step.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
