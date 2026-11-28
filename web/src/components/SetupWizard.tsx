@@ -10,8 +10,8 @@ const DISMISS_KEY = 'tidebot.setup-wizard-dismissed';
 
 /**
  * First-run wizard (plan §2.2): a five-step checklist driven by
- * GET /api/setup/status. While setup is incomplete a floating "Finish setup"
- * pill opens it; Skip dismisses it for good. Skippable and resumable — the
+ * GET /api/setup/status. The "Finish setup" button opens the checklist
+ * while setup is incomplete. Skip dismisses it for good. The
  * status is re-read every time it opens. The status endpoint ships with
  * draft #184; until then the read fails and the wizard stays hidden.
  *
@@ -59,16 +59,11 @@ export function SetupWizard() {
   const done = steps.filter((s) => s.done).length;
 
   return <>
-    {!open && (
-      <button
-        type="button"
-        className="cfg-btn cfg-btn--primary"
-        onClick={() => { refresh(); setOpen(true); }}
-        style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, borderRadius: 999, padding: '10px 16px', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}
-      >
-        Finish setup · {done}/{steps.length}
-      </button>
-    )}
+    <button type="button" className="cfg-btn cfg-btn--primary setup-wizard-trigger"
+      onClick={() => { refresh(); setOpen(true); }}
+    >
+      Finish setup · {done}/{steps.length}
+    </button>
     {open && (
       <Modal onClose={() => setOpen(false)} className="setup-wizard" label="Finish setup">
         <div className="modal__header">
