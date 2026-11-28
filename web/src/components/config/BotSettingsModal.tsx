@@ -3,6 +3,7 @@ import type { AvatarColor, AvatarShape, Bot, Memory, Routine, Skill } from '@sha
 import { BotAvatar, BotAvatarFor, PICKER_SHAPES } from '../../avatar/BotAvatar';
 import { COLOR_ORDER, botVars, palette } from '../../lib/colors';
 import { configApi, type BotSettingsBundle } from '../../lib/configApi';
+import { dividerLabel } from '../../lib/time';
 import { useConfigUI, useVersion, type BotSettingsTab } from '../../configStore';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
@@ -1279,6 +1280,11 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
       <div className="cfg-item__text">
         <div className="cfg-item__title">{r.name}</div>
         <div className="cfg-item__sub">{enabled ? [r.description || r.schedule, nextRunLabel(r.nextRunAt, r.timezone)].filter(Boolean).join(' · ') : 'Paused'}</div>
+        <div className="cfg-item__sub">
+          {r.lastRunAt === null ? 'Never triggered' : <>
+            Last triggered <time dateTime={new Date(r.lastRunAt).toISOString()}>{dividerLabel(r.lastRunAt)}</time>
+          </>}
+        </div>
         <div className="cfg-item__prompt">{r.prompt}</div>
       </div>
       <div className="cfg-item__actions">
