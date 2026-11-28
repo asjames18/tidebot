@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
 import { startEvents } from '../lib/events';
 import {
   detectEdgeSwipeStart,
@@ -24,7 +24,7 @@ const TasksView = lazy(() => import('./config/TasksView').then((m) => ({ default
 const ComputerViewer = lazy(() => import('./ComputerViewer').then((m) => ({ default: m.ComputerViewer })));
 const DetailsPanel = lazy(() => import('./DetailsPanel').then((m) => ({ default: m.DetailsPanel })));
 
-export function Shell() {
+export function Shell({ children }: { children: ReactNode }) {
   const detailsOpen = useStore((s) => s.detailsOpen);
   const mobileSidebarOpen = useStore((s) => s.mobileSidebarOpen);
   const set = useStore((s) => s.set);
@@ -193,6 +193,7 @@ export function Shell() {
       <Toasts />
       <div className="app__main">
         <ReleaseNotice />
+        {children}
         {view === 'tasks' ? <Suspense fallback={null}><TasksView /></Suspense> : <ChatView />}
       </div>
       {detailsOpen && hasBot && view === 'chat' && <Suspense fallback={null}><DetailsPanel /></Suspense>}
