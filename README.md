@@ -322,3 +322,5 @@ Contributions are welcome — bug reports, docs, new Operator tools, provider in
 ## 📄 License
 
 Released under the [MIT License](LICENSE).
+
+Built by Melanated in Tech.
