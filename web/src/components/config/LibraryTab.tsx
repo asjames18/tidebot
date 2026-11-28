@@ -13,12 +13,10 @@ import { ConfirmButton, formatBytes } from './ui';
 /** Files the bot saved under its workspace or /root/grokbot/files/<botId>. */
 export function LibraryTab({ bot }: { bot: Bot }) {
   const awake = useStore((s) => s.computer?.status === 'running');
-  // Scope folder path to bot.id so switching bots immediately resolves to '' on the first render.
-  const [loc, setLoc] = useState<{ botId: string; path: string }>({ botId: bot.id, path: '' });
-  const path = loc.botId === bot.id ? loc.path : '';
+  const [path, setFolderPath] = useState('');
   const setPath = (next: string) => {
     fileGateRef.current.invalidate();
-    setLoc({ botId: bot.id, path: next });
+    setFolderPath(next);
   };
   const [list, setList] = useState<LibraryListing | null>(null);
   const [loading, setLoading] = useState(false);
@@ -57,16 +55,6 @@ export function LibraryTab({ bot }: { bot: Bot }) {
     }
   }, [bot.id, path]);
 
-  useEffect(() => {
-    listGateRef.current.invalidate();
-    fileGateRef.current.invalidate();
-    setLoc({ botId: bot.id, path: '' });
-    setList(null);
-    setPreview(null);
-    setCreating(false);
-    setBusyFile(null);
-    setError(null);
-  }, [bot.id]);
   useEffect(() => { load(); }, [load, awake]);
 
   const download = async (f: LibraryFile) => {
