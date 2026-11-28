@@ -22,11 +22,12 @@ const DISMISS_KEY = 'tidebot.setup-wizard-dismissed';
  */
 export function SetupWizard() {
   const userId = useStore((s) => s.user?.id);
+  const dismissKey = `${DISMISS_KEY}:${userId}`;
   const [status, setStatus] = useState<SetupStatus | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState<boolean>(() => {
-    try { return localStorage.getItem(DISMISS_KEY) === '1'; } catch { return false; }
+    try { return localStorage.getItem(dismissKey) === '1'; } catch { return false; }
   });
 
   const refresh = useCallback(() => {
@@ -41,8 +42,8 @@ export function SetupWizard() {
   const dismiss = useCallback(() => {
     setOpen(false);
     setDismissed(true);
-    try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* wizard stays available */ }
-  }, []);
+    try { localStorage.setItem(dismissKey, '1'); } catch { /* wizard stays available */ }
+  }, [dismissKey]);
 
   const goModels = useCallback(() => {
     setOpen(false);
