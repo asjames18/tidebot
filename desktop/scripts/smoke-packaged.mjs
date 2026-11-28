@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { cp, lstat, mkdtemp, readdir, rm } from 'node:fs/promises';
 import { once } from 'node:events';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -31,11 +32,17 @@ try {
 
   const email = 'fixture@example.test';
   const password = 'packaging-only-test-password';
+  const listener = createServer().listen(0, '127.0.0.1');
+  await once(listener, 'listening');
+  const { port } = listener.address();
+  const released = once(listener, 'close');
+  listener.close();
+  await released;
   const { NODE_PATH, ...environment } = process.env;
   child = spawn(binary, [path.join(resources, 'server', 'dist', 'index.js')], {
     cwd: resources, stdio: ['ignore', 'pipe', 'pipe'],
     env: {
-      ...environment, ELECTRON_RUN_AS_NODE: '1', HOST: '127.0.0.1', PORT: '0',
+      ...environment, ELECTRON_RUN_AS_NODE: '1', HOST: '127.0.0.1', PORT: String(port),
       ENV_PATH: path.join(temp, '.env'), DB_PATH: path.join(temp, 'qa.db'),
       WEB_DIST_DIR: path.join(resources, 'web', 'dist'),
       STUDIO_EMAIL: email, STUDIO_PASSWORD: password, DEV_LOGIN: '0',
