@@ -27,8 +27,12 @@ export function SearchModal() {
   const llmConfig = useConfigUI((s) => s.llmConfig);
   const setLlmConfig = useConfigUI((s) => s.setLlmConfig);
   const [q, setQ] = useState('');
-  const [remote, setRemote] = useState<SearchResults | null>(null);
-  const [searchingRemote, setSearchingRemote] = useState(false);
+  const [remoteSearch, setRemoteSearch] = useState<{ query: string; results: SearchResults | null } | null>(null);
+  const query = q.trim();
+  const currentSearch = remoteSearch?.query === query ? remoteSearch : null;
+  const remote = currentSearch?.results;
+  const searchingRemote = query.length >= 2 && !currentSearch;
+  const remoteFailed = currentSearch?.results === null;
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -47,22 +51,18 @@ export function SearchModal() {
   const byId = useMemo(() => new Map(bots.map((b) => [b.id, b])), [bots]);
 
   useEffect(() => {
-    const needle = q.trim();
-    if (needle.length < 2) {
-      setRemote(null);
-      setSearchingRemote(false);
+    if (query.length < 2) {
+      setRemoteSearch(null);
       return;
     }
     let alive = true;
-    setSearchingRemote(true);
     const t = setTimeout(() => {
-      api.search(needle)
-        .then((res) => { if (alive) setRemote(res); })
-        .catch(() => {})
-        .finally(() => { if (alive) setSearchingRemote(false); });
+      api.search(query)
+        .then((results) => { if (alive) setRemoteSearch({ query, results }); })
+        .catch(() => { if (alive) setRemoteSearch({ query, results: null }); });
     }, 160);
     return () => { alive = false; clearTimeout(t); };
-  }, [q]);
+  }, [query]);
 
   const openBot = useCallback((id: string) => {
     useConfigUI.getState().setView('chat');
@@ -391,7 +391,7 @@ export function SearchModal() {
         })}
         {items.length === 0 && (
           <div className="search-modal__empty" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <span>{searchingRemote ? 'Searching…' : `Nothing matches “${q}”`}</span>
+            <span role="status">{searchingRemote ? 'Searching…' : remoteFailed ? 'Couldn’t search messages, memories, or tasks.' : `Nothing matches “${q}”`}</span>
             {!searchingRemote && q && (
               <button
                 type="button"
