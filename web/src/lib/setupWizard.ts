@@ -7,15 +7,13 @@ export interface WizardStep {
   title: string;
   detail: string;
   done: boolean;
-  action: 'models' | 'create' | 'chat';
+  action?: 'models' | 'create' | 'chat';
 }
 
 /**
  * The plan's five wizard steps, derived from the setup-status read.
- * Steps 1–3 share the modelConfigured signal: the connect flow only saves a
- * key after a successful test reply, so a configured model implies the
- * provider is chosen, the key is in, and the connection was tested. A key
- * that came from .env shows the same state — test it in Settings if unsure.
+ * Steps 1–3 reflect saved configuration. A provider can be configured
+ * through the UI or environment, and compatible endpoints may run keyless.
  * Step 4 (create an Operator) does not pick a template: template picks are
  * a maintainer decision (plan §16), so the wizard opens the normal create
  * flow and the user picks there.
@@ -28,27 +26,23 @@ export function wizardSteps(status: SetupStatus): WizardStep[] {
       title: 'Choose a model provider',
       detail: model
         ? `Using ${status.provider} — ${status.defaultModel}.`
-        : 'OpenRouter, xAI, or a local model via Ollama.',
+        : 'Choose OpenRouter, xAI, or an OpenAI-compatible endpoint such as Ollama.',
       done: model,
       action: 'models',
     },
     {
       id: 'key',
-      title: 'Add your key or point at Ollama',
+      title: 'Add a key or enter a model URL',
       detail: model
-        ? 'Key saved.'
-        : 'Paste a key in Settings → Models, or point at a local model.',
+        ? (status.provider === 'custom' ? 'Model endpoint configured.' : 'API key configured.')
+        : 'Enter a provider key or the URL of your model endpoint in Settings.',
       done: model,
-      action: 'models',
     },
     {
       id: 'test',
-      title: 'Test the connection',
-      detail: model
-        ? 'The connect flow only saves a key after a successful reply.'
-        : 'TideBot sends a short test prompt before saving a key.',
+      title: 'Set up the model connection',
+      detail: 'Use the connection test in Settings to check that the model responds.',
       done: model,
-      action: 'models',
     },
     {
       id: 'operator',

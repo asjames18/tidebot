@@ -6,11 +6,11 @@ import { wizardSteps } from '../web/src/lib/setupWizard.ts';
 
 const base = { provider: 'openrouter', defaultModel: 'openrouter/free' };
 
-test('fresh user: all five steps pending, model steps point at Settings', () => {
+test('fresh user: all five steps pending, with one action for model settings', () => {
   const steps = wizardSteps({ ...base, modelConfigured: false, hasOperator: false, hasCompletedRun: false, setupComplete: false });
   assert.equal(steps.length, 5);
   assert.deepEqual(steps.map((s) => s.done), [false, false, false, false, false]);
-  assert.deepEqual(steps.slice(0, 3).map((s) => s.action), ['models', 'models', 'models']);
+  assert.deepEqual(steps.slice(0, 3).map((s) => s.action), ['models', undefined, undefined]);
   assert.equal(steps[3].action, 'create');
   assert.equal(steps[4].action, 'chat');
 });
@@ -20,6 +20,17 @@ test('model configured: first three steps done and named', () => {
   assert.deepEqual(steps.map((s) => s.done), [true, true, true, false, false]);
   assert.match(steps[0].detail, /openrouter/);
   assert.match(steps[0].detail, /openrouter\/free/);
+  assert.equal(steps[1].detail, 'API key configured.');
+});
+
+test('a configured compatible endpoint shows endpoint guidance without claiming a saved key', () => {
+  const steps = wizardSteps({
+    provider: 'custom', defaultModel: 'llama3.2', modelConfigured: true,
+    hasOperator: true, hasCompletedRun: false, setupComplete: false,
+  });
+  assert.equal(steps[1].detail, 'Model endpoint configured.');
+  assert.equal(steps[2].title, 'Set up the model connection');
+  assert.equal(steps[4].done, false);
 });
 
 test('operator + finished run: every step done', () => {
