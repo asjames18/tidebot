@@ -1,0 +1,54 @@
+name: Security
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan history for leaked secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  forbidden-files:
+    name: Block .env / .db / certificates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fail if a forbidden file is tracked
+        run: |
+          forbidden=$(git ls-files | grep -E '(^|/)\.env(\..*)?$|\.db$|\.pem$|\.key$|\.p12$|\.pfx$|\.cer$|\.sqlite3?$' | grep -vE '(^|/)\.env\.example$' || true)
+          if [ -n "$forbidden" ]; then
+            echo "::error::Forbidden files are tracked in this repo — remove them before merging:"
+            echo "$forbidden"
+            exit 1
+          fi
+          echo "No forbidden files tracked."
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Review new dependencies
+        uses: actions/dependency-review-action@v4
