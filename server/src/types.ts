@@ -215,6 +215,24 @@ export interface LiveState {
 export interface Routine {
   id: string; botId: string; name: string; prompt: string; schedule: string; timezone: string;
   enabled: boolean; nextRunAt: number | null; lastRunAt: number | null; description: string;
+  lastRunState?: AgentRunState | null;
+  lastRunSummary?: string | null;
+  lastRunId?: string | null;
+}
+
+export interface RoutineDryRunResult {
+  ok: boolean;
+  dryRun: true;
+  routineId: string;
+  botId: string;
+  name: string;
+  kind: 'cron' | 'event';
+  schedule: string;
+  timezone: string;
+  enabled: boolean;
+  nextRunAt: number | null;
+  promptPreview: string;
+  warnings: string[];
 }
 
 export interface Task { id: string; botId: string; title: string; state: 'working' | 'needs_input' | 'done'; note: string; updatedAt: number }

@@ -72,6 +72,29 @@ export function listRuns(botId: string) {
   return rows.map((r) => toRun(r, byRun.get(r.id) ?? emptyUsageSummary()));
 }
 
+export function listRoutineRuns(routineId: string, limit = 20) {
+  const safeLimit = Math.min(Math.max(Math.floor(limit), 1), 50);
+  return (db.prepare('SELECT * FROM agent_runs WHERE routine_id=? ORDER BY rowid DESC LIMIT ?').all(routineId, safeLimit) as RunRecord[]).map((r) => toRun(r));
+}
+
+export function latestRoutineRuns(botId: string): Map<string, AgentRun> {
+  const rows = db.prepare(`
+    SELECT a.*
+    FROM agent_runs a
+    INNER JOIN (
+      SELECT routine_id, MAX(rowid) AS max_rowid
+      FROM agent_runs
+      WHERE bot_id=? AND routine_id IS NOT NULL
+      GROUP BY routine_id
+    ) latest ON a.rowid = latest.max_rowid
+  `).all(botId) as RunRecord[];
+  const out = new Map<string, AgentRun>();
+  for (const r of rows) {
+    if (r.routine_id) out.set(r.routine_id, toRun(r));
+  }
+  return out;
+}
+
 export function getRun(botId: string, runId: string) {
   const r = db.prepare('SELECT * FROM agent_runs WHERE bot_id=? AND id=?').get(botId, runId) as RunRecord | undefined;
   return r && toRun(r, summarizeRunUsage(db, botId, r.id));

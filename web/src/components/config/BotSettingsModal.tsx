@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AvatarColor, AvatarShape, Bot, Memory, Routine, Skill } from '@shared/types';
+import type { AgentRun, AvatarColor, AvatarShape, Bot, Memory, Routine, RoutineDryRunResult, Skill } from '@shared/types';
 import { BotAvatar, BotAvatarFor, PICKER_SHAPES } from '../../avatar/BotAvatar';
 import { COLOR_ORDER, botVars, palette } from '../../lib/colors';
 import { configApi, type BotSettingsBundle } from '../../lib/configApi';
@@ -1264,7 +1264,24 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
   const [enabled, setEnabled] = useState(r.enabled);
   const [toggling, setToggling] = useState(false);
   const [runningNow, setRunningNow] = useState(false);
+  const [dryRunning, setDryRunning] = useState(false);
+  const [dryResult, setDryResult] = useState<RoutineDryRunResult | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [history, setHistory] = useState<AgentRun[] | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   useEffect(() => setEnabled(r.enabled), [r.enabled]);
+
+  const loadHistory = useCallback(() => {
+    setHistoryError(null);
+    configApi.routineRuns(r.id)
+      .then(({ runs }) => setHistory(runs))
+      .catch((e) => setHistoryError((e as Error).message));
+  }, [r.id]);
+
+  useEffect(() => {
+    if (historyOpen) loadHistory();
+  }, [historyOpen, r.lastRunAt, r.lastRunState, loadHistory]);
+
   const toggle = async (v: boolean) => {
     if (toggling) return;
     setToggling(true);
@@ -1273,20 +1290,93 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
     catch { setEnabled(!v); onFlash('Could not update routine'); }
     finally { setToggling(false); }
   };
+
+  const runDry = () => {
+    if (dryRunning) return;
+    setDryRunning(true);
+    configApi.dryRunRoutine(r.id)
+      .then((res) => {
+        setDryResult(res);
+        onFlash(res.ok ? 'Dry run passed' : `Dry run: ${res.warnings.length} warning${res.warnings.length === 1 ? '' : 's'}`);
+      })
+      .catch((e) => onFlash((e as Error).message))
+      .finally(() => setDryRunning(false));
+  };
+
+  const runStateLabel = (state: AgentRun['state']) =>
+    state === 'completed' ? 'Completed' : state === 'failed' ? 'Failed' : state === 'running' ? 'Running'
+      : state === 'waiting' ? 'Waiting for approval' : state === 'interrupted' ? 'Interrupted' : 'Queued';
+
   return (
-    <div className="cfg-item cfg-item--routine">
+    <div className="cfg-item cfg-item--routine" style={{ flexWrap: 'wrap' }}>
       <span className="cfg-item__icon"><Icon name="clock" size={14} /></span>
       <div className="cfg-item__text">
         <div className="cfg-item__title">{r.name}</div>
         <div className="cfg-item__sub">{enabled ? [r.description || r.schedule, nextRunLabel(r.nextRunAt, r.timezone)].filter(Boolean).join(' · ') : 'Paused'}</div>
         <div className="cfg-item__prompt">{r.prompt}</div>
+        {r.lastRunState === 'failed' && (
+          <div className="cfg-error" role="alert" style={{ marginTop: 6 }}>
+            Last run failed: {r.lastRunSummary || 'See run history for details.'}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+          <button type="button" className="link-btn link-btn--small" disabled={dryRunning} onClick={runDry}>
+            {dryRunning ? 'Checking…' : 'Dry run'}
+          </button>
+          <button
+            type="button"
+            className="link-btn link-btn--small"
+            aria-expanded={historyOpen}
+            onClick={() => setHistoryOpen((open) => !open)}
+          >
+            {historyOpen ? 'Hide history' : 'Run history'}
+          </button>
+        </div>
+        {dryResult && (
+          <div className="cfg-field__hint" role="status" style={{ marginTop: 6 }}>
+            <strong>{dryResult.ok ? 'Dry run OK' : 'Dry run warnings'}</strong>
+            {dryResult.nextRunAt ? ` · Next scheduled: ${new Date(dryResult.nextRunAt).toLocaleString()}` : ''}
+            {dryResult.warnings.length > 0 && (
+              <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                {dryResult.warnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+        {historyOpen && (
+          <div style={{ marginTop: 8 }}>
+            {historyError && <div className="cfg-error" role="alert">{historyError}</div>}
+            {!history && !historyError && <div className="cfg-field__hint">Loading run history…</div>}
+            {history && history.length === 0 && <div className="cfg-field__hint">No runs recorded yet.</div>}
+            {history && history.length > 0 && (
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {history.map((run) => (
+                  <li key={run.id} className="cfg-field__hint" style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span>
+                      <strong>{runStateLabel(run.state)}</strong>
+                      {' · '}
+                      {run.source === 'manual-routine' ? 'Test fire' : run.source === 'event' ? 'Event' : 'Scheduled'}
+                      {' · '}
+                      {new Date(run.createdAt).toLocaleString()}
+                    </span>
+                    {run.summary && (
+                      <span style={run.state === 'failed' ? { color: 'var(--color-danger-text)' } : undefined}>
+                        {run.summary}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
       <div className="cfg-item__actions">
         <button
           type="button"
           className="cfg-icon-btn"
-          title="Run now"
-          aria-label={`Run ${r.name} now`}
+          title="Test fire (run now)"
+          aria-label={`Test fire ${r.name} now`}
           disabled={runningNow}
           onClick={() => {
             if (runningNow) return;
@@ -1295,7 +1385,11 @@ function RoutineItem({ r, onFlash, onEdit, onRefresh }: { r: Routine; onFlash: (
             }
             setRunningNow(true);
             configApi.runRoutine(r.id)
-              .then(() => onFlash('Running now'))
+              .then(() => {
+                onFlash('Test-fired routine');
+                onRefresh();
+                if (historyOpen) loadHistory();
+              })
               .catch((e) => onFlash(e.message))
               .finally(() => setRunningNow(false));
           }}

@@ -16,7 +16,7 @@ import { createSession, destroySession, requireUser, userFromCookieHeader, type 
 import { hashPassword, verifyPassword } from './lib/passwords.js';
 import { deleteProject, listProjects, projectDraft, saveProject } from './projects.js';
 import { researchPlan } from './research.js';
-import { getRun, listRuns } from './runs.js';
+import { getRun, listRoutineRuns, listRuns } from './runs.js';
 import { allLive, appendRow, clearConversation, describeCron, emitBot, getBot, getBotRow, getRow, listBots, listRoutines, listRows, listRunRows, listTasks, toRoutine, updateRow } from './store.js';
 import { enqueue, interrupt, resolveApproval } from './agent/loop.js';
 import { getLlmConfig, getPersonalModel, getPublicLlmConfig } from './agent/llm.js';
@@ -24,7 +24,7 @@ import { buildOperatorTemplate, operatorTemplateFilename, validateOperatorTempla
 import { computerState, ensureComputer, refreshComputer, suspendComputer } from './computer.js';
 import { orgo } from './orgo.js';
 import { catalog, connectedToolkits, deleteConnection, disconnect, googleProfile, startConnect, startGoogleLogin, toolkitInfo } from './composio.js';
-import { MAX_ROUTINES_PER_BOT, runRoutine, scheduleRoutine, routineScheduleChangeError, unscheduleRoutine, validateRoutineSchedule } from './routines.js';
+import { MAX_ROUTINES_PER_BOT, dryRunRoutine, runRoutine, scheduleRoutine, routineScheduleChangeError, unscheduleRoutine, validateRoutineSchedule } from './routines.js';
 import { deleteEventTrigger, deleteEventTriggersForBot, isEventSchedule, setEventRoutineEnabled } from './triggers.js';
 import { dispatchRoomMessage } from './agent/rooms.js';
 import { voiceApi } from './voice.js';
@@ -724,8 +724,27 @@ api.patch('/routines/:id', async (c) => {
 api.post('/routines/:id/run', (c) => {
   const r = db.prepare('SELECT r.* FROM routines r JOIN bots b ON b.id=r.bot_id WHERE r.id=? AND b.user_id=?').get(c.req.param('id'), c.get('user').id) as any;
   if (!r) return c.json({ error: 'not found' }, 404);
-  runRoutine(r.id, 'manual-routine', enqueue);
-  return c.json({ ok: true });
+  if (c.req.query('dryRun') === '1') {
+    const preview = dryRunRoutine(r.id);
+    return preview ? c.json(preview) : c.json({ error: 'not found' }, 404);
+  }
+  const runId = runRoutine(r.id, 'manual-routine', enqueue);
+  return c.json({ ok: true, runId });
+});
+
+api.post('/routines/:id/dry-run', (c) => {
+  const r = db.prepare('SELECT r.* FROM routines r JOIN bots b ON b.id=r.bot_id WHERE r.id=? AND b.user_id=?').get(c.req.param('id'), c.get('user').id) as any;
+  if (!r) return c.json({ error: 'not found' }, 404);
+  const preview = dryRunRoutine(r.id);
+  return preview ? c.json(preview) : c.json({ error: 'not found' }, 404);
+});
+
+api.get('/routines/:id/runs', (c) => {
+  const r = db.prepare('SELECT r.* FROM routines r JOIN bots b ON b.id=r.bot_id WHERE r.id=? AND b.user_id=?').get(c.req.param('id'), c.get('user').id) as any;
+  if (!r) return c.json({ error: 'not found' }, 404);
+  c.header('Cache-Control', 'no-store');
+  const limit = Number(c.req.query('limit') ?? 20);
+  return c.json({ runs: listRoutineRuns(r.id, Number.isFinite(limit) ? limit : 20) });
 });
 
 api.delete('/routines/:id', async (c) => {

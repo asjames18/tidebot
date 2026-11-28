@@ -161,6 +161,7 @@ CREATE TABLE IF NOT EXISTS agent_runs (
   summary TEXT
 );
 CREATE INDEX IF NOT EXISTS agent_runs_bot ON agent_runs(bot_id);
+CREATE INDEX IF NOT EXISTS agent_runs_routine ON agent_runs(routine_id);
 `);
 addColumn('rows', 'run_id', 'TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS rows_run ON rows(bot_id, run_id, seq) WHERE run_id IS NOT NULL');
