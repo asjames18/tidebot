@@ -5,7 +5,7 @@ document: update it when a phase closes, not when work merely starts. The
 detailed plan behind it lives with the maintainers; this file is the version
 contributors plan around.
 
-**Last updated:** November 27, 2026. Development builds are prereleases
+**Last updated:** November 28, 2026. Development builds are prereleases
 (`v1.0.0-dev.*`); there is no stable 1.0 yet.
 
 ## How to read this
@@ -144,8 +144,7 @@ configuration documented and tested.
 **Status: in progress.** A skilled stranger should be able to go from finding
 the repo to a merged pull request in a weekend, and want to come back.
 
-- **On-ramps** — at least 10 good first issues stocked at all times, plus 5
-  help wanted items; `CONTRIBUTING.md` verified end to end on a clean
+- **On-ramps** — at least 10 good first issues stocked at all times (4 open as of November 28, 2026 — below target), plus 5 help wanted items (1 open); `CONTRIBUTING.md` verified end to end on a clean
   machine (setup, branch naming, verification checklist, desktop extra
   step), with the fresh-contributor setup time published; a "Your first PR"
   walkthrough with a real, tiny example change; `AGENTS.md` kept current
