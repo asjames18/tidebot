@@ -1,4 +1,4 @@
-import type { AgentRun, BotUsageResponse, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, RoutineDryRunResult, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
+import type { AgentRun, BotUsageResponse, Project, Row, Bot, ComputerState, LibraryFile, LlmConfigPublic, LlmProvider, Memory, ModelInfo, Routine, RoutineDryRunResult, SetupStatus, ShaderStyle, Skill, Task, Toolkit } from '@shared/types';
 import { ApiError } from './api';
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -42,6 +42,7 @@ export const configApi = {
     req<{ ok: boolean; model: string; error?: string }>('POST', '/llm/personal/connect', { openrouterKey, defaultModel }),
   connectOrgo: (apiKey: string) => req<{ ok: boolean }>('POST', '/llm/connect-orgo', { apiKey }),
   llmConfig: () => req<LlmConfigPublic>('GET', '/llm/config'),
+  setupStatus: () => req<SetupStatus>('GET', '/setup/status'),
   studioLlmConfig: () => req<LlmConfigPublic>('GET', '/llm/config?scope=studio'),
   saveLlmConfig: (p: Partial<{ provider: LlmProvider; openrouterKey: string; xaiKey: string; customBaseUrl: string; customApiKey: string; defaultModel: string; shaderStyle: ShaderStyle; composioKey: string; orgoKey: string }>) =>
     req<LlmConfigPublic>('PUT', '/llm/config', p),
