@@ -28,4 +28,18 @@ test('builds a cmd.exe command line with the executable first', () => {
     buildWindowsCommand('npx.cmd', ['-m', 'C:\\a b\\server']),
     'npx.cmd -m "C:\\a b\\server"',
   );
+  assert.equal(
+    buildWindowsCommand('C:\\Program Files\\nodejs\\npm.cmd', ['install']),
+    '"C:\\Program Files\\nodejs\\npm.cmd" install',
+  );
+});
+
+test('rejects CR/LF/NUL injection characters and empty commands', () => {
+  for (const bad of ['ok\ncalc.exe', 'ok\rcalc.exe', 'ok\0bad']) {
+    assert.throws(() => quoteForCmd(bad), /CR, LF, or NUL/);
+    assert.throws(() => buildWindowsCommand('npm.cmd', [bad]), /CR, LF, or NUL/);
+    assert.throws(() => buildWindowsCommand(bad, []), /CR, LF, or NUL/);
+  }
+  assert.throws(() => buildWindowsCommand('', ['install']), /non-empty/);
+  assert.throws(() => buildWindowsCommand('   ', ['install']), /non-empty/);
 });
