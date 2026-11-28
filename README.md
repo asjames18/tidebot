@@ -301,7 +301,7 @@ tidebot/
 
 Contributions are welcome — bug reports, docs, new Operator tools, provider integrations, UI polish. Great first contributions: an OpenRouter/Ollama model cookbook entry, a Composio tool example, or a WebGL shader preset.
 
-1. Read [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, branch naming, and the PR checklist.
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, branch naming, and the PR checklist. See [CHANGELOG.md](CHANGELOG.md) for what changed recently.
 2. Fork the repository and create a feature branch (`git checkout -b feat/amazing-capability`).
 3. Run verification before committing:
    ```bash
