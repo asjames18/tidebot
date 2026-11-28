@@ -686,7 +686,7 @@
   .section-label--row .link-btn:active, .members__add .link-btn:active,
   .details .panel-card .cfg-btn:active,
   .panel-row--routine:active, .panel-row--computer:active, .panel-row--link:active,
-  .task-row__text[role="button"]:active {
+  button.task-row__text:active {
     transform: scale(0.97);
     transition: transform 60ms ease-out;
   }
