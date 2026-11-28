@@ -1,13 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type RFBType from '@novnc/novnc';
 import { BotAvatarFor } from '../avatar/BotAvatar';
 import { api } from '../lib/api';
 import { botVars } from '../lib/colors';
+import {
+  buildScreenSocketUrl,
+  endTopSwipe,
+  IDLE_TOP_SWIPE,
+  moveTopSwipe,
+  shouldClearWaking,
+  shouldCloseViewerOnKey,
+  startTopSwipe,
+  type TopSwipeState,
+  type ViewerMode,
+} from '../lib/computerViewer';
 import { useSelectedBot, useStore } from '../store';
 import { computerStatusText } from './DetailsPanel';
 import { Icon } from './Icon';
 
-type Mode = 'watch' | 'control';
 type Conn = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 /** Fullscreen computer stage: noVNC over our relay. Watch mode is view-only; Take control reconnects with mode=control. */
@@ -17,37 +27,50 @@ export function ComputerViewer() {
   const set = useStore((s) => s.set);
   const screenRef = useRef<HTMLDivElement>(null);
   const rfbRef = useRef<RFBType | null>(null);
-  const [mode, setMode] = useState<Mode>('watch');
+  const mountedRef = useRef(true);
+  const swipeRef = useRef<TopSwipeState>(IDLE_TOP_SWIPE);
+  const [mode, setMode] = useState<ViewerMode>('watch');
   const [conn, setConn] = useState<Conn>('connecting');
   const [attempt, setAttempt] = useState(0);
   const [waking, setWaking] = useState(false);
-  const topSwipeY = useRef<number | null>(null);
-  const topSwipeX = useRef<number | null>(null);
   const [dragY, setDragY] = useState(0);
   const running = computer?.status === 'running';
   const busy = computer?.status === 'starting' || computer?.status === 'resuming' || computer?.status === 'creating';
 
-  const blurMobileKeyboard = () => {
+  const blurMobileKeyboard = useCallback(() => {
     if (typeof window !== 'undefined' && window.innerWidth <= 900) {
       const ae = document.activeElement;
       if (ae instanceof HTMLElement && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'CANVAS')) {
         ae.blur();
       }
     }
-  };
-
-  useEffect(() => {
-    blurMobileKeyboard();
   }, []);
 
   useEffect(() => {
-    if (running || busy) setWaking(false);
-  }, [running, busy]);
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    blurMobileKeyboard();
+  }, [blurMobileKeyboard]);
+
+  useEffect(() => {
+    if (shouldClearWaking(computer)) setWaking(false);
+  }, [computer]);
 
   useEffect(() => {
     setMode('watch');
+    swipeRef.current = IDLE_TOP_SWIPE;
     setDragY(0);
   }, [bot?.id]);
+
+  useEffect(() => {
+    if (mode !== 'watch') {
+      swipeRef.current = IDLE_TOP_SWIPE;
+      setDragY(0);
+    }
+  }, [mode]);
 
   // Mobile resume: automatically reconnect noVNC when returning from background sleep.
   useEffect(() => {
@@ -59,34 +82,35 @@ export function ComputerViewer() {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [running, conn]);
-  const close = () => {
+
+  const close = useCallback(() => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(8); } catch {} }
     blurMobileKeyboard();
+    swipeRef.current = IDLE_TOP_SWIPE;
     setDragY(0);
     set({ viewerOpen: false });
-  };
+  }, [blurMobileKeyboard, set]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       // In control mode Escape belongs to the remote desktop.
-      if (e.key === 'Escape' && mode === 'watch') { e.preventDefault(); close(); }
+      if (shouldCloseViewerOnKey(e, mode)) { e.preventDefault(); close(); }
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, close]);
 
   useEffect(() => {
-    if (!bot || !running || !screenRef.current) return;
+    const container = screenRef.current;
+    if (!bot || !running || !container) return;
     let disposed = false;
     let rfb: RFBType | null = null;
     setConn('connecting');
     (async () => {
       const { default: RFB } = await import('@novnc/novnc');
-      if (disposed || !screenRef.current) return;
-      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-      const url = `${proto}://${location.host}/api/bots/${bot.id}/screen?mode=${mode}`;
-      rfb = new RFB(screenRef.current, url, { shared: true });
+      if (disposed || !container.isConnected) return;
+      const url = buildScreenSocketUrl(location.protocol, location.host, bot.id, mode);
+      rfb = new RFB(container, url, { shared: true });
       rfb.viewOnly = mode === 'watch';
       rfb.scaleViewport = true;
       rfb.resizeSession = false;
@@ -96,12 +120,12 @@ export function ComputerViewer() {
       rfb.addEventListener('disconnect', (e) => { if (!disposed) setConn((e as CustomEvent<{ clean: boolean }>).detail?.clean ? 'disconnected' : 'error'); });
       rfb.addEventListener('securityfailure', () => { if (!disposed) setConn('error'); });
       rfbRef.current = rfb;
-    })().catch(() => setConn('error'));
+    })().catch(() => { if (!disposed) setConn('error'); });
     return () => {
       disposed = true;
       try { rfb?.disconnect(); } catch { /* already closed */ }
       rfbRef.current = null;
-      if (screenRef.current) screenRef.current.innerHTML = '';
+      container.innerHTML = '';
     };
   }, [bot?.id, running, mode, attempt]);
 
@@ -126,38 +150,30 @@ export function ComputerViewer() {
         className="viewer__top"
         style={mode === 'watch' ? { touchAction: 'none' } : undefined}
         onTouchStart={(e) => {
-          if (mode !== 'watch' || window.innerWidth > 900 || e.touches.length !== 1) return;
+          if (mode !== 'watch' || window.innerWidth > 900 || e.touches.length !== 1 || !e.touches[0]) return;
           if ((e.target as HTMLElement | null)?.closest('button')) return;
-          topSwipeX.current = e.touches[0].clientX;
-          topSwipeY.current = e.touches[0].clientY;
+          swipeRef.current = startTopSwipe(e.touches[0].clientX, e.touches[0].clientY);
         }}
         onTouchMove={(e) => {
-          if (topSwipeY.current === null || topSwipeX.current === null) return;
+          if (!swipeRef.current.active) return;
           if (e.touches.length !== 1 || !e.touches[0]) {
-            topSwipeY.current = null;
-            topSwipeX.current = null;
+            swipeRef.current = IDLE_TOP_SWIPE;
             setDragY(0);
             return;
           }
-          const dx = Math.abs(e.touches[0].clientX - topSwipeX.current);
-          const dy = e.touches[0].clientY - topSwipeY.current;
-          if (dx > Math.abs(dy) && dragY === 0) {
-            topSwipeY.current = null;
-            topSwipeX.current = null;
-            return;
-          }
-          if (dy > 6) setDragY(dy);
+          const next = moveTopSwipe(swipeRef.current, e.touches[0].clientX, e.touches[0].clientY);
+          swipeRef.current = next;
+          setDragY(next.dragY);
         }}
         onTouchEnd={() => {
-          if (topSwipeY.current === null) return;
-          topSwipeY.current = null;
-          topSwipeX.current = null;
-          if (dragY > 64) close();
+          if (!swipeRef.current.active) return;
+          const { shouldClose, next } = endTopSwipe(swipeRef.current);
+          swipeRef.current = next;
+          if (shouldClose) close();
           else setDragY(0);
         }}
         onTouchCancel={() => {
-          topSwipeY.current = null;
-          topSwipeX.current = null;
+          swipeRef.current = IDLE_TOP_SWIPE;
           setDragY(0);
         }}
       >
@@ -207,7 +223,7 @@ export function ComputerViewer() {
                   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) { try { navigator.vibrate(12); } catch {} }
                   setWaking(true);
                   api.ensureComputer().catch(() => {
-                    setWaking(false);
+                    if (mountedRef.current) setWaking(false);
                     useStore.getState().notify('Could not wake computer — check connection');
                   });
                 }}
